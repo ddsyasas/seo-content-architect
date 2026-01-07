@@ -1,16 +1,19 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { v4 as uuidv4 } from 'uuid';
 import { ArrowLeft, Save, Clock, FileText, Globe, Settings } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { RichTextEditor } from '@/components/editor/rich-text-editor';
+import { SEOScorePanel } from '@/components/editor/seo-panel';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils/helpers';
 import { extractInternalLinks, extractExternalLinks } from '@/lib/utils/link-parser';
 import { NODE_TYPE_LABELS, STATUS_LABELS } from '@/lib/utils/constants';
+import { useSEOScore } from '@/hooks/useSEOScore';
+import { extractImages, extractInternalLinksForSEO, extractOutboundLinksForSEO } from '@/lib/seo/seo-analyzer';
 import type { ContentNode, Project, Article, NodeType, NodeStatus } from '@/lib/types';
 
 interface ArticleEditorProps {
@@ -42,6 +45,21 @@ export function ArticleEditor({ projectId, nodeId }: ArticleEditorProps) {
 
     const [seoDescription, setSeoDescription] = useState('');
     const [availableNodes, setAvailableNodes] = useState<{ id: string; title: string; slug: string }[]>([]);
+
+    // SEO Score calculation
+    const articleContent = useMemo(() => ({
+        title,
+        content,
+        seoTitle,
+        seoDescription,
+        targetKeyword,
+        slug,
+        images: extractImages(content),
+        internalLinks: extractInternalLinksForSEO(content, project?.domain || undefined),
+        outboundLinks: extractOutboundLinksForSEO(content, project?.domain || undefined),
+    }), [title, content, seoTitle, seoDescription, targetKeyword, slug, project?.domain]);
+
+    const seoScore = useSEOScore(articleContent);
 
     useEffect(() => {
         loadData();
@@ -445,9 +463,9 @@ export function ArticleEditor({ projectId, nodeId }: ArticleEditorProps) {
                     </Button>
                 </div>
 
-                {/* Editor */}
-                <div className="flex-1 overflow-y-auto p-6">
-                    <div className="max-w-4xl mx-auto">
+                {/* Editor - Toolbar sticks at top, content scrolls */}
+                <div className="flex-1 flex flex-col min-h-0">
+                    <div className="w-full flex-1 flex flex-col min-h-0 px-2 pt-2">
                         <RichTextEditor
                             content={content}
                             onChange={setContent}
@@ -474,6 +492,57 @@ export function ArticleEditor({ projectId, nodeId }: ArticleEditorProps) {
                 isSidebarOpen ? 'translate-x-0' : 'translate-x-full'
             )}>
                 <div className="p-4 space-y-6">
+                    {/* SEO Score Panel - At the top for visibility */}
+                    <SEOScorePanel score={seoScore} />
+
+                    <hr className="border-gray-200" />
+
+                    {/* SEO Settings */}
+                    <h3 className="font-semibold text-gray-900">SEO Settings</h3>
+
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Target Keyword
+                        </label>
+                        <Input
+                            value={targetKeyword}
+                            onChange={(e) => setTargetKeyword(e.target.value)}
+                            placeholder="main keyword to target"
+                        />
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                            SEO Title
+                        </label>
+                        <Input
+                            value={seoTitle}
+                            onChange={(e) => setSeoTitle(e.target.value)}
+                            placeholder="Page title for search engines"
+                        />
+                        <p className="text-xs text-gray-500 mt-1">
+                            {seoTitle.length}/60 characters
+                        </p>
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                            SEO Description
+                        </label>
+                        <textarea
+                            value={seoDescription}
+                            onChange={(e) => setSeoDescription(e.target.value)}
+                            placeholder="Meta description for search engines"
+                            rows={3}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                        />
+                        <p className="text-xs text-gray-500 mt-1">
+                            {seoDescription.length}/160 characters
+                        </p>
+                    </div>
+
+                    <hr className="border-gray-200" />
+
                     <h3 className="font-semibold text-gray-900">Article Settings</h3>
 
                     {/* Domain Warning / URL Preview */}
@@ -546,18 +615,6 @@ export function ArticleEditor({ projectId, nodeId }: ArticleEditorProps) {
                         </div>
                     </div>
 
-                    {/* Target Keyword */}
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Target Keyword
-                        </label>
-                        <Input
-                            value={targetKeyword}
-                            onChange={(e) => setTargetKeyword(e.target.value)}
-                            placeholder="main keyword to target"
-                        />
-                    </div>
-
                     {/* Node Type */}
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -604,41 +661,6 @@ export function ArticleEditor({ projectId, nodeId }: ArticleEditorProps) {
                                 </button>
                             ))}
                         </div>
-                    </div>
-
-                    <hr className="border-gray-200" />
-
-                    {/* SEO Settings */}
-                    <h3 className="font-semibold text-gray-900">SEO Settings</h3>
-
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                            SEO Title
-                        </label>
-                        <Input
-                            value={seoTitle}
-                            onChange={(e) => setSeoTitle(e.target.value)}
-                            placeholder="Page title for search engines"
-                        />
-                        <p className="text-xs text-gray-500 mt-1">
-                            {seoTitle.length}/60 characters
-                        </p>
-                    </div>
-
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                            SEO Description
-                        </label>
-                        <textarea
-                            value={seoDescription}
-                            onChange={(e) => setSeoDescription(e.target.value)}
-                            placeholder="Meta description for search engines"
-                            rows={3}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                        />
-                        <p className="text-xs text-gray-500 mt-1">
-                            {seoDescription.length}/160 characters
-                        </p>
                     </div>
                 </div>
             </div>

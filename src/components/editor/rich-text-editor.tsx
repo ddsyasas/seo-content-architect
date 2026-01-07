@@ -5,10 +5,10 @@ import StarterKit from '@tiptap/starter-kit';
 import Link from '@tiptap/extension-link';
 import Image from '@tiptap/extension-image';
 import Placeholder from '@tiptap/extension-placeholder';
-import { useCallback, useState, useRef } from 'react';
+import { useCallback, useState, useRef, useEffect } from 'react';
 import {
     Bold, Italic, Strikethrough, Code, List, ListOrdered,
-    Quote, Heading1, Heading2, Heading3, Link as LinkIcon, Unlink2, Undo, Redo, X, Check, ImageIcon, Loader2
+    Quote, Heading1, Heading2, Heading3, Link as LinkIcon, Unlink2, Undo, Redo, X, Check, ImageIcon, Loader2, Type
 } from 'lucide-react';
 import { cn } from '@/lib/utils/helpers';
 import { createClient } from '@/lib/supabase/client';
@@ -66,6 +66,10 @@ export function RichTextEditor({
     const [filteredNodes, setFilteredNodes] = useState(availableNodes);
     const [isUploading, setIsUploading] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
+
+    // Image alt text editing state
+    const [showAltInput, setShowAltInput] = useState(false);
+    const [imageAlt, setImageAlt] = useState('');
 
     // Filter nodes when typing
     const handleUrlChange = (value: string) => {
@@ -184,8 +188,8 @@ export function RichTextEditor({
                 .from('article-images')
                 .getPublicUrl(filePath);
 
-            // Insert image into editor
-            editor.chain().focus().setImage({ src: publicUrl }).run();
+            // Insert image into editor with empty alt (user can edit later)
+            editor.chain().focus().setImage({ src: publicUrl, alt: '' }).run();
         } catch (error) {
             console.error('Failed to upload image:', error);
             alert('Failed to upload image. Please try again.');
@@ -198,6 +202,29 @@ export function RichTextEditor({
         }
     }, [editor]);
 
+    // Open alt text input for current image
+    const openAltInput = useCallback(() => {
+        if (!editor) return;
+        const currentAlt = editor.getAttributes('image').alt || '';
+        setImageAlt(currentAlt);
+        setShowAltInput(true);
+    }, [editor]);
+
+    // Apply alt text to current image
+    const applyAlt = useCallback(() => {
+        if (!editor) return;
+        editor.chain().focus().updateAttributes('image', { alt: imageAlt }).run();
+        setShowAltInput(false);
+        setImageAlt('');
+    }, [editor, imageAlt]);
+
+    // Cancel alt text editing
+    const cancelAlt = useCallback(() => {
+        setShowAltInput(false);
+        setImageAlt('');
+        editor?.chain().focus().run();
+    }, [editor]);
+
     if (!editor) {
         return (
             <div className="border border-gray-200 rounded-lg p-4 bg-gray-50 animate-pulse h-[500px]" />
@@ -205,9 +232,9 @@ export function RichTextEditor({
     }
 
     return (
-        <div className="border border-gray-200 rounded-lg overflow-hidden bg-white">
-            {/* Toolbar */}
-            <div className="flex items-center gap-1 p-2 border-b border-gray-200 bg-gray-50 flex-wrap">
+        <div className="border border-gray-200 rounded-lg overflow-hidden bg-white flex flex-col h-full min-h-[500px]">
+            {/* Toolbar - Fixed at top */}
+            <div className="flex items-center gap-1 p-2 border-b border-gray-200 bg-gray-50 flex-wrap shrink-0">
                 <ToolbarButton
                     onClick={() => editor.chain().focus().toggleBold().run()}
                     isActive={editor.isActive('bold')}
@@ -325,6 +352,23 @@ export function RichTextEditor({
                     )}
                 </ToolbarButton>
 
+                {/* Edit Alt Text button - only shows when image is selected */}
+                {editor.isActive('image') && (
+                    <button
+                        type="button"
+                        onClick={openAltInput}
+                        title="Edit Alt Text (for SEO & Accessibility)"
+                        className={cn(
+                            'px-2 py-1 rounded text-xs font-bold transition-colors border',
+                            showAltInput
+                                ? 'bg-green-100 text-green-700 border-green-300'
+                                : 'bg-gray-100 text-gray-700 border-gray-300 hover:bg-green-50 hover:text-green-600 hover:border-green-300'
+                        )}
+                    >
+                        ALT
+                    </button>
+                )}
+
                 <div className="flex-1" />
 
                 <ToolbarButton
@@ -407,8 +451,47 @@ export function RichTextEditor({
                 </div>
             )}
 
-            {/* Editor Content */}
-            <EditorContent editor={editor} />
+            {/* Alt Text Input Bar */}
+            {showAltInput && (
+                <div className="flex items-center gap-2 p-2 border-b border-gray-200 bg-green-50">
+                    <Type className="w-4 h-4 text-green-600" />
+                    <input
+                        type="text"
+                        value={imageAlt}
+                        onChange={(e) => setImageAlt(e.target.value)}
+                        placeholder="Enter alt text for image (improves SEO & accessibility)"
+                        className="flex-1 px-3 py-1.5 text-sm border border-gray-300 rounded text-gray-900 focus:outline-none focus:ring-2 focus:ring-green-500"
+                        autoFocus
+                        onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                                e.preventDefault();
+                                applyAlt();
+                            } else if (e.key === 'Escape') {
+                                cancelAlt();
+                            }
+                        }}
+                    />
+                    <button
+                        onClick={applyAlt}
+                        className="p-1.5 bg-green-600 text-white rounded hover:bg-green-700 transition-colors"
+                        title="Apply Alt Text"
+                    >
+                        <Check className="w-4 h-4" />
+                    </button>
+                    <button
+                        onClick={cancelAlt}
+                        className="p-1.5 bg-gray-200 text-gray-600 rounded hover:bg-gray-300 transition-colors"
+                        title="Cancel"
+                    >
+                        <X className="w-4 h-4" />
+                    </button>
+                </div>
+            )}
+
+            {/* Editor Content - Scrollable */}
+            <div className="flex-1 overflow-y-auto">
+                <EditorContent editor={editor} />
+            </div>
         </div>
     );
 }
