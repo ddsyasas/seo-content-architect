@@ -1,0 +1,514 @@
+'use client';
+
+import { useState, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
+import { v4 as uuidv4 } from 'uuid';
+import { ArrowLeft, Save, Clock, FileText, Globe } from 'lucide-react';
+import { createClient } from '@/lib/supabase/client';
+import { RichTextEditor } from '@/components/editor/rich-text-editor';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { cn } from '@/lib/utils/helpers';
+import { extractInternalLinks, extractExternalLinks } from '@/lib/utils/link-parser';
+import { NODE_TYPE_LABELS, STATUS_LABELS } from '@/lib/utils/constants';
+import type { ContentNode, Project, Article, NodeType, NodeStatus } from '@/lib/types';
+
+interface ArticleEditorProps {
+    projectId: string;
+    nodeId: string;
+}
+
+export function ArticleEditor({ projectId, nodeId }: ArticleEditorProps) {
+    const router = useRouter();
+    const [isLoading, setIsLoading] = useState(true);
+    const [isSaving, setIsSaving] = useState(false);
+    const [lastSaved, setLastSaved] = useState<Date | null>(null);
+
+    // Data
+    const [project, setProject] = useState<Project | null>(null);
+    const [node, setNode] = useState<ContentNode | null>(null);
+    const [article, setArticle] = useState<Article | null>(null);
+
+    // Form state
+    const [content, setContent] = useState('');
+    const [wordCount, setWordCount] = useState(0);
+    const [title, setTitle] = useState('');
+    const [slug, setSlug] = useState('');
+    const [targetKeyword, setTargetKeyword] = useState('');
+    const [nodeType, setNodeType] = useState<NodeType>('planned');
+    const [status, setStatus] = useState<NodeStatus>('planned');
+    const [seoTitle, setSeoTitle] = useState('');
+    const [seoDescription, setSeoDescription] = useState('');
+
+    useEffect(() => {
+        loadData();
+    }, [projectId, nodeId]);
+
+    const loadData = async () => {
+        const supabase = createClient();
+
+        // Load project
+        const { data: projectData } = await supabase
+            .from('projects')
+            .select('*')
+            .eq('id', projectId)
+            .single();
+        setProject(projectData);
+
+        // Load node
+        const { data: nodeData } = await supabase
+            .from('nodes')
+            .select('*')
+            .eq('id', nodeId)
+            .single();
+
+        if (nodeData) {
+            setNode(nodeData);
+            setTitle(nodeData.title);
+            setSlug(nodeData.slug || '');
+            setTargetKeyword(nodeData.target_keyword || '');
+            setNodeType(nodeData.node_type);
+            setStatus(nodeData.status);
+        }
+
+        // Load article if exists
+        const { data: articleData } = await supabase
+            .from('articles')
+            .select('*')
+            .eq('node_id', nodeId)
+            .single();
+
+        if (articleData) {
+            setArticle(articleData);
+            setContent(articleData.content || '');
+            setWordCount(articleData.word_count || 0);
+            setSeoTitle(articleData.seo_title || '');
+            setSeoDescription(articleData.seo_description || '');
+        }
+
+        setIsLoading(false);
+    };
+
+    // Auto-save with debounce
+    const saveData = useCallback(async () => {
+        if (!node) return;
+
+        setIsSaving(true);
+        const supabase = createClient();
+
+        try {
+            // Update node
+            await supabase
+                .from('nodes')
+                .update({
+                    title,
+                    slug,
+                    target_keyword: targetKeyword,
+                    node_type: nodeType,
+                    status,
+                })
+                .eq('id', nodeId);
+
+            // Upsert article
+            await supabase
+                .from('articles')
+                .upsert({
+                    id: article?.id,
+                    node_id: nodeId,
+                    project_id: projectId,
+                    content,
+                    word_count: wordCount,
+                    seo_title: seoTitle,
+                    seo_description: seoDescription,
+                }, { onConflict: 'node_id' });
+
+            // Auto-sync edges with internal links (bidirectional) and outbound links
+            if (project?.domain && content) {
+                console.log('[Link-Sync] Starting sync. Domain:', project.domain);
+
+                // 1. Process Links
+                const internalLinks = extractInternalLinks(content, project.domain);
+                const externalLinks = extractExternalLinks(content, project.domain);
+                console.log('[Link-Sync] Links found:', { internal: internalLinks.length, external: externalLinks.length });
+
+                // Get all nodes in this project to find targets
+                const { data: allNodes } = await supabase
+                    .from('nodes')
+                    .select('id, slug, node_type, title, position_x, position_y')
+                    .eq('project_id', projectId);
+
+                const internalNodes = allNodes?.filter(n => n.node_type !== 'external') || [];
+                const externalNodes = allNodes?.filter(n => n.node_type === 'external') || [];
+
+                // Get existing edges from this node
+                const { data: existingEdges } = await supabase
+                    .from('edges')
+                    .select('id, target_node_id, label, edge_type')
+                    .eq('source_node_id', nodeId);
+
+                console.log('[Link-Sync] Existing auto-edges:', existingEdges?.length || 0);
+
+                // Create a map of current link slugs
+                const currentLinkSlugs = new Set(internalLinks.map(l => l.slug));
+
+                // DELETE edges that no longer have corresponding links
+                for (const edge of existingEdges || []) {
+                    const targetNode = allNodes?.find(n => n.id === edge.target_node_id);
+                    if (targetNode && !currentLinkSlugs.has(targetNode.slug)) {
+                        await supabase.from('edges').delete().eq('id', edge.id);
+                        console.log(`[Link-Sync] DELETED edge to ${targetNode.slug}`);
+                    }
+                }
+
+                // CREATE edges for new links
+                const existingTargetIds = new Set(existingEdges?.map(e => e.target_node_id) || []);
+
+                for (const link of internalLinks) {
+                    const targetNode = allNodes?.find(n => n.slug === link.slug);
+                    console.log(`[Link-Sync] Checking link ${link.slug}:`, targetNode ? 'Found node' : 'Node not found');
+
+                    if (targetNode && targetNode.id !== nodeId && !existingTargetIds.has(targetNode.id)) {
+                        await supabase.from('edges').insert({
+                            id: uuidv4(),
+                            project_id: projectId,
+                            source_node_id: nodeId,
+                            target_node_id: targetNode.id,
+                            edge_type: 'interlinks',
+                            label: link.anchorText,
+                        });
+                        console.log(`[Link-Sync] CREATED edge: ${title} → ${link.slug} (${link.anchorText})`);
+                    }
+                }
+                // --- Handle Outbound (External) Links ---
+                // Group external links by domain
+                const outboundDomains = new Map<string, string>();
+                for (const link of externalLinks) {
+                    try {
+                        const urlObj = new URL(link.href.startsWith('http') ? link.href : `https://${link.href}`);
+                        const domain = urlObj.hostname.replace(/^www\./, '');
+                        if (domain && !outboundDomains.has(domain)) {
+                            outboundDomains.set(domain, domain);
+                        }
+                    } catch (e) { /* ignore */ }
+                }
+
+                const existingOutboundEdgeTargetIds = new Set(
+                    existingEdges?.filter(e => e.edge_type === 'outbound').map(e => e.target_node_id)
+                );
+
+                // Process outbound domains
+                for (const [domain] of outboundDomains) {
+                    let externalNode = externalNodes.find(n => n.title === domain);
+
+                    if (!externalNode) {
+                        // Create new external node
+                        const currentX = allNodes?.find(n => n.id === nodeId)?.position_x || 0;
+                        const currentY = allNodes?.find(n => n.id === nodeId)?.position_y || 0;
+
+                        const { data: newNode } = await supabase
+                            .from('nodes')
+                            .insert({
+                                id: uuidv4(),
+                                project_id: projectId,
+                                node_type: 'external',
+                                title: domain,
+                                slug: `ext-${uuidv4().substring(0, 8)}`,
+                                status: 'published',
+                                position_x: currentX + 300 + (Math.random() * 50),
+                                position_y: currentY + (Math.random() * 200 - 100),
+                            })
+                            .select()
+                            .single();
+
+                        if (newNode) {
+                            externalNode = newNode;
+                            console.log(`[Link-Sync] Created new External Node: ${domain}`);
+                            externalNodes.push(newNode);
+                        }
+                    }
+
+                    if (externalNode && !existingOutboundEdgeTargetIds.has(externalNode.id)) {
+                        await supabase.from('edges').insert({
+                            id: uuidv4(),
+                            project_id: projectId,
+                            source_node_id: nodeId,
+                            target_node_id: externalNode.id,
+                            edge_type: 'outbound',
+                        });
+                        console.log(`[Link-Sync] CREATED outbound edge to ${domain}`);
+                    }
+                }
+
+                // Cleanup outbound edges
+                for (const edge of existingEdges || []) {
+                    if (edge.edge_type === 'outbound') {
+                        const targetExtNode = externalNodes.find(n => n.id === edge.target_node_id);
+                        if (targetExtNode && !outboundDomains.has(targetExtNode.title)) {
+                            await supabase.from('edges').delete().eq('id', edge.id);
+                            console.log(`[Link-Sync] DELETED outbound edge to ${targetExtNode.title}`);
+                        }
+                    }
+                }
+
+            } else if (!project?.domain) {
+                console.warn('[Link-Sync] Skipped - no domain set for project');
+            }
+
+            setLastSaved(new Date());
+        } catch (error) {
+            console.error('Failed to save:', error);
+        } finally {
+            setIsSaving(false);
+        }
+    }, [node, nodeId, projectId, project, article, title, slug, targetKeyword, nodeType, status, content, wordCount, seoTitle, seoDescription]);
+
+    // Auto-save every 5 seconds if there are changes
+    useEffect(() => {
+        if (!node) return;
+        const timer = setTimeout(saveData, 5000);
+        return () => clearTimeout(timer);
+    }, [content, title, slug, targetKeyword, nodeType, status, seoTitle, seoDescription]);
+
+    const generateSlug = () => {
+        const generated = title
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, '-')
+            .replace(/(^-|-$)/g, '');
+        setSlug(generated);
+    };
+
+    if (isLoading) {
+        return (
+            <div className="flex items-center justify-center h-screen">
+                <div className="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin" />
+            </div>
+        );
+    }
+
+    return (
+        <div className="flex h-screen bg-white">
+            {/* Main Editor */}
+            <div className="flex-1 flex flex-col overflow-hidden">
+                {/* Header */}
+                <div className="flex items-center gap-4 px-6 py-4 border-b border-gray-200">
+                    <button
+                        onClick={() => router.push(`/project/${projectId}`)}
+                        className="p-2 hover:bg-gray-100 rounded-lg transition-colors text-gray-600"
+                    >
+                        <ArrowLeft className="w-5 h-5" />
+                    </button>
+
+                    <input
+                        type="text"
+                        value={title}
+                        onChange={(e) => setTitle(e.target.value)}
+                        placeholder="Article Title"
+                        className="flex-1 text-2xl font-bold bg-transparent focus:outline-none text-gray-900 placeholder-gray-400"
+                    />
+
+                    <div className="flex items-center gap-4 text-sm text-gray-500">
+                        <span className="flex items-center gap-1">
+                            <FileText className="w-4 h-4" />
+                            {wordCount} words
+                        </span>
+                        {lastSaved && (
+                            <span className="flex items-center gap-1">
+                                <Clock className="w-4 h-4" />
+                                Saved {lastSaved.toLocaleTimeString()}
+                            </span>
+                        )}
+                    </div>
+
+                    <Button onClick={saveData} isLoading={isSaving} className="gap-2">
+                        <Save className="w-4 h-4" />
+                        Save
+                    </Button>
+                </div>
+
+                {/* Editor */}
+                <div className="flex-1 overflow-y-auto p-6">
+                    <div className="max-w-4xl mx-auto">
+                        <RichTextEditor
+                            content={content}
+                            onChange={setContent}
+                            onWordCountChange={setWordCount}
+                            placeholder="Start writing your article..."
+                        />
+                    </div>
+                </div>
+            </div>
+
+            {/* Sidebar */}
+            <div className="w-80 border-l border-gray-200 overflow-y-auto">
+                <div className="p-4 space-y-6">
+                    <h3 className="font-semibold text-gray-900">Article Settings</h3>
+
+                    {/* Domain Warning / URL Preview */}
+                    {!project?.domain ? (
+                        <div className="p-3 rounded-lg bg-amber-50 border border-amber-200">
+                            <p className="text-sm text-amber-800 font-medium mb-2">
+                                ⚠️ Set project domain for auto-linking
+                            </p>
+                            <p className="text-xs text-amber-600 mb-2">
+                                Internal links will auto-create edges on canvas when you set a domain.
+                            </p>
+                            <div className="flex gap-2">
+                                <input
+                                    type="text"
+                                    placeholder="mydomain.com"
+                                    className="flex-1 px-2 py-1 text-sm border border-amber-300 rounded text-gray-900"
+                                    onKeyDown={async (e) => {
+                                        if (e.key === 'Enter' && e.currentTarget.value) {
+                                            const supabase = createClient();
+                                            await supabase
+                                                .from('projects')
+                                                .update({ domain: e.currentTarget.value })
+                                                .eq('id', projectId);
+                                            // Reload project data
+                                            const { data } = await supabase
+                                                .from('projects')
+                                                .select('*')
+                                                .eq('id', projectId)
+                                                .single();
+                                            setProject(data);
+                                        }
+                                    }}
+                                />
+                            </div>
+                            <p className="text-xs text-amber-500 mt-1">Press Enter to save</p>
+                        </div>
+                    ) : (
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                URL Preview
+                            </label>
+                            <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg text-sm">
+                                <Globe className="w-4 h-4 text-gray-400" />
+                                <span className="text-gray-600">
+                                    {project.domain}/{slug || 'slug'}
+                                </span>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Slug */}
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Slug
+                        </label>
+                        <div className="flex gap-2">
+                            <Input
+                                value={slug}
+                                onChange={(e) => setSlug(e.target.value)}
+                                placeholder="article-slug"
+                            />
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={generateSlug}
+                                className="text-xs px-2"
+                            >
+                                Auto
+                            </Button>
+                        </div>
+                    </div>
+
+                    {/* Target Keyword */}
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Target Keyword
+                        </label>
+                        <Input
+                            value={targetKeyword}
+                            onChange={(e) => setTargetKeyword(e.target.value)}
+                            placeholder="main keyword to target"
+                        />
+                    </div>
+
+                    {/* Node Type */}
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Content Type
+                        </label>
+                        <div className="grid grid-cols-2 gap-2">
+                            {(['pillar', 'cluster', 'supporting', 'planned'] as NodeType[]).map((type) => (
+                                <button
+                                    key={type}
+                                    type="button"
+                                    onClick={() => setNodeType(type)}
+                                    className={cn(
+                                        'px-3 py-2 text-sm rounded-lg border transition-colors',
+                                        nodeType === type
+                                            ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
+                                            : 'border-gray-200 hover:border-gray-300 text-gray-600'
+                                    )}
+                                >
+                                    {NODE_TYPE_LABELS[type]}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Status */}
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Status
+                        </label>
+                        <div className="grid grid-cols-2 gap-2">
+                            {(['planned', 'writing', 'published', 'needs_update'] as NodeStatus[]).map((s) => (
+                                <button
+                                    key={s}
+                                    type="button"
+                                    onClick={() => setStatus(s)}
+                                    className={cn(
+                                        'px-3 py-2 text-sm rounded-lg border transition-colors',
+                                        status === s
+                                            ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
+                                            : 'border-gray-200 hover:border-gray-300 text-gray-600'
+                                    )}
+                                >
+                                    {STATUS_LABELS[s]}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    <hr className="border-gray-200" />
+
+                    {/* SEO Settings */}
+                    <h3 className="font-semibold text-gray-900">SEO Settings</h3>
+
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                            SEO Title
+                        </label>
+                        <Input
+                            value={seoTitle}
+                            onChange={(e) => setSeoTitle(e.target.value)}
+                            placeholder="Page title for search engines"
+                        />
+                        <p className="text-xs text-gray-500 mt-1">
+                            {seoTitle.length}/60 characters
+                        </p>
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                            SEO Description
+                        </label>
+                        <textarea
+                            value={seoDescription}
+                            onChange={(e) => setSeoDescription(e.target.value)}
+                            placeholder="Meta description for search engines"
+                            rows={3}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                        />
+                        <p className="text-xs text-gray-500 mt-1">
+                            {seoDescription.length}/160 characters
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+}

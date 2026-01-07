@@ -34,6 +34,7 @@ CREATE TABLE IF NOT EXISTS articles (
 ALTER TABLE articles ENABLE ROW LEVEL SECURITY;
 
 -- Policy: Users can CRUD articles in their projects
+DROP POLICY IF EXISTS "Users can CRUD articles in own projects" ON articles;
 CREATE POLICY "Users can CRUD articles in own projects" ON articles
   FOR ALL USING (
     project_id IN (

@@ -297,16 +297,78 @@ function CanvasEditorInner({ projectId }: CanvasEditorProps) {
         setIsEdgeModalOpen(true);
     }, []);
 
-    // Handle edge delete
+    // Handle edge delete - also removes link from article if applicable
     const handleDeleteSelectedEdge = useCallback(async () => {
         if (!selectedEdgeId) return;
 
         const supabase = createClient();
-        await supabase.from('edges').delete().eq('id', selectedEdgeId);
 
+        // Get the edge details before deleting
+        const edgeToDelete = edges.find(e => e.id === selectedEdgeId);
+        console.log('[Canvas-Sync] Deleting edge:', edgeToDelete);
+
+        if (edgeToDelete) {
+            // Get source node and target node to find the article and slug
+            const sourceNodeId = edgeToDelete.source;
+            const targetNodeId = edgeToDelete.target;
+
+            // Get target node properties
+            const targetNode = nodes.find(n => n.id === targetNodeId);
+            const targetSlug = targetNode?.data?.slug;
+            const targetTitle = targetNode?.data?.title;
+            const isExternal = targetNode?.type === 'external';
+
+            console.log('[Canvas-Sync] Target node:', targetTitle, 'slug:', targetSlug, 'type:', targetNode?.type);
+
+            if (targetSlug || (isExternal && targetTitle)) {
+                // Get project domain
+                const { data: projectData } = await supabase
+                    .from('projects')
+                    .select('domain')
+                    .eq('id', projectId)
+                    .single();
+                console.log('[Canvas-Sync] Project domain:', projectData?.domain);
+
+                if (projectData?.domain) {
+                    // Get article content
+                    const { data: articleData } = await supabase
+                        .from('articles')
+                        .select('id, content')
+                        .eq('node_id', sourceNodeId)
+                        .single();
+                    console.log('[Canvas-Sync] Article found:', !!articleData?.content);
+
+                    if (articleData?.content) {
+                        // Import dynamically to avoid circular deps
+                        const { removeLinkBySlug, removeExternalLink } = await import('@/lib/utils/link-parser');
+
+                        let updatedContent = articleData.content;
+                        if (isExternal && targetTitle) {
+                            updatedContent = removeExternalLink(articleData.content, targetTitle);
+                        } else if (targetSlug) {
+                            updatedContent = removeLinkBySlug(articleData.content, projectData.domain, targetSlug);
+                        }
+
+                        if (updatedContent !== articleData.content) {
+                            // Update article with link removed
+                            await supabase
+                                .from('articles')
+                                .update({ content: updatedContent })
+                                .eq('id', articleData.id);
+                            console.log(`[Canvas-Sync] ✅ Removed link to ${isExternal ? targetTitle : targetSlug} from article`);
+                        } else {
+                            console.log('[Canvas-Sync] No matching link found in article');
+                        }
+                    }
+                }
+            }
+        }
+
+        // Delete the edge
+        await supabase.from('edges').delete().eq('id', selectedEdgeId);
         deleteEdge(selectedEdgeId);
         setSelectedEdgeId(null);
-    }, [selectedEdgeId, deleteEdge]);
+    }, [selectedEdgeId, edges, nodes, projectId, deleteEdge]);
 
     // Handle edge update (reconnection by dragging)
     const handleEdgeUpdate = useCallback(async (oldEdge: any, newConnection: Connection) => {

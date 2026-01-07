@@ -60,6 +60,18 @@ export interface ContentEdge {
     created_at: string;
 }
 
+export interface Article {
+    id: string;
+    node_id: string;
+    project_id: string;
+    content: string | null;
+    word_count: number;
+    seo_title: string | null;
+    seo_description: string | null;
+    created_at: string;
+    updated_at: string;
+}
+
 export interface CanvasSettings {
     id: string;
     project_id: string;
