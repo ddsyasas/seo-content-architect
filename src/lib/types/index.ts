@@ -14,6 +14,7 @@ export interface Project {
     name: string;
     description: string | null;
     website_url: string | null;
+    domain: string | null;
     color: string;
     created_at: string;
     updated_at: string;
@@ -93,6 +94,7 @@ export interface CreateProjectInput {
     name: string;
     description?: string;
     website_url?: string;
+    domain?: string;
     color?: string;
 }
 

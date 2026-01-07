@@ -19,6 +19,7 @@ export function CreateProjectModal({ isOpen, onClose, onSubmit, editProject }: C
     const [name, setName] = useState(editProject?.name || '');
     const [description, setDescription] = useState(editProject?.description || '');
     const [websiteUrl, setWebsiteUrl] = useState(editProject?.website_url || '');
+    const [domain, setDomain] = useState(editProject?.domain || '');
     const [color, setColor] = useState(editProject?.color || PROJECT_COLORS[0]);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
@@ -38,6 +39,7 @@ export function CreateProjectModal({ isOpen, onClose, onSubmit, editProject }: C
                 name: name.trim(),
                 description: description.trim() || undefined,
                 website_url: websiteUrl.trim() || undefined,
+                domain: domain.trim() || undefined,
                 color,
             });
             handleClose();
@@ -52,6 +54,7 @@ export function CreateProjectModal({ isOpen, onClose, onSubmit, editProject }: C
         setName('');
         setDescription('');
         setWebsiteUrl('');
+        setDomain('');
         setColor(PROJECT_COLORS[0]);
         setError('');
         onClose();
@@ -95,6 +98,18 @@ export function CreateProjectModal({ isOpen, onClose, onSubmit, editProject }: C
                         value={websiteUrl}
                         onChange={(e) => setWebsiteUrl(e.target.value)}
                     />
+
+                    <div>
+                        <Input
+                            label="Domain (for visual URL preview)"
+                            placeholder="example.com"
+                            value={domain}
+                            onChange={(e) => setDomain(e.target.value)}
+                        />
+                        <p className="mt-1 text-xs text-gray-500">
+                            For display only. Preview URLs like: {domain || 'example.com'}/your-article-slug
+                        </p>
+                    </div>
 
                     {/* Color picker */}
                     <div>

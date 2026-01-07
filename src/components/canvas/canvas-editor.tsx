@@ -118,7 +118,29 @@ function CanvasEditorInner({ projectId }: CanvasEditorProps) {
             );
             const flowEdges = (edgesData || []).map(dbEdgeToFlowEdge);
 
-            setNodes(flowNodes);
+            // Determine externalType for external nodes based on connected edges
+            // Backlink: external is SOURCE, Outbound: external is TARGET
+            const externalTypes: Record<string, 'backlink' | 'outbound'> = {};
+            (edgesData || []).forEach((edge: ContentEdge) => {
+                if (edge.edge_type === 'backlink') {
+                    externalTypes[edge.source_node_id] = 'backlink';
+                } else if (edge.edge_type === 'outbound') {
+                    externalTypes[edge.target_node_id] = 'outbound';
+                }
+            });
+
+            // Update external nodes with their type
+            const updatedFlowNodes = flowNodes.map(node => {
+                if (node.type === 'external' && externalTypes[node.id]) {
+                    return {
+                        ...node,
+                        data: { ...node.data, externalType: externalTypes[node.id] }
+                    };
+                }
+                return node;
+            });
+
+            setNodes(updatedFlowNodes);
             setEdges(flowEdges);
 
             // Fit view after loading
