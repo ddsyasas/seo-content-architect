@@ -78,6 +78,44 @@ function CanvasEditorInner({ projectId }: CanvasEditorProps) {
         loadProjectData();
     }, [projectId]);
 
+    // Update node link counts when edges change
+    useEffect(() => {
+        if (nodes.length === 0 || isLoading) return;
+
+        // Calculate link counts from current edges
+        const linkCounts: Record<string, { incoming: number; outgoing: number }> = {};
+        edges.forEach((edge) => {
+            if (!linkCounts[edge.source]) {
+                linkCounts[edge.source] = { incoming: 0, outgoing: 0 };
+            }
+            if (!linkCounts[edge.target]) {
+                linkCounts[edge.target] = { incoming: 0, outgoing: 0 };
+            }
+            linkCounts[edge.source].outgoing++;
+            linkCounts[edge.target].incoming++;
+        });
+
+        // Update nodes with new link counts
+        const updatedNodes = nodes.map(node => ({
+            ...node,
+            data: {
+                ...node.data,
+                incomingLinks: linkCounts[node.id]?.incoming || 0,
+                outgoingLinks: linkCounts[node.id]?.outgoing || 0,
+            }
+        }));
+
+        // Only update if counts have actually changed
+        const hasChanges = updatedNodes.some((node, idx) =>
+            node.data.incomingLinks !== nodes[idx].data.incomingLinks ||
+            node.data.outgoingLinks !== nodes[idx].data.outgoingLinks
+        );
+
+        if (hasChanges) {
+            setNodes(updatedNodes);
+        }
+    }, [edges, isLoading]);
+
     const loadProjectData = async () => {
         setIsLoading(true);
         try {
