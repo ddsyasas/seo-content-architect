@@ -38,7 +38,9 @@ export function ArticleEditor({ projectId, nodeId }: ArticleEditorProps) {
     const [nodeType, setNodeType] = useState<NodeType>('planned');
     const [status, setStatus] = useState<NodeStatus>('planned');
     const [seoTitle, setSeoTitle] = useState('');
+
     const [seoDescription, setSeoDescription] = useState('');
+    const [availableNodes, setAvailableNodes] = useState<{ id: string; title: string; slug: string }[]>([]);
 
     useEffect(() => {
         loadData();
@@ -84,6 +86,20 @@ export function ArticleEditor({ projectId, nodeId }: ArticleEditorProps) {
             setWordCount(articleData.word_count || 0);
             setSeoTitle(articleData.seo_title || '');
             setSeoDescription(articleData.seo_description || '');
+            setSeoTitle(articleData.seo_title || '');
+            setSeoDescription(articleData.seo_description || '');
+        }
+
+        // Load all available nodes for interlinking
+        const { data: allNodes } = await supabase
+            .from('nodes')
+            .select('id, title, slug')
+            .eq('project_id', projectId)
+            .neq('id', nodeId) // Exclude current node
+            .neq('node_type', 'external'); // Exclude external nodes from autocomplete
+
+        if (allNodes) {
+            setAvailableNodes(allNodes as any); // Type assertion if needed, or update ContentNode type usage
         }
 
         setIsLoading(false);
@@ -168,26 +184,74 @@ export function ArticleEditor({ projectId, nodeId }: ArticleEditorProps) {
                     console.log(`[Link-Sync] Checking link ${link.slug}:`, targetNode ? 'Found node' : 'Node not found');
 
                     if (targetNode && targetNode.id !== nodeId && !existingTargetIds.has(targetNode.id)) {
+                        // Calculate default handles based on relative position
+                        let sourceHandle = 'right';
+                        let targetHandle = 'left';
+
+                        const sourceX = allNodes?.find(n => n.id === nodeId)?.position_x;
+                        const sourceY = allNodes?.find(n => n.id === nodeId)?.position_y;
+
+                        // Check positions if available
+                        if (sourceX !== undefined && sourceY !== undefined &&
+                            targetNode.position_x !== undefined && targetNode.position_y !== undefined) {
+
+                            const dx = targetNode.position_x - sourceX;
+                            const dy = targetNode.position_y - sourceY;
+
+                            // Determine primary direction
+                            if (Math.abs(dx) > Math.abs(dy)) {
+                                // Horizontal dominant
+                                if (dx > 0) {
+                                    // Target is to the right
+                                    sourceHandle = 'right';
+                                    targetHandle = 'left';
+                                } else {
+                                    // Target is to the left
+                                    sourceHandle = 'left';
+                                    targetHandle = 'right';
+                                }
+                            } else {
+                                // Vertical dominant
+                                if (dy > 0) {
+                                    // Target is below
+                                    sourceHandle = 'bottom';
+                                    targetHandle = 'top';
+                                } else {
+                                    // Target is above
+                                    sourceHandle = 'top';
+                                    targetHandle = 'bottom';
+                                }
+                            }
+                        }
+
                         await supabase.from('edges').insert({
                             id: uuidv4(),
                             project_id: projectId,
                             source_node_id: nodeId,
                             target_node_id: targetNode.id,
+                            source_handle_id: sourceHandle,
+                            target_handle_id: targetHandle,
                             edge_type: 'interlinks',
                             label: link.anchorText,
                         });
-                        console.log(`[Link-Sync] CREATED edge: ${title} → ${link.slug} (${link.anchorText})`);
+                        console.log(`[Link-Sync] CREATED edge: ${title} → ${link.slug} (${link.anchorText}) [${sourceHandle}->${targetHandle}]`);
                     }
                 }
                 // --- Handle Outbound (External) Links ---
                 // Group external links by domain
-                const outboundDomains = new Map<string, string>();
+                // Group external links by domain and aggregate anchor texts
+                const outboundDomains = new Map<string, Set<string>>();
                 for (const link of externalLinks) {
                     try {
                         const urlObj = new URL(link.href.startsWith('http') ? link.href : `https://${link.href}`);
                         const domain = urlObj.hostname.replace(/^www\./, '');
-                        if (domain && !outboundDomains.has(domain)) {
-                            outboundDomains.set(domain, domain);
+                        if (domain) {
+                            if (!outboundDomains.has(domain)) {
+                                outboundDomains.set(domain, new Set());
+                            }
+                            if (link.anchorText.trim()) {
+                                outboundDomains.get(domain)?.add(link.anchorText.trim());
+                            }
                         }
                     } catch (e) { /* ignore */ }
                 }
@@ -228,14 +292,61 @@ export function ArticleEditor({ projectId, nodeId }: ArticleEditorProps) {
                     }
 
                     if (externalNode && !existingOutboundEdgeTargetIds.has(externalNode.id)) {
+                        // Calculate default handles based on relative position
+                        let sourceHandle = 'right';
+                        let targetHandle = 'left';
+
+                        const sourceX = allNodes?.find(n => n.id === nodeId)?.position_x;
+                        const sourceY = allNodes?.find(n => n.id === nodeId)?.position_y;
+
+                        // Check positions if available
+                        if (sourceX !== undefined && sourceY !== undefined &&
+                            externalNode.position_x !== undefined && externalNode.position_y !== undefined) {
+
+                            const dx = externalNode.position_x - sourceX;
+                            const dy = externalNode.position_y - sourceY;
+
+                            // Determine primary direction
+                            if (Math.abs(dx) > Math.abs(dy)) {
+                                // Horizontal dominant
+                                if (dx > 0) {
+                                    // Target is to the right
+                                    sourceHandle = 'right';
+                                    targetHandle = 'left';
+                                } else {
+                                    // Target is to the left
+                                    sourceHandle = 'left';
+                                    targetHandle = 'right';
+                                }
+                            } else {
+                                // Vertical dominant
+                                if (dy > 0) {
+                                    // Target is below
+                                    sourceHandle = 'bottom';
+                                    targetHandle = 'top';
+                                } else {
+                                    // Target is above
+                                    sourceHandle = 'top';
+                                    targetHandle = 'bottom';
+                                }
+                            }
+                        }
+
+                        // Get anchor texts
+                        const anchors = Array.from(outboundDomains.get(domain) || []);
+                        const label = anchors.length > 0 ? anchors.join(', ').substring(0, 30) + (anchors.join(', ').length > 30 ? '...' : '') : null;
+
                         await supabase.from('edges').insert({
                             id: uuidv4(),
                             project_id: projectId,
                             source_node_id: nodeId,
                             target_node_id: externalNode.id,
+                            source_handle_id: sourceHandle,
+                            target_handle_id: targetHandle,
                             edge_type: 'outbound',
+                            label: label,
                         });
-                        console.log(`[Link-Sync] CREATED outbound edge to ${domain}`);
+                        console.log(`[Link-Sync] CREATED outbound edge to ${domain} [${sourceHandle}->${targetHandle}] Label: ${label}`);
                     }
                 }
 
@@ -333,6 +444,8 @@ export function ArticleEditor({ projectId, nodeId }: ArticleEditorProps) {
                             onChange={setContent}
                             onWordCountChange={setWordCount}
                             placeholder="Start writing your article..."
+                            availableNodes={availableNodes}
+                            projectDomain={project?.domain || undefined}
                         />
                     </div>
                 </div>

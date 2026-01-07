@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Modal, ModalFooter } from '@/components/ui/modal';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -23,6 +23,14 @@ export function CreateProjectModal({ isOpen, onClose, onSubmit, editProject }: C
     const [color, setColor] = useState(editProject?.color || PROJECT_COLORS[0]);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
+
+    useEffect(() => {
+        setName(editProject?.name || '');
+        setDescription(editProject?.description || '');
+        setWebsiteUrl(editProject?.website_url || '');
+        setDomain(editProject?.domain || '');
+        setColor(editProject?.color || PROJECT_COLORS[0]);
+    }, [editProject]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();

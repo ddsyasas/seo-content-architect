@@ -3,6 +3,8 @@
 import { X, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { createClient } from '@/lib/supabase/client';
+import { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils/helpers';
 import { STATUS_LABELS, NODE_TYPE_LABELS } from '@/lib/utils/constants';
 import type { NodeStatus, NodeType } from '@/lib/types';
@@ -13,9 +15,11 @@ interface NodeDetailPanelProps {
     onClose: () => void;
     onChange: (data: Partial<Node['data']>) => void;
     onDelete: () => void;
+    projectDomain?: string;
+    projectId: string;
 }
 
-export function NodeDetailPanel({ node, onClose, onChange, onDelete }: NodeDetailPanelProps) {
+export function NodeDetailPanel({ node, onClose, onChange, onDelete, projectDomain: propDomain, projectId }: NodeDetailPanelProps) {
     if (!node) return null;
 
     const data = node.data as {
@@ -31,6 +35,21 @@ export function NodeDetailPanel({ node, onClose, onChange, onDelete }: NodeDetai
         incomingLinks?: number;
         outgoingLinks?: number;
     };
+
+    const [domain, setDomain] = useState(propDomain || '');
+
+    useEffect(() => {
+        if (propDomain) {
+            setDomain(propDomain);
+        } else if (projectId) {
+            const fetchDomain = async () => {
+                const supabase = createClient();
+                const { data } = await supabase.from('projects').select('domain').eq('id', projectId).single();
+                if (data?.domain) setDomain(data.domain);
+            };
+            fetchDomain();
+        }
+    }, [propDomain, projectId]);
 
     const statuses: NodeStatus[] = ['planned', 'writing', 'published', 'needs_update'];
 
@@ -93,7 +112,7 @@ export function NodeDetailPanel({ node, onClose, onChange, onDelete }: NodeDetai
 
                 <Input
                     label="URL"
-                    value={data.url || ''}
+                    value={data.url || (domain && data.slug ? `${domain}/${data.slug}` : '')}
                     onChange={(e) => onChange({ url: e.target.value || null })}
                     placeholder="https://example.com/..."
                 />

@@ -53,6 +53,7 @@ function CanvasEditorInner({ projectId }: CanvasEditorProps) {
     const [isEdgeModalOpen, setIsEdgeModalOpen] = useState(false);
     const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null);
     const [editingEdge, setEditingEdge] = useState<{ id: string; edgeType: string; keyword: string; styleOptions: any } | null>(null);
+    const [projectDomain, setProjectDomain] = useState<string>('');
 
     const {
         nodes,
@@ -82,6 +83,14 @@ function CanvasEditorInner({ projectId }: CanvasEditorProps) {
         setIsLoading(true);
         try {
             const supabase = createClient();
+
+            // Fetch project domain
+            const { data: project } = await supabase
+                .from('projects')
+                .select('domain')
+                .eq('id', projectId)
+                .single();
+            if (project?.domain) setProjectDomain(project.domain);
 
             // Fetch nodes
             const { data: nodesData, error: nodesError } = await supabase
@@ -378,6 +387,8 @@ function CanvasEditorInner({ projectId }: CanvasEditorProps) {
         await supabase.from('edges').update({
             source_node_id: newConnection.source,
             target_node_id: newConnection.target,
+            source_handle_id: newConnection.sourceHandle,
+            target_handle_id: newConnection.targetHandle,
         }).eq('id', oldEdge.id);
 
         // Update edge in state
@@ -633,6 +644,8 @@ function CanvasEditorInner({ projectId }: CanvasEditorProps) {
                 onClose={() => setSelectedNodeId(null)}
                 onChange={handleNodeDetailChange}
                 onDelete={handleNodeDelete}
+                projectDomain={projectDomain}
+                projectId={projectId}
             />
 
             {/* Edge creation/edit modal */}

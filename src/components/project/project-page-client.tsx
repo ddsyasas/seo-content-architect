@@ -12,7 +12,7 @@ interface ProjectPageClientProps {
 }
 
 export function ProjectPageClient({ projectId }: ProjectPageClientProps) {
-    const [activeTab, setActiveTab] = useState<'articles' | 'canvas'>('canvas');
+    const [activeTab, setActiveTab] = useState<'articles' | 'canvas'>('articles');
     const [project, setProject] = useState<Project | null>(null);
 
     useEffect(() => {

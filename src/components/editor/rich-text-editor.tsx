@@ -16,6 +16,8 @@ interface RichTextEditorProps {
     onChange: (content: string) => void;
     onWordCountChange?: (count: number) => void;
     placeholder?: string;
+    availableNodes?: { id: string; title: string; slug: string }[];
+    projectDomain?: string;
 }
 
 // Toolbar button component
@@ -54,9 +56,23 @@ export function RichTextEditor({
     onChange,
     onWordCountChange,
     placeholder = 'Start writing your article...',
+    availableNodes = [],
+    projectDomain,
 }: RichTextEditorProps) {
     const [showLinkInput, setShowLinkInput] = useState(false);
     const [linkUrl, setLinkUrl] = useState('');
+    const [filteredNodes, setFilteredNodes] = useState(availableNodes);
+
+    // Filter nodes when typing
+    const handleUrlChange = (value: string) => {
+        setLinkUrl(value);
+        if (value.trim()) {
+            const query = value.toLowerCase();
+            setFilteredNodes(availableNodes.filter(n => n.title.toLowerCase().includes(query) || n.slug.toLowerCase().includes(query)));
+        } else {
+            setFilteredNodes(availableNodes);
+        }
+    };
 
     const editor = useEditor({
         extensions: [
@@ -251,36 +267,63 @@ export function RichTextEditor({
             {showLinkInput && (
                 <div className="flex items-center gap-2 p-2 border-b border-gray-200 bg-indigo-50">
                     <LinkIcon className="w-4 h-4 text-indigo-600" />
-                    <input
-                        type="text"
-                        value={linkUrl}
-                        onChange={(e) => setLinkUrl(e.target.value)}
-                        placeholder="Enter URL (e.g., domain.com/article-slug)"
-                        className="flex-1 px-3 py-1.5 text-sm border border-gray-300 rounded text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                        autoFocus
-                        onKeyDown={(e) => {
-                            if (e.key === 'Enter') {
-                                e.preventDefault();
-                                applyLink();
-                            } else if (e.key === 'Escape') {
-                                cancelLink();
-                            }
-                        }}
-                    />
-                    <button
-                        onClick={applyLink}
-                        className="p-1.5 bg-indigo-600 text-white rounded hover:bg-indigo-700 transition-colors"
-                        title="Apply Link"
-                    >
-                        <Check className="w-4 h-4" />
-                    </button>
-                    <button
-                        onClick={cancelLink}
-                        className="p-1.5 bg-gray-200 text-gray-600 rounded hover:bg-gray-300 transition-colors"
-                        title="Cancel"
-                    >
-                        <X className="w-4 h-4" />
-                    </button>
+                    <div className="flex-1 relative">
+                        <input
+                            type="text"
+                            value={linkUrl}
+                            onChange={(e) => handleUrlChange(e.target.value)}
+                            placeholder="Enter URL or search article..."
+                            className="w-full px-3 py-1.5 text-sm border border-gray-300 rounded text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                            autoFocus
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                    e.preventDefault();
+                                    applyLink();
+                                } else if (e.key === 'Escape') {
+                                    cancelLink();
+                                }
+                            }}
+                        />
+
+                        {/* Autocomplete Dropdown */}
+                        {showLinkInput && filteredNodes.length > 0 && (
+                            <div className="absolute top-full left-0 mt-1 w-full md:w-96 max-h-48 overflow-y-auto bg-white border border-gray-200 rounded-lg shadow-xl z-50">
+                                {filteredNodes.map((node) => (
+                                    <button
+                                        key={node.id}
+                                        className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 flex flex-col"
+                                        onClick={() => {
+                                            const url = projectDomain ? `https://${projectDomain}/${node.slug}` : `/${node.slug}`;
+                                            setLinkUrl(url);
+                                            // Auto apply? Or just set? Let's auto apply or just set.
+                                            // User might want to edit. Just set for now.
+                                            // Or better: set and keep input open?
+                                            // Usually autocomplete selection applies properly or fills input.
+                                            // I'll fill input.
+                                        }}
+                                    >
+                                        <span className="font-medium text-gray-900">{node.title}</span>
+                                        <span className="text-xs text-gray-500">{node.slug}</span>
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+
+                        <button
+                            onClick={applyLink}
+                            className="p-1.5 bg-indigo-600 text-white rounded hover:bg-indigo-700 transition-colors"
+                            title="Apply Link"
+                        >
+                            <Check className="w-4 h-4" />
+                        </button>
+                        <button
+                            onClick={cancelLink}
+                            className="p-1.5 bg-gray-200 text-gray-600 rounded hover:bg-gray-300 transition-colors"
+                            title="Cancel"
+                        >
+                            <X className="w-4 h-4" />
+                        </button>
+                    </div>
                 </div>
             )}
 
