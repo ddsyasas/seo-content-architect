@@ -78,44 +78,6 @@ function CanvasEditorInner({ projectId }: CanvasEditorProps) {
         loadProjectData();
     }, [projectId]);
 
-    // Update node link counts when edges change
-    useEffect(() => {
-        if (nodes.length === 0 || isLoading) return;
-
-        // Calculate link counts from current edges
-        const linkCounts: Record<string, { incoming: number; outgoing: number }> = {};
-        edges.forEach((edge) => {
-            if (!linkCounts[edge.source]) {
-                linkCounts[edge.source] = { incoming: 0, outgoing: 0 };
-            }
-            if (!linkCounts[edge.target]) {
-                linkCounts[edge.target] = { incoming: 0, outgoing: 0 };
-            }
-            linkCounts[edge.source].outgoing++;
-            linkCounts[edge.target].incoming++;
-        });
-
-        // Update nodes with new link counts
-        const updatedNodes = nodes.map(node => ({
-            ...node,
-            data: {
-                ...node.data,
-                incomingLinks: linkCounts[node.id]?.incoming || 0,
-                outgoingLinks: linkCounts[node.id]?.outgoing || 0,
-            }
-        }));
-
-        // Only update if counts have actually changed
-        const hasChanges = updatedNodes.some((node, idx) =>
-            node.data.incomingLinks !== nodes[idx].data.incomingLinks ||
-            node.data.outgoingLinks !== nodes[idx].data.outgoingLinks
-        );
-
-        if (hasChanges) {
-            setNodes(updatedNodes);
-        }
-    }, [edges, isLoading]);
-
     const loadProjectData = async () => {
         setIsLoading(true);
         try {
@@ -471,8 +433,19 @@ function CanvasEditorInner({ projectId }: CanvasEditorProps) {
             data: { edge_type: edgeType, keyword, project_id: projectId, styleOptions },
         }]);
 
+        // Update external node's type when backlink or outbound edge is created
+        if (edgeType === 'backlink' || edgeType === 'outbound') {
+            const targetNode = nodes.find(n => n.id === pendingConnection.target);
+            if (targetNode && targetNode.type === 'external') {
+                setNodes(nodes.map(n => n.id === targetNode.id ? {
+                    ...n,
+                    data: { ...n.data, externalType: edgeType }
+                } : n));
+            }
+        }
+
         setPendingConnection(null);
-    }, [pendingConnection, editingEdge, projectId, edges, setEdges]);
+    }, [pendingConnection, editingEdge, projectId, edges, setEdges, nodes, setNodes]);
 
     // Handle edge modal close
     const handleEdgeModalClose = useCallback(() => {
@@ -526,7 +499,6 @@ function CanvasEditorInner({ projectId }: CanvasEditorProps) {
                 onConnect={handleConnect}
                 onNodeClick={handleNodeClick}
                 onEdgeClick={handleEdgeClick}
-                onEdgeDoubleClick={handleEdgeDoubleClick}
                 onEdgeUpdate={handleEdgeUpdate}
                 onPaneClick={handlePaneClick}
                 edgesUpdatable={true}
