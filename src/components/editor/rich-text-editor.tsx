@@ -83,6 +83,8 @@ export function RichTextEditor({
             }),
             Link.configure({
                 openOnClick: false,
+                autolink: false,
+                linkOnPaste: true,
                 HTMLAttributes: {
                     class: 'text-indigo-600 underline',
                 },
