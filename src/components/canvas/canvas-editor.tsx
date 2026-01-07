@@ -509,6 +509,7 @@ function CanvasEditorInner({ projectId }: CanvasEditorProps) {
                 onConnect={handleConnect}
                 onNodeClick={handleNodeClick}
                 onEdgeClick={handleEdgeClick}
+                onEdgeDoubleClick={handleEdgeDoubleClick}
                 onEdgeUpdate={handleEdgeUpdate}
                 onPaneClick={handlePaneClick}
                 edgesUpdatable={true}
