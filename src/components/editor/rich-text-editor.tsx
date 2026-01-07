@@ -3,13 +3,15 @@
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Link from '@tiptap/extension-link';
+import Image from '@tiptap/extension-image';
 import Placeholder from '@tiptap/extension-placeholder';
-import { useCallback, useState } from 'react';
+import { useCallback, useState, useRef } from 'react';
 import {
     Bold, Italic, Strikethrough, Code, List, ListOrdered,
-    Quote, Heading1, Heading2, Heading3, Link as LinkIcon, Unlink2, Undo, Redo, X, Check
+    Quote, Heading1, Heading2, Heading3, Link as LinkIcon, Unlink2, Undo, Redo, X, Check, ImageIcon, Loader2
 } from 'lucide-react';
 import { cn } from '@/lib/utils/helpers';
+import { createClient } from '@/lib/supabase/client';
 
 interface RichTextEditorProps {
     content: string;
@@ -62,6 +64,8 @@ export function RichTextEditor({
     const [showLinkInput, setShowLinkInput] = useState(false);
     const [linkUrl, setLinkUrl] = useState('');
     const [filteredNodes, setFilteredNodes] = useState(availableNodes);
+    const [isUploading, setIsUploading] = useState(false);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     // Filter nodes when typing
     const handleUrlChange = (value: string) => {
@@ -87,6 +91,11 @@ export function RichTextEditor({
                 linkOnPaste: true,
                 HTMLAttributes: {
                     class: 'text-indigo-600 underline',
+                },
+            }),
+            Image.configure({
+                HTMLAttributes: {
+                    class: 'rounded-lg max-w-full h-auto my-4',
                 },
             }),
             Placeholder.configure({
@@ -140,6 +149,53 @@ export function RichTextEditor({
         setShowLinkInput(false);
         setLinkUrl('');
         editor?.chain().focus().run();
+    }, [editor]);
+
+    const handleImageUpload = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (!file || !editor) return;
+
+        // Validate file type
+        if (!file.type.startsWith('image/')) {
+            alert('Please select an image file');
+            return;
+        }
+
+        // Validate file size (max 5MB)
+        if (file.size > 5 * 1024 * 1024) {
+            alert('Image size must be less than 5MB');
+            return;
+        }
+
+        setIsUploading(true);
+        try {
+            const supabase = createClient();
+            const fileExt = file.name.split('.').pop();
+            const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
+            const filePath = `uploads/${fileName}`;
+
+            const { error: uploadError } = await supabase.storage
+                .from('article-images')
+                .upload(filePath, file);
+
+            if (uploadError) throw uploadError;
+
+            const { data: { publicUrl } } = supabase.storage
+                .from('article-images')
+                .getPublicUrl(filePath);
+
+            // Insert image into editor
+            editor.chain().focus().setImage({ src: publicUrl }).run();
+        } catch (error) {
+            console.error('Failed to upload image:', error);
+            alert('Failed to upload image. Please try again.');
+        } finally {
+            setIsUploading(false);
+            // Reset file input
+            if (fileInputRef.current) {
+                fileInputRef.current.value = '';
+            }
+        }
     }, [editor]);
 
     if (!editor) {
@@ -246,6 +302,28 @@ export function RichTextEditor({
                         <Unlink2 className="w-4 h-4 text-red-500" />
                     </ToolbarButton>
                 )}
+
+                <div className="w-px h-6 bg-gray-300 mx-1" />
+
+                {/* Image Upload */}
+                <input
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handleImageUpload}
+                    accept="image/*"
+                    className="hidden"
+                />
+                <ToolbarButton
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={isUploading}
+                    title="Add Image"
+                >
+                    {isUploading ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                        <ImageIcon className="w-4 h-4" />
+                    )}
+                </ToolbarButton>
 
                 <div className="flex-1" />
 

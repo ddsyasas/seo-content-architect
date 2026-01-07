@@ -103,7 +103,8 @@ export function ArticlesList({ projectId, project }: ArticlesListProps) {
                 </div>
             ) : (
                 <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-                    <table className="w-full">
+                    {/* Desktop Table View */}
+                    <table className="w-full hidden md:table">
                         <thead className="bg-gray-50 border-b border-gray-200">
                             <tr>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -156,6 +157,40 @@ export function ArticlesList({ projectId, project }: ArticlesListProps) {
                             ))}
                         </tbody>
                     </table>
+
+                    {/* Mobile Card View */}
+                    <div className="md:hidden divide-y divide-gray-200">
+                        {nodes.map((node) => (
+                            <Link
+                                key={node.id}
+                                href={`/project/${projectId}/article/${node.id}`}
+                                className="block p-4 hover:bg-gray-50 transition-colors"
+                            >
+                                <div className="flex items-start justify-between gap-3">
+                                    <div className="flex-1 min-w-0">
+                                        <div className="font-medium text-gray-900 truncate">{node.title}</div>
+                                        {node.target_keyword && (
+                                            <div className="text-sm text-gray-500 flex items-center gap-1 mt-1">
+                                                <Hash className="w-3 h-3" />
+                                                <span className="truncate">{node.target_keyword}</span>
+                                            </div>
+                                        )}
+                                        <div className="text-xs text-gray-400 mt-1 truncate">
+                                            {project?.domain || 'domain.com'}/{node.slug || 'slug'}
+                                        </div>
+                                    </div>
+                                    <div className="flex flex-col gap-1 items-end shrink-0">
+                                        <span className={cn('px-2 py-0.5 rounded-full text-xs font-medium', getTypeColor(node.node_type))}>
+                                            {NODE_TYPE_LABELS[node.node_type]}
+                                        </span>
+                                        <span className={cn('px-2 py-0.5 rounded-full text-xs font-medium', getStatusColor(node.status))}>
+                                            {STATUS_LABELS[node.status]}
+                                        </span>
+                                    </div>
+                                </div>
+                            </Link>
+                        ))}
+                    </div>
                 </div>
             )}
         </div>

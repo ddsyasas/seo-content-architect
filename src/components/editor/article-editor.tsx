@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { v4 as uuidv4 } from 'uuid';
-import { ArrowLeft, Save, Clock, FileText, Globe } from 'lucide-react';
+import { ArrowLeft, Save, Clock, FileText, Globe, Settings } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { RichTextEditor } from '@/components/editor/rich-text-editor';
 import { Button } from '@/components/ui/button';
@@ -22,6 +22,7 @@ export function ArticleEditor({ projectId, nodeId }: ArticleEditorProps) {
     const router = useRouter();
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
+    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [lastSaved, setLastSaved] = useState<Date | null>(null);
 
     // Data
@@ -401,10 +402,10 @@ export function ArticleEditor({ projectId, nodeId }: ArticleEditorProps) {
             {/* Main Editor */}
             <div className="flex-1 flex flex-col overflow-hidden">
                 {/* Header */}
-                <div className="flex items-center gap-4 px-6 py-4 border-b border-gray-200">
+                <div className="flex items-center gap-2 sm:gap-4 px-3 sm:px-6 py-3 sm:py-4 border-b border-gray-200">
                     <button
                         onClick={() => router.push(`/project/${projectId}`)}
-                        className="p-2 hover:bg-gray-100 rounded-lg transition-colors text-gray-600"
+                        className="p-2 hover:bg-gray-100 rounded-lg transition-colors text-gray-600 shrink-0"
                     >
                         <ArrowLeft className="w-5 h-5" />
                     </button>
@@ -414,10 +415,10 @@ export function ArticleEditor({ projectId, nodeId }: ArticleEditorProps) {
                         value={title}
                         onChange={(e) => setTitle(e.target.value)}
                         placeholder="Article Title"
-                        className="flex-1 text-2xl font-bold bg-transparent focus:outline-none text-gray-900 placeholder-gray-400"
+                        className="flex-1 text-lg sm:text-2xl font-bold bg-transparent focus:outline-none text-gray-900 placeholder-gray-400 min-w-0"
                     />
 
-                    <div className="flex items-center gap-4 text-sm text-gray-500">
+                    <div className="hidden sm:flex items-center gap-4 text-sm text-gray-500">
                         <span className="flex items-center gap-1">
                             <FileText className="w-4 h-4" />
                             {wordCount} words
@@ -430,9 +431,17 @@ export function ArticleEditor({ projectId, nodeId }: ArticleEditorProps) {
                         )}
                     </div>
 
-                    <Button onClick={saveData} isLoading={isSaving} className="gap-2">
+                    <button
+                        onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+                        className="lg:hidden p-2 hover:bg-gray-100 rounded-lg transition-colors text-gray-600 shrink-0"
+                        title="Toggle Settings"
+                    >
+                        <Settings className="w-5 h-5" />
+                    </button>
+
+                    <Button onClick={saveData} isLoading={isSaving} className="gap-2 shrink-0">
                         <Save className="w-4 h-4" />
-                        Save
+                        <span className="hidden sm:inline">Save</span>
                     </Button>
                 </div>
 
@@ -451,8 +460,19 @@ export function ArticleEditor({ projectId, nodeId }: ArticleEditorProps) {
                 </div>
             </div>
 
+            {/* Mobile Sidebar Backdrop */}
+            {isSidebarOpen && (
+                <div
+                    className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+                    onClick={() => setIsSidebarOpen(false)}
+                />
+            )}
+
             {/* Sidebar */}
-            <div className="w-80 border-l border-gray-200 overflow-y-auto">
+            <div className={cn(
+                'fixed right-0 top-0 h-full w-80 bg-white border-l border-gray-200 overflow-y-auto z-50 transform transition-transform duration-200 lg:relative lg:translate-x-0',
+                isSidebarOpen ? 'translate-x-0' : 'translate-x-full'
+            )}>
                 <div className="p-4 space-y-6">
                     <h3 className="font-semibold text-gray-900">Article Settings</h3>
 
