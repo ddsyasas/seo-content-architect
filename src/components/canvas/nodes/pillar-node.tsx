@@ -2,12 +2,15 @@
 
 import { memo } from 'react';
 import { Handle, Position, NodeProps } from 'reactflow';
-import { FileText, Link as LinkIcon, ExternalLink } from 'lucide-react';
+import { FileText, Link as LinkIcon, ExternalLink, Edit3 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils/helpers';
 import { STATUS_LABELS } from '@/lib/utils/constants';
 import type { NodeStatus } from '@/lib/types';
 
 interface PillarNodeData {
+    nodeId: string;
+    projectId: string;
     title: string;
     target_keyword: string | null;
     status: NodeStatus;
@@ -30,6 +33,13 @@ const statusDotColors: Record<NodeStatus, string> = {
 };
 
 function PillarNode({ data, selected }: NodeProps<PillarNodeData>) {
+    const router = useRouter();
+
+    const handleEditClick = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        router.push(`/project/${data.projectId}/article/${data.nodeId}`);
+    };
+
     return (
         <div
             className={cn(
@@ -69,19 +79,29 @@ function PillarNode({ data, selected }: NodeProps<PillarNodeData>) {
                 </div>
             )}
 
-            {/* Link counts */}
-            <div className="flex items-center gap-3 text-xs text-gray-500">
-                <span className="flex items-center gap-1">
-                    <LinkIcon className="w-3 h-3" />
-                    {data.incomingLinks || 0} in
-                </span>
-                <span className="flex items-center gap-1">
-                    <ExternalLink className="w-3 h-3" />
-                    {data.outgoingLinks || 0} out
-                </span>
+            {/* Link counts and Edit button */}
+            <div className="flex items-center justify-between text-xs text-gray-500">
+                <div className="flex items-center gap-3">
+                    <span className="flex items-center gap-1">
+                        <LinkIcon className="w-3 h-3" />
+                        {data.incomingLinks || 0} in
+                    </span>
+                    <span className="flex items-center gap-1">
+                        <ExternalLink className="w-3 h-3" />
+                        {data.outgoingLinks || 0} out
+                    </span>
+                </div>
+                <button
+                    onClick={handleEditClick}
+                    className="p-1 rounded hover:bg-indigo-200 text-indigo-600 transition-colors"
+                    title="Edit Article"
+                >
+                    <Edit3 className="w-3.5 h-3.5" />
+                </button>
             </div>
         </div>
     );
 }
 
 export default memo(PillarNode);
+

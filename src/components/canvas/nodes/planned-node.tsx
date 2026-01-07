@@ -2,15 +2,25 @@
 
 import { memo } from 'react';
 import { Handle, Position, NodeProps } from 'reactflow';
-import { FileText, Clock } from 'lucide-react';
+import { FileText, Clock, Edit3 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils/helpers';
 
 interface PlannedNodeData {
+    nodeId: string;
+    projectId: string;
     title: string;
     target_keyword: string | null;
 }
 
 function PlannedNode({ data, selected }: NodeProps<PlannedNodeData>) {
+    const router = useRouter();
+
+    const handleEditClick = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        router.push(`/project/${data.projectId}/article/${data.nodeId}`);
+    };
+
     return (
         <div
             className={cn(
@@ -39,13 +49,22 @@ function PlannedNode({ data, selected }: NodeProps<PlannedNodeData>) {
                 {data.title}
             </h3>
 
-            {/* Keyword */}
-            {data.target_keyword && (
-                <div className="flex items-center gap-1 text-xs text-gray-500">
-                    <FileText className="w-3 h-3" />
-                    <span className="truncate">{data.target_keyword}</span>
-                </div>
-            )}
+            {/* Keyword and Edit button */}
+            <div className="flex items-center justify-between">
+                {data.target_keyword && (
+                    <div className="flex items-center gap-1 text-xs text-gray-500">
+                        <FileText className="w-3 h-3" />
+                        <span className="truncate">{data.target_keyword}</span>
+                    </div>
+                )}
+                <button
+                    onClick={handleEditClick}
+                    className="p-1 rounded hover:bg-gray-200 text-gray-600 transition-colors ml-auto"
+                    title="Edit Article"
+                >
+                    <Edit3 className="w-3.5 h-3.5" />
+                </button>
+            </div>
         </div>
     );
 }

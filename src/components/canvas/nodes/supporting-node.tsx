@@ -2,12 +2,15 @@
 
 import { memo } from 'react';
 import { Handle, Position, NodeProps } from 'reactflow';
-import { FileText, Link as LinkIcon, ExternalLink } from 'lucide-react';
+import { FileText, Link as LinkIcon, ExternalLink, Edit3 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils/helpers';
 import { STATUS_LABELS } from '@/lib/utils/constants';
 import type { NodeStatus } from '@/lib/types';
 
 interface SupportingNodeData {
+    nodeId: string;
+    projectId: string;
     title: string;
     target_keyword: string | null;
     status: NodeStatus;
@@ -30,6 +33,13 @@ const statusDotColors: Record<NodeStatus, string> = {
 };
 
 function SupportingNode({ data, selected }: NodeProps<SupportingNodeData>) {
+    const router = useRouter();
+
+    const handleEditClick = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        router.push(`/project/${data.projectId}/article/${data.nodeId}`);
+    };
+
     return (
         <div
             className={cn(
@@ -66,16 +76,25 @@ function SupportingNode({ data, selected }: NodeProps<SupportingNodeData>) {
                 </div>
             )}
 
-            {/* Link counts */}
-            <div className="flex items-center gap-2 text-[10px] text-gray-500">
-                <span className="flex items-center gap-0.5">
-                    <LinkIcon className="w-2.5 h-2.5" />
-                    {data.incomingLinks || 0} in
-                </span>
-                <span className="flex items-center gap-0.5">
-                    <ExternalLink className="w-2.5 h-2.5" />
-                    {data.outgoingLinks || 0} out
-                </span>
+            {/* Link counts and Edit button */}
+            <div className="flex items-center justify-between text-[10px] text-gray-500">
+                <div className="flex items-center gap-2">
+                    <span className="flex items-center gap-0.5">
+                        <LinkIcon className="w-2.5 h-2.5" />
+                        {data.incomingLinks || 0} in
+                    </span>
+                    <span className="flex items-center gap-0.5">
+                        <ExternalLink className="w-2.5 h-2.5" />
+                        {data.outgoingLinks || 0} out
+                    </span>
+                </div>
+                <button
+                    onClick={handleEditClick}
+                    className="p-0.5 rounded hover:bg-cyan-200 text-cyan-600 transition-colors"
+                    title="Edit Article"
+                >
+                    <Edit3 className="w-3 h-3" />
+                </button>
             </div>
         </div>
     );

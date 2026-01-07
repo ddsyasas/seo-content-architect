@@ -123,7 +123,7 @@ function CanvasEditorInner({ projectId }: CanvasEditorProps) {
 
             // Convert to React Flow format
             const flowNodes = (nodesData || []).map((node: ContentNode) =>
-                dbNodeToFlowNode(node, linkCounts[node.id])
+                dbNodeToFlowNode(node, linkCounts[node.id], projectId)
             );
             const flowEdges = (edgesData || []).map(dbEdgeToFlowEdge);
 

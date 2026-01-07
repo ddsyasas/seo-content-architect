@@ -101,12 +101,14 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
 }));
 
 // Helper function to convert DB node to React Flow node
-export function dbNodeToFlowNode(node: ContentNode, linkCounts?: { incoming: number; outgoing: number }): Node {
+export function dbNodeToFlowNode(node: ContentNode, linkCounts?: { incoming: number; outgoing: number }, projectId?: string): Node {
     return {
         id: node.id,
         type: node.node_type,
         position: { x: node.position_x, y: node.position_y },
         data: {
+            nodeId: node.id,
+            projectId: projectId || node.project_id,
             title: node.title,
             target_keyword: node.target_keyword,
             status: node.status,
