@@ -434,12 +434,22 @@ function CanvasEditorInner({ projectId }: CanvasEditorProps) {
         }]);
 
         // Update external node's type when backlink or outbound edge is created
-        if (edgeType === 'backlink' || edgeType === 'outbound') {
+        // Backlink: external site links TO us, so external is SOURCE
+        // Outbound: we link TO external site, so external is TARGET
+        if (edgeType === 'backlink') {
+            const sourceNode = nodes.find(n => n.id === pendingConnection.source);
+            if (sourceNode && sourceNode.type === 'external') {
+                setNodes(nodes.map(n => n.id === sourceNode.id ? {
+                    ...n,
+                    data: { ...n.data, externalType: 'backlink' }
+                } : n));
+            }
+        } else if (edgeType === 'outbound') {
             const targetNode = nodes.find(n => n.id === pendingConnection.target);
             if (targetNode && targetNode.type === 'external') {
                 setNodes(nodes.map(n => n.id === targetNode.id ? {
                     ...n,
-                    data: { ...n.data, externalType: edgeType }
+                    data: { ...n.data, externalType: 'outbound' }
                 } : n));
             }
         }
