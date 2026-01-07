@@ -39,17 +39,11 @@ function ClusterNode({ data, selected }: NodeProps<ClusterNodeData>) {
                 selected && 'ring-2 ring-blue-500 ring-offset-2'
             )}
         >
-            {/* Connection handles */}
-            <Handle
-                type="target"
-                position={Position.Top}
-                className="w-3 h-3 !bg-blue-500 border-2 border-white"
-            />
-            <Handle
-                type="source"
-                position={Position.Bottom}
-                className="w-3 h-3 !bg-blue-500 border-2 border-white"
-            />
+            {/* Connection handles - 4 handles, one per side */}
+            <Handle type="source" position={Position.Top} id="top" className="w-3 h-3 !bg-blue-500 border-2 border-white" />
+            <Handle type="source" position={Position.Bottom} id="bottom" className="w-3 h-3 !bg-blue-500 border-2 border-white" />
+            <Handle type="source" position={Position.Left} id="left" className="w-3 h-3 !bg-blue-500 border-2 border-white" />
+            <Handle type="source" position={Position.Right} id="right" className="w-3 h-3 !bg-blue-500 border-2 border-white" />
 
             {/* Status badge */}
             <div className="flex items-center gap-2 mb-2">

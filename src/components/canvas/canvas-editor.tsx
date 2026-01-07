@@ -1,25 +1,32 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import ReactFlow, {
     Background,
     Controls,
     MiniMap,
     ReactFlowProvider,
     useReactFlow,
+    Connection,
+    MarkerType,
+    ConnectionMode,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { v4 as uuidv4 } from 'uuid';
 
 import { useCanvasStore, dbNodeToFlowNode, dbEdgeToFlowEdge } from '@/lib/store/canvas-store';
 import { createClient } from '@/lib/supabase/client';
+import { EDGE_STYLES } from '@/lib/utils/constants';
 import { CanvasToolbar } from './canvas-toolbar';
 import { NodeDetailPanel } from './node-detail-panel';
+import { EdgeModal } from './edge-modal';
+import CustomLabelEdge from './edges/custom-label-edge';
 import PillarNode from './nodes/pillar-node';
 import ClusterNode from './nodes/cluster-node';
+import SupportingNode from './nodes/supporting-node';
 import PlannedNode from './nodes/planned-node';
 import ExternalNode from './nodes/external-node';
-import type { NodeType, NodeStatus, ContentNode, ContentEdge } from '@/lib/types';
+import type { NodeType, NodeStatus, ContentNode, ContentEdge, EdgeType } from '@/lib/types';
 
 interface CanvasEditorProps {
     projectId: string;
@@ -28,13 +35,24 @@ interface CanvasEditorProps {
 const nodeTypes = {
     pillar: PillarNode,
     cluster: ClusterNode,
+    supporting: SupportingNode,
     planned: PlannedNode,
     external: ExternalNode,
+};
+
+const edgeTypes = {
+    custom: CustomLabelEdge,
 };
 
 function CanvasEditorInner({ projectId }: CanvasEditorProps) {
     const { fitView, zoomIn, zoomOut, getViewport } = useReactFlow();
     const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+    // Edge modal state
+    const [pendingConnection, setPendingConnection] = useState<Connection | null>(null);
+    const [isEdgeModalOpen, setIsEdgeModalOpen] = useState(false);
+    const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null);
+    const [editingEdge, setEditingEdge] = useState<{ id: string; edgeType: string; keyword: string; styleOptions: any } | null>(null);
 
     const {
         nodes,
@@ -45,7 +63,6 @@ function CanvasEditorInner({ projectId }: CanvasEditorProps) {
         setEdges,
         onNodesChange,
         onEdgesChange,
-        onConnect,
         addNode,
         updateNode,
         deleteNode,
@@ -53,6 +70,7 @@ function CanvasEditorInner({ projectId }: CanvasEditorProps) {
         setIsLoading,
         setIsSaving,
         getSelectedNode,
+        deleteEdge,
     } = useCanvasStore();
 
     // Load project data
@@ -206,6 +224,7 @@ function CanvasEditorInner({ projectId }: CanvasEditorProps) {
     // Handle pane click (deselect)
     const handlePaneClick = useCallback(() => {
         setSelectedNodeId(null);
+        setSelectedEdgeId(null);
     }, [setSelectedNodeId]);
 
     // Handle node detail change
@@ -232,19 +251,154 @@ function CanvasEditorInner({ projectId }: CanvasEditorProps) {
         deleteNode(selectedNodeId);
     }, [selectedNodeId, deleteNode]);
 
-    // Handle edge creation
-    const handleConnect = useCallback(async (connection: any) => {
-        const id = uuidv4();
+    // Handle edge click (select edge)
+    const handleEdgeClick = useCallback((_: any, edge: any) => {
+        setSelectedEdgeId(edge.id);
+        setSelectedNodeId(null);
+    }, [setSelectedNodeId]);
+
+    // Handle edge double-click (edit edge)
+    const handleEdgeDoubleClick = useCallback((_: any, edge: any) => {
+        const styleOptions = edge.data?.styleOptions || {
+            lineWidth: edge.style?.strokeWidth || 2,
+            arrowSize: edge.markerEnd?.width || 16,
+            lineStyle: edge.style?.strokeDasharray === '8,4' ? 'dashed' :
+                edge.style?.strokeDasharray === '2,4' ? 'dotted' : 'solid'
+        };
+
+        setEditingEdge({
+            id: edge.id,
+            edgeType: edge.data?.edge_type || 'hierarchy',
+            keyword: edge.label || '',
+            styleOptions
+        });
+        setIsEdgeModalOpen(true);
+    }, []);
+
+    // Handle edge delete
+    const handleDeleteSelectedEdge = useCallback(async () => {
+        if (!selectedEdgeId) return;
 
         const supabase = createClient();
+        await supabase.from('edges').delete().eq('id', selectedEdgeId);
+
+        deleteEdge(selectedEdgeId);
+        setSelectedEdgeId(null);
+    }, [selectedEdgeId, deleteEdge]);
+
+    // Handle edge update (reconnection by dragging)
+    const handleEdgeUpdate = useCallback(async (oldEdge: any, newConnection: Connection) => {
+        if (!newConnection.source || !newConnection.target) return;
+
+        const supabase = createClient();
+        await supabase.from('edges').update({
+            source_node_id: newConnection.source,
+            target_node_id: newConnection.target,
+        }).eq('id', oldEdge.id);
+
+        // Update edge in state
+        setEdges(edges.map(e =>
+            e.id === oldEdge.id
+                ? { ...e, source: newConnection.source!, target: newConnection.target!, sourceHandle: newConnection.sourceHandle, targetHandle: newConnection.targetHandle }
+                : e
+        ));
+    }, [edges, setEdges]);
+
+    // Keyboard handler for delete
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if ((e.key === 'Delete' || e.key === 'Backspace') && selectedEdgeId) {
+                e.preventDefault();
+                handleDeleteSelectedEdge();
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [selectedEdgeId, handleDeleteSelectedEdge]);
+
+    // Handle connection start - show edge modal
+    const handleConnect = useCallback((connection: Connection) => {
+        setPendingConnection(connection);
+        setIsEdgeModalOpen(true);
+    }, []);
+
+    // Handle edge modal submit (for both create and edit)
+    const handleEdgeModalSubmit = useCallback(async ({
+        edgeType,
+        keyword,
+        styleOptions
+    }: {
+        edgeType: EdgeType;
+        keyword: string;
+        styleOptions: { lineWidth: number; arrowSize: number; lineStyle: 'solid' | 'dashed' | 'dotted' }
+    }) => {
+        const baseStyle = EDGE_STYLES[edgeType];
+        const strokeDasharray =
+            styleOptions.lineStyle === 'dashed' ? '8,4' :
+                styleOptions.lineStyle === 'dotted' ? '2,4' : undefined;
+
+        const supabase = createClient();
+
+        // EDIT MODE - Update existing edge
+        if (editingEdge) {
+            const { error } = await supabase
+                .from('edges')
+                .update({
+                    edge_type: edgeType,
+                    label: keyword,
+                    stroke_width: styleOptions.lineWidth,
+                    arrow_size: styleOptions.arrowSize,
+                    line_style: styleOptions.lineStyle,
+                })
+                .eq('id', editingEdge.id);
+
+            if (error) {
+                console.error('Failed to update edge:', error);
+                return;
+            }
+
+            // Update edge in canvas state
+            setEdges(edges.map(e => e.id === editingEdge.id ? {
+                ...e,
+                label: keyword,
+                style: {
+                    stroke: baseStyle.stroke,
+                    strokeWidth: styleOptions.lineWidth,
+                    strokeDasharray: strokeDasharray,
+                },
+                markerEnd: {
+                    type: MarkerType.ArrowClosed,
+                    color: baseStyle.stroke,
+                    width: styleOptions.arrowSize,
+                    height: styleOptions.arrowSize,
+                },
+                data: { ...e.data, edge_type: edgeType, keyword, styleOptions },
+            } : e));
+
+            setEditingEdge(null);
+            return;
+        }
+
+        // CREATE MODE - Create new edge
+        if (!pendingConnection) return;
+
+        const id = uuidv4();
+
         const { error } = await supabase
             .from('edges')
             .insert({
                 id,
                 project_id: projectId,
-                source_node_id: connection.source,
-                target_node_id: connection.target,
-                edge_type: 'internal_link',
+                source_node_id: pendingConnection.source,
+                target_node_id: pendingConnection.target,
+                source_handle_id: pendingConnection.sourceHandle,
+                target_handle_id: pendingConnection.targetHandle,
+                edge_type: edgeType,
+                label: keyword,
+                stroke_width: styleOptions.lineWidth,
+                arrow_size: styleOptions.arrowSize,
+                line_style: styleOptions.lineStyle,
             });
 
         if (error) {
@@ -252,11 +406,56 @@ function CanvasEditorInner({ projectId }: CanvasEditorProps) {
             return;
         }
 
-        onConnect({ ...connection, id });
-    }, [projectId, onConnect]);
+        // Add edge to canvas with custom styling
+        setEdges([...edges, {
+            id,
+            source: pendingConnection.source!,
+            target: pendingConnection.target!,
+            sourceHandle: pendingConnection.sourceHandle,
+            targetHandle: pendingConnection.targetHandle,
+            type: 'custom',
+            label: keyword,
+            labelStyle: { fill: '#374151', fontWeight: 500, fontSize: 11 },
+            labelBgStyle: { fill: '#fff', fillOpacity: 0.9, stroke: '#e5e7eb', strokeWidth: 1 },
+            labelBgPadding: [4, 6] as [number, number],
+            labelShowBg: true,
+            style: {
+                stroke: baseStyle.stroke,
+                strokeWidth: styleOptions.lineWidth,
+                strokeDasharray: strokeDasharray,
+            },
+            markerEnd: {
+                type: MarkerType.ArrowClosed,
+                color: baseStyle.stroke,
+                width: styleOptions.arrowSize,
+                height: styleOptions.arrowSize,
+            },
+            data: { edge_type: edgeType, keyword, project_id: projectId, styleOptions },
+        }]);
+
+        setPendingConnection(null);
+    }, [pendingConnection, editingEdge, projectId, edges, setEdges]);
+
+    // Handle edge modal close
+    const handleEdgeModalClose = useCallback(() => {
+        setIsEdgeModalOpen(false);
+        setPendingConnection(null);
+        setEditingEdge(null);
+    }, []);
 
     const selectedNode = getSelectedNode();
     const zoom = getViewport().zoom;
+
+    // Apply selection styling to edges
+    const styledEdges = edges.map(edge => ({
+        ...edge,
+        selected: edge.id === selectedEdgeId,
+        style: {
+            ...edge.style,
+            stroke: edge.id === selectedEdgeId ? '#EF4444' : edge.style?.stroke,
+            strokeWidth: edge.id === selectedEdgeId ? 4 : edge.style?.strokeWidth,
+        },
+    }));
 
     if (isLoading) {
         return (
@@ -281,20 +480,31 @@ function CanvasEditorInner({ projectId }: CanvasEditorProps) {
 
             <ReactFlow
                 nodes={nodes}
-                edges={edges}
+                edges={styledEdges}
                 nodeTypes={nodeTypes}
+                edgeTypes={edgeTypes}
                 onNodesChange={handleNodesChange}
                 onEdgesChange={onEdgesChange}
                 onConnect={handleConnect}
                 onNodeClick={handleNodeClick}
+                onEdgeClick={handleEdgeClick}
+                onEdgeDoubleClick={handleEdgeDoubleClick}
+                onEdgeUpdate={handleEdgeUpdate}
                 onPaneClick={handlePaneClick}
+                edgesUpdatable={true}
+                edgesFocusable={true}
+                elementsSelectable={true}
+                edgeUpdaterRadius={20}
                 fitView
                 fitViewOptions={{ padding: 0.2 }}
                 minZoom={0.1}
                 maxZoom={2}
+                connectionMode={ConnectionMode.Loose}
+                connectionLineStyle={{ stroke: '#3B82F6', strokeWidth: 2 }}
                 defaultEdgeOptions={{
                     style: { stroke: '#3B82F6', strokeWidth: 2 },
                     type: 'default',
+                    markerEnd: { type: MarkerType.ArrowClosed, color: '#3B82F6' },
                 }}
             >
                 <Background gap={20} size={1} />
@@ -303,6 +513,7 @@ function CanvasEditorInner({ projectId }: CanvasEditorProps) {
                         switch (n.type) {
                             case 'pillar': return '#6366F1';
                             case 'cluster': return '#3B82F6';
+                            case 'supporting': return '#06B6D4';
                             case 'planned': return '#9CA3AF';
                             case 'external': return '#10B981';
                             default: return '#9CA3AF';
@@ -317,6 +528,19 @@ function CanvasEditorInner({ projectId }: CanvasEditorProps) {
                 onClose={() => setSelectedNodeId(null)}
                 onChange={handleNodeDetailChange}
                 onDelete={handleNodeDelete}
+            />
+
+            {/* Edge creation/edit modal */}
+            <EdgeModal
+                isOpen={isEdgeModalOpen}
+                onClose={handleEdgeModalClose}
+                onSubmit={handleEdgeModalSubmit}
+                isEdit={!!editingEdge}
+                initialData={editingEdge ? {
+                    edgeType: editingEdge.edgeType as EdgeType,
+                    keyword: editingEdge.keyword,
+                    styleOptions: editingEdge.styleOptions
+                } : undefined}
             />
         </div>
     );

@@ -19,7 +19,7 @@ export interface Project {
     updated_at: string;
 }
 
-export type NodeType = 'pillar' | 'cluster' | 'planned' | 'external';
+export type NodeType = 'pillar' | 'cluster' | 'supporting' | 'planned' | 'external';
 export type NodeStatus = 'planned' | 'writing' | 'published' | 'needs_update';
 
 export interface ContentNode {
@@ -42,15 +42,20 @@ export interface ContentNode {
     updated_at: string;
 }
 
-export type EdgeType = 'hierarchy' | 'internal_link' | 'planned_link' | 'external_link';
+export type EdgeType = 'hierarchy' | 'sibling' | 'cross_cluster' | 'outbound' | 'backlink';
 
 export interface ContentEdge {
     id: string;
     project_id: string;
     source_node_id: string;
     target_node_id: string;
+    source_handle_id: string | null;
+    target_handle_id: string | null;
     edge_type: EdgeType;
     label: string | null;
+    stroke_width: number | null;
+    arrow_size: number | null;
+    line_style: 'solid' | 'dashed' | 'dotted' | null;
     created_at: string;
 }
 

@@ -27,6 +27,7 @@ export function CanvasToolbar({
     const nodeTypes: { type: NodeType; color: string }[] = [
         { type: 'pillar', color: 'bg-indigo-500' },
         { type: 'cluster', color: 'bg-blue-500' },
+        { type: 'supporting', color: 'bg-cyan-500' },
         { type: 'planned', color: 'bg-gray-400' },
         { type: 'external', color: 'bg-green-500' },
     ];

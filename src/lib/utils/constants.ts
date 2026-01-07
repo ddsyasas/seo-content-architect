@@ -42,8 +42,27 @@ export const STATUS_LABELS = {
 export const NODE_TYPE_LABELS = {
     pillar: 'Pillar',
     cluster: 'Cluster',
+    supporting: 'Supporting',
     planned: 'Planned',
     external: 'External',
+} as const;
+
+// Edge type labels
+export const EDGE_TYPE_LABELS = {
+    hierarchy: 'Hierarchy Link',
+    sibling: 'Sibling Link',
+    cross_cluster: 'Cross-Cluster Link',
+    outbound: 'Outbound Link',
+    backlink: 'Backlink',
+} as const;
+
+// Edge type styles
+export const EDGE_STYLES = {
+    hierarchy: { stroke: '#3B82F6', strokeWidth: 3, strokeDasharray: undefined },
+    sibling: { stroke: '#93C5FD', strokeWidth: 2, strokeDasharray: undefined },
+    cross_cluster: { stroke: '#8B5CF6', strokeWidth: 2, strokeDasharray: '8,4' },
+    outbound: { stroke: '#9CA3AF', strokeWidth: 2, strokeDasharray: '4,4' },
+    backlink: { stroke: '#10B981', strokeWidth: 2, strokeDasharray: '4,4' },
 } as const;
 
 // Default project colors
@@ -57,3 +76,4 @@ export const PROJECT_COLORS = [
     '#EC4899', // Pink
     '#06B6D4', // Cyan
 ] as const;
+

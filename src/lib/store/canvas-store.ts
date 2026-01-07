@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { Node, Edge, Viewport, applyNodeChanges, applyEdgeChanges, NodeChange, EdgeChange, Connection, addEdge } from 'reactflow';
+import { Node, Edge, Viewport, applyNodeChanges, applyEdgeChanges, NodeChange, EdgeChange, Connection, addEdge, MarkerType } from 'reactflow';
 import type { ContentNode, ContentEdge, NodeType, NodeStatus } from '@/lib/types';
 
 interface CanvasState {
@@ -124,23 +124,50 @@ export function dbNodeToFlowNode(node: ContentNode, linkCounts?: { incoming: num
 
 // Helper function to convert DB edge to React Flow edge
 export function dbEdgeToFlowEdge(edge: ContentEdge): Edge {
-    const edgeStyles: Record<string, { stroke: string; strokeWidth: number; strokeDasharray?: string }> = {
-        hierarchy: { stroke: '#6366F1', strokeWidth: 3 },
-        internal_link: { stroke: '#3B82F6', strokeWidth: 2 },
-        planned_link: { stroke: '#9CA3AF', strokeWidth: 2, strokeDasharray: '5,5' },
-        external_link: { stroke: '#10B981', strokeWidth: 2, strokeDasharray: '2,2' },
+    const edgeColors: Record<string, string> = {
+        hierarchy: '#3B82F6',
+        sibling: '#93C5FD',
+        cross_cluster: '#8B5CF6',
+        outbound: '#9CA3AF',
+        backlink: '#10B981',
     };
+
+    const color = edgeColors[edge.edge_type] || edgeColors.hierarchy;
+    const strokeWidth = edge.stroke_width || 2;
+    const arrowSize = edge.arrow_size || 16;
+
+    // Convert line_style to strokeDasharray
+    const strokeDasharray =
+        edge.line_style === 'dashed' ? '8,4' :
+            edge.line_style === 'dotted' ? '2,4' : undefined;
 
     return {
         id: edge.id,
         source: edge.source_node_id,
         target: edge.target_node_id,
-        type: 'default',
-        animated: edge.edge_type === 'hierarchy',
+        sourceHandle: edge.source_handle_id || undefined,
+        targetHandle: edge.target_handle_id || undefined,
+        type: 'custom',
+        animated: false,
         label: edge.label || undefined,
-        style: edgeStyles[edge.edge_type] || edgeStyles.internal_link,
+        labelStyle: { fill: '#374151', fontWeight: 500, fontSize: 11 },
+        labelBgStyle: { fill: '#fff', fillOpacity: 0.9, stroke: '#e5e7eb', strokeWidth: 1 },
+        labelBgPadding: [4, 6] as [number, number],
+        labelShowBg: true,
+        style: {
+            stroke: color,
+            strokeWidth: strokeWidth,
+            strokeDasharray: strokeDasharray,
+        },
+        markerEnd: {
+            type: MarkerType.ArrowClosed,
+            color: color,
+            width: arrowSize,
+            height: arrowSize,
+        },
         data: {
             edge_type: edge.edge_type,
+            keyword: edge.label,
             project_id: edge.project_id,
         },
     };

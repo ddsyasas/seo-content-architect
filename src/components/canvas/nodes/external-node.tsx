@@ -20,17 +20,11 @@ function ExternalNode({ data, selected }: NodeProps<ExternalNodeData>) {
                 selected && 'ring-2 ring-green-500 ring-offset-2'
             )}
         >
-            {/* Connection handles */}
-            <Handle
-                type="target"
-                position={Position.Top}
-                className="w-3 h-3 !bg-green-500 border-2 border-white"
-            />
-            <Handle
-                type="source"
-                position={Position.Bottom}
-                className="w-3 h-3 !bg-green-500 border-2 border-white"
-            />
+            {/* Connection handles - 4 handles, one per side */}
+            <Handle type="source" position={Position.Top} id="top" className="w-3 h-3 !bg-green-500 border-2 border-white" />
+            <Handle type="source" position={Position.Bottom} id="bottom" className="w-3 h-3 !bg-green-500 border-2 border-white" />
+            <Handle type="source" position={Position.Left} id="left" className="w-3 h-3 !bg-green-500 border-2 border-white" />
+            <Handle type="source" position={Position.Right} id="right" className="w-3 h-3 !bg-green-500 border-2 border-white" />
 
             <div className="flex items-center gap-2">
                 <ExternalLink className="w-3.5 h-3.5 text-green-600 flex-shrink-0" />
