@@ -52,6 +52,7 @@ export default function TeamPage() {
     const [teamLimit, setTeamLimit] = useState(1);
     const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
     const [currentUserEmail, setCurrentUserEmail] = useState<string>('');
+    const [updatingRole, setUpdatingRole] = useState<string | null>(null);
 
     useEffect(() => {
         loadTeamData();
@@ -110,6 +111,28 @@ export default function TeamPage() {
             await loadTeamData();
         } catch (error) {
             console.error('Error toggling project assignment:', error);
+        }
+    };
+
+    const handleRoleChange = async (userId: string, newRole: string) => {
+        setUpdatingRole(userId);
+        try {
+            const response = await fetch(`/api/team/${userId}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ role: newRole }),
+            });
+
+            if (!response.ok) {
+                console.error('Failed to update role');
+                return;
+            }
+
+            await loadTeamData();
+        } catch (error) {
+            console.error('Error updating role:', error);
+        } finally {
+            setUpdatingRole(null);
         }
     };
 
@@ -225,10 +248,22 @@ export default function TeamPage() {
                                             </div>
                                         </div>
 
-                                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium capitalize ${roleBadgeColors[member.role]}`}>
-                                            {roleIcons[member.role]}
-                                            {member.role}
-                                        </span>
+                                        <div className="relative">
+                                            <select
+                                                value={member.role}
+                                                onChange={(e) => handleRoleChange(member.user_id, e.target.value)}
+                                                disabled={updatingRole === member.user_id}
+                                                className={`appearance-none cursor-pointer pr-8 pl-3 py-1.5 rounded-lg text-sm font-medium border-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors ${member.role === 'admin' ? 'bg-indigo-50 border-indigo-200 text-indigo-700' :
+                                                        member.role === 'editor' ? 'bg-green-50 border-green-200 text-green-700' :
+                                                            'bg-gray-50 border-gray-200 text-gray-700'
+                                                    } ${updatingRole === member.user_id ? 'opacity-50' : ''}`}
+                                            >
+                                                <option value="admin">Admin</option>
+                                                <option value="editor">Editor</option>
+                                                <option value="viewer">Viewer</option>
+                                            </select>
+                                            <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none text-gray-400" />
+                                        </div>
                                     </div>
 
                                     {/* Project Assignments */}
