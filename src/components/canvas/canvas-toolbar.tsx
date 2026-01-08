@@ -13,6 +13,7 @@ interface CanvasToolbarProps {
     onZoomOut: () => void;
     onFitView: () => void;
     zoom: number;
+    canEdit?: boolean;
 }
 
 export function CanvasToolbar({
@@ -20,7 +21,8 @@ export function CanvasToolbar({
     onZoomIn,
     onZoomOut,
     onFitView,
-    zoom
+    zoom,
+    canEdit = true
 }: CanvasToolbarProps) {
     const [isAddMenuOpen, setIsAddMenuOpen] = useState(false);
 
@@ -34,41 +36,43 @@ export function CanvasToolbar({
 
     return (
         <div className="absolute top-4 left-4 z-10 flex items-center gap-2">
-            {/* Add Node Dropdown */}
-            <div className="relative">
-                <Button
-                    onClick={() => setIsAddMenuOpen(!isAddMenuOpen)}
-                    className="gap-1.5"
-                >
-                    <Plus className="w-4 h-4" />
-                    Add Node
-                    <ChevronDown className={cn(
-                        'w-4 h-4 transition-transform',
-                        isAddMenuOpen && 'rotate-180'
-                    )} />
-                </Button>
+            {/* Add Node Dropdown - Only show for editors */}
+            {canEdit && (
+                <div className="relative">
+                    <Button
+                        onClick={() => setIsAddMenuOpen(!isAddMenuOpen)}
+                        className="gap-1.5"
+                    >
+                        <Plus className="w-4 h-4" />
+                        Add Node
+                        <ChevronDown className={cn(
+                            'w-4 h-4 transition-transform',
+                            isAddMenuOpen && 'rotate-180'
+                        )} />
+                    </Button>
 
-                {isAddMenuOpen && (
-                    <>
-                        <div className="fixed inset-0" onClick={() => setIsAddMenuOpen(false)} />
-                        <div className="absolute left-0 top-full mt-2 w-48 py-1 bg-white border border-gray-200 rounded-lg shadow-lg">
-                            {nodeTypes.map(({ type, color }) => (
-                                <button
-                                    key={type}
-                                    onClick={() => {
-                                        onAddNode(type);
-                                        setIsAddMenuOpen(false);
-                                    }}
-                                    className="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                                >
-                                    <span className={cn('w-3 h-3 rounded', color)} />
-                                    {NODE_TYPE_LABELS[type]}
-                                </button>
-                            ))}
-                        </div>
-                    </>
-                )}
-            </div>
+                    {isAddMenuOpen && (
+                        <>
+                            <div className="fixed inset-0" onClick={() => setIsAddMenuOpen(false)} />
+                            <div className="absolute left-0 top-full mt-2 w-48 py-1 bg-white border border-gray-200 rounded-lg shadow-lg">
+                                {nodeTypes.map(({ type, color }) => (
+                                    <button
+                                        key={type}
+                                        onClick={() => {
+                                            onAddNode(type);
+                                            setIsAddMenuOpen(false);
+                                        }}
+                                        className="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                                    >
+                                        <span className={cn('w-3 h-3 rounded', color)} />
+                                        {NODE_TYPE_LABELS[type]}
+                                    </button>
+                                ))}
+                            </div>
+                        </>
+                    )}
+                </div>
+            )}
 
             {/* Zoom Controls */}
             <div className="flex items-center bg-white border border-gray-200 rounded-lg shadow-sm">
@@ -96,3 +100,4 @@ export function CanvasToolbar({
         </div>
     );
 }
+

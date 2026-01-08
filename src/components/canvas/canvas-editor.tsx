@@ -28,9 +28,12 @@ import SupportingNode from './nodes/supporting-node';
 import PlannedNode from './nodes/planned-node';
 import ExternalNode from './nodes/external-node';
 import type { NodeType, NodeStatus, ContentNode, ContentEdge, EdgeType } from '@/lib/types';
+import type { UserRole } from '@/lib/utils/roles';
+import { canEditContent } from '@/lib/utils/roles';
 
 interface CanvasEditorProps {
     projectId: string;
+    userRole?: UserRole;
 }
 
 const nodeTypes = {
@@ -45,7 +48,8 @@ const edgeTypes = {
     custom: CustomLabelEdge,
 };
 
-function CanvasEditorInner({ projectId }: CanvasEditorProps) {
+function CanvasEditorInner({ projectId, userRole = 'owner' }: CanvasEditorProps) {
+    const canEdit = canEditContent(userRole);
     const { fitView, zoomIn, zoomOut, getViewport } = useReactFlow();
     const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -616,6 +620,7 @@ function CanvasEditorInner({ projectId }: CanvasEditorProps) {
                 onZoomOut={zoomOut}
                 onFitView={() => fitView({ padding: 0.2 })}
                 zoom={zoom}
+                canEdit={canEdit}
             />
 
             <ReactFlow

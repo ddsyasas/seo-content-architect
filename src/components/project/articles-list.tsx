@@ -7,20 +7,25 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils/helpers';
 import { STATUS_LABELS, NODE_TYPE_LABELS } from '@/lib/utils/constants';
 import type { ContentNode, Project } from '@/lib/types';
+import type { UserRole } from '@/lib/utils/roles';
+import { canEditContent } from '@/lib/utils/roles';
 import Link from 'next/link';
 
 interface ArticlesListProps {
     projectId: string;
     project: Project | null;
+    userRole?: UserRole;
 }
 
 interface ArticleWithNode extends ContentNode {
     word_count?: number;
 }
 
-export function ArticlesList({ projectId, project }: ArticlesListProps) {
+export function ArticlesList({ projectId, project, userRole = 'owner' }: ArticlesListProps) {
     const [nodes, setNodes] = useState<ArticleWithNode[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+
+    const canEdit = canEditContent(userRole);
 
     useEffect(() => {
         loadArticles();
@@ -78,12 +83,14 @@ export function ArticlesList({ projectId, project }: ArticlesListProps) {
                         )}
                     </p>
                 </div>
-                <Link href={`/project/${projectId}/article/new`}>
-                    <Button className="gap-2">
-                        <Plus className="w-4 h-4" />
-                        New Article
-                    </Button>
-                </Link>
+                {canEdit && (
+                    <Link href={`/project/${projectId}/article/new`}>
+                        <Button className="gap-2">
+                            <Plus className="w-4 h-4" />
+                            New Article
+                        </Button>
+                    </Link>
+                )}
             </div>
 
             {/* Articles List */}
@@ -92,14 +99,16 @@ export function ArticlesList({ projectId, project }: ArticlesListProps) {
                     <FileText className="w-12 h-12 text-gray-300 mx-auto mb-4" />
                     <h3 className="text-lg font-medium text-gray-900 mb-2">No articles yet</h3>
                     <p className="text-gray-500 mb-6">
-                        Create your first article or add nodes on the Canvas
+                        {canEdit ? 'Create your first article or add nodes on the Canvas' : 'No articles have been created yet'}
                     </p>
-                    <Link href={`/project/${projectId}/article/new`}>
-                        <Button className="gap-2">
-                            <Plus className="w-4 h-4" />
-                            Create Article
-                        </Button>
-                    </Link>
+                    {canEdit && (
+                        <Link href={`/project/${projectId}/article/new`}>
+                            <Button className="gap-2">
+                                <Plus className="w-4 h-4" />
+                                Create Article
+                            </Button>
+                        </Link>
+                    )}
                 </div>
             ) : (
                 <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
