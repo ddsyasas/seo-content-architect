@@ -1,5 +1,5 @@
 import { type ReactNode } from 'react';
-import { Network } from 'lucide-react';
+import Image from 'next/image';
 import Link from 'next/link';
 
 export default function AuthLayout({ children }: { children: ReactNode }) {
@@ -8,9 +8,14 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
             {/* Header */}
             <header className="py-6 px-4">
                 <div className="max-w-7xl mx-auto">
-                    <Link href="/" className="inline-flex items-center gap-2 text-indigo-600 hover:text-indigo-700 transition-colors">
-                        <Network className="w-8 h-8" />
-                        <span className="font-bold text-xl">SyncSEO</span>
+                    <Link href="/" className="inline-flex items-center">
+                        <Image
+                            src="/SyncSEO Header logo 2-min.png"
+                            alt="SyncSEO"
+                            width={140}
+                            height={40}
+                            priority
+                        />
                     </Link>
                 </div>
             </header>
