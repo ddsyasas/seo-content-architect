@@ -28,6 +28,7 @@ export function ProjectCard({ project, onEdit, onDelete }: ProjectCardProps) {
     };
 
     const isOwner = project.accessType !== 'team_member';
+    const canEdit = isOwner || project.role === 'editor';
 
     return (
         <Card hover className="overflow-hidden group">
@@ -49,7 +50,7 @@ export function ProjectCard({ project, onEdit, onDelete }: ProjectCardProps) {
                 {!isOwner && (
                     <div className="absolute top-2 left-2 inline-flex items-center gap-1 px-2 py-1 bg-indigo-100 text-indigo-700 rounded-full text-xs font-medium">
                         <Users className="w-3 h-3" />
-                        {project.role === 'editor' ? 'Editor' : project.role === 'admin' ? 'Admin' : 'Viewer'}
+                        {project.role === 'editor' ? 'Editor' : 'Viewer'}
                     </div>
                 )}
 
@@ -77,8 +78,8 @@ export function ProjectCard({ project, onEdit, onDelete }: ProjectCardProps) {
                         )}
                     </div>
 
-                    {/* Menu - only for owners */}
-                    {isOwner && (
+                    {/* Menu - for owners and editors */}
+                    {canEdit && (
                         <div className="relative">
                             <button
                                 onClick={() => setIsMenuOpen(!isMenuOpen)}
@@ -101,16 +102,18 @@ export function ProjectCard({ project, onEdit, onDelete }: ProjectCardProps) {
                                             <Edit className="w-4 h-4" />
                                             Edit
                                         </button>
-                                        <button
-                                            onClick={() => {
-                                                setIsMenuOpen(false);
-                                                onDelete(project);
-                                            }}
-                                            className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50"
-                                        >
-                                            <Trash2 className="w-4 h-4" />
-                                            Delete
-                                        </button>
+                                        {isOwner && (
+                                            <button
+                                                onClick={() => {
+                                                    setIsMenuOpen(false);
+                                                    onDelete(project);
+                                                }}
+                                                className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50"
+                                            >
+                                                <Trash2 className="w-4 h-4" />
+                                                Delete
+                                            </button>
+                                        )}
                                     </div>
                                 </>
                             )}
@@ -137,5 +140,3 @@ export function ProjectCard({ project, onEdit, onDelete }: ProjectCardProps) {
         </Card>
     );
 }
-
-
