@@ -15,10 +15,12 @@ import {
     ChevronLeft,
     ChevronRight,
     User,
-    Users
+    Users,
+    Shield
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { cn } from '@/lib/utils/helpers';
+import { isSuperAdmin } from '@/lib/utils/admin';
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
     const router = useRouter();
@@ -28,6 +30,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     const [isProfileOpen, setIsProfileOpen] = useState(false);
     const [user, setUser] = useState<{ email: string; full_name?: string } | null>(null);
     const [hasTeamAccess, setHasTeamAccess] = useState(false);
+    const [hasSuperAdminAccess, setHasSuperAdminAccess] = useState(false);
 
     useEffect(() => {
         const supabase = createClient();
@@ -47,6 +50,9 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
                 const plan = subscription?.plan || 'free';
                 setHasTeamAccess(plan === 'pro' || plan === 'agency');
+
+                // Check if user is super admin
+                setHasSuperAdminAccess(isSuperAdmin(data.user.email));
             }
         });
     }, []);
@@ -58,12 +64,13 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         router.refresh();
     };
 
-    // Build navigation dynamically based on plan
+    // Build navigation dynamically based on plan and admin status
     const navigation = [
         { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
         { name: 'Projects', href: '/projects', icon: FolderKanban },
         ...(hasTeamAccess ? [{ name: 'Team', href: '/team', icon: Users }] : []),
         { name: 'Settings', href: '/settings', icon: Settings },
+        ...(hasSuperAdminAccess ? [{ name: 'Super Admin', href: '/admin', icon: Shield }] : []),
     ];
 
     return (
