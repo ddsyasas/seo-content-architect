@@ -16,6 +16,16 @@ import { useSEOScore } from '@/hooks/useSEOScore';
 import { extractImages, extractInternalLinksForSEO, extractOutboundLinksForSEO } from '@/lib/seo/seo-analyzer';
 import type { ContentNode, Project, Article, NodeType, NodeStatus } from '@/lib/types';
 
+// Normalize URL for comparison (remove protocol, www, trailing slash)
+function normalizeUrlForComparison(url: string): string {
+    if (!url) return '';
+    return url
+        .toLowerCase()
+        .replace(/^https?:\/\//, '')  // Remove protocol
+        .replace(/^www\./, '')        // Remove www
+        .replace(/\/$/, '');          // Remove trailing slash
+}
+
 interface ArticleEditorProps {
     projectId: string;
     nodeId: string;
@@ -295,8 +305,11 @@ export function ArticleEditor({ projectId, nodeId }: ArticleEditorProps) {
 
                 // Process each unique outbound link
                 for (const [url, linkData] of outboundLinks) {
-                    // Find existing external node by URL
-                    let externalNode = externalNodes.find(n => n.url === url);
+                    // Find existing external node by URL (normalized comparison)
+                    const normalizedUrl = normalizeUrlForComparison(url);
+                    let externalNode = externalNodes.find(n =>
+                        normalizeUrlForComparison(n.url || '') === normalizedUrl
+                    );
 
                     if (!externalNode) {
                         // Create new external node for this URL
