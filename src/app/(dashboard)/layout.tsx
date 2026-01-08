@@ -3,8 +3,8 @@
 import { type ReactNode, useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import {
-    Network,
     LayoutDashboard,
     FolderKanban,
     Settings,
@@ -87,9 +87,23 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                         'flex items-center p-4 border-b border-gray-200',
                         isCollapsed ? 'justify-center' : 'gap-2'
                     )}>
-                        <Link href="/dashboard" className="flex items-center gap-2 text-indigo-600">
-                            <Network className="w-7 h-7 shrink-0" />
-                            {!isCollapsed && <span className="font-bold text-lg">SyncSEO</span>}
+                        <Link href="/dashboard" className="flex items-center">
+                            {isCollapsed ? (
+                                <Image
+                                    src="/SyncSEO Header logo 2.png"
+                                    alt="SyncSEO"
+                                    width={32}
+                                    height={32}
+                                    className="object-contain"
+                                />
+                            ) : (
+                                <Image
+                                    src="/SyncSEO Header logo 2.png"
+                                    alt="SyncSEO"
+                                    width={120}
+                                    height={32}
+                                />
+                            )}
                         </Link>
                     </div>
 
@@ -192,9 +206,13 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                 <div className="flex flex-col h-full">
                     {/* Logo */}
                     <div className="flex items-center justify-between p-4 border-b border-gray-200">
-                        <Link href="/dashboard" className="flex items-center gap-2 text-indigo-600">
-                            <Network className="w-7 h-7" />
-                            <span className="font-bold text-lg">SyncSEO</span>
+                        <Link href="/dashboard" className="flex items-center">
+                            <Image
+                                src="/SyncSEO Header logo 2.png"
+                                alt="SyncSEO"
+                                width={120}
+                                height={32}
+                            />
                         </Link>
                         <button
                             onClick={() => setIsMobileSidebarOpen(false)}
@@ -249,15 +267,17 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                         </button>
                     </div>
                 </div>
-            </aside>
+            </aside >
 
             {/* Main content */}
-            <div className={cn(
-                'transition-all duration-200',
-                isCollapsed ? 'lg:pl-16' : 'lg:pl-64'
-            )}>
+            < div className={
+                cn(
+                    'transition-all duration-200',
+                    isCollapsed ? 'lg:pl-16' : 'lg:pl-64'
+                )
+            } >
                 {/* Top header - Mobile only */}
-                <header className="lg:hidden sticky top-0 z-30 bg-white border-b border-gray-200">
+                < header className="lg:hidden sticky top-0 z-30 bg-white border-b border-gray-200" >
                     <div className="flex items-center px-4 py-3">
                         <button
                             onClick={() => setIsMobileSidebarOpen(true)}
@@ -266,13 +286,13 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                             <Menu className="w-5 h-5" />
                         </button>
                     </div>
-                </header>
+                </header >
 
                 {/* Page content */}
-                <main className="p-6">
+                < main className="p-6" >
                     {children}
-                </main>
-            </div>
-        </div>
+                </main >
+            </div >
+        </div >
     );
 }

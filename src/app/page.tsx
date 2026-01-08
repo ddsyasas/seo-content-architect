@@ -1,5 +1,6 @@
 import Link from 'next/link';
-import { ArrowRight, Layers, GitBranch, Target, Network } from 'lucide-react';
+import Image from 'next/image';
+import { ArrowRight, Layers, GitBranch, Target } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 export default function HomePage() {
@@ -9,9 +10,14 @@ export default function HomePage() {
       <header className="py-6 px-4 border-b border-gray-100">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-2 text-indigo-600">
-            <Network className="w-8 h-8" />
-            <span className="font-bold text-xl">SyncSEO</span>
+          <Link href="/" className="flex items-center">
+            <Image
+              src="/SyncSEO Header logo 2.png"
+              alt="SyncSEO"
+              width={140}
+              height={40}
+              priority
+            />
           </Link>
 
           {/* Center Navigation */}
