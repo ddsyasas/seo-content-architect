@@ -5,13 +5,35 @@ import StarterKit from '@tiptap/starter-kit';
 import Link from '@tiptap/extension-link';
 import Image from '@tiptap/extension-image';
 import Placeholder from '@tiptap/extension-placeholder';
+import { TextStyle } from '@tiptap/extension-text-style';
+import FontFamily from '@tiptap/extension-font-family';
+import TextAlign from '@tiptap/extension-text-align';
+import { Table } from '@tiptap/extension-table';
+import { TableRow } from '@tiptap/extension-table-row';
+import { TableCell } from '@tiptap/extension-table-cell';
+import { TableHeader } from '@tiptap/extension-table-header';
 import { useCallback, useState, useRef, useEffect } from 'react';
 import {
     Bold, Italic, Strikethrough, Code, List, ListOrdered,
-    Quote, Heading1, Heading2, Heading3, Link as LinkIcon, Unlink2, Undo, Redo, X, Check, ImageIcon, Loader2, Type
+    Quote, Heading1, Heading2, Heading3, Link as LinkIcon, Unlink2, Undo, Redo, X, Check, ImageIcon, Loader2, Type, ChevronDown, ExternalLink, Pencil,
+    AlignLeft, AlignCenter, AlignRight, AlignJustify
 } from 'lucide-react';
 import { cn } from '@/lib/utils/helpers';
 import { createClient } from '@/lib/supabase/client';
+
+// Available fonts for the dropdown
+const FONTS = [
+    { name: 'Default', value: '' },
+    { name: 'Inter', value: 'Inter' },
+    { name: 'Arial', value: 'Arial' },
+    { name: 'Georgia', value: 'Georgia' },
+    { name: 'Times New Roman', value: 'Times New Roman' },
+    { name: 'Verdana', value: 'Verdana' },
+    { name: 'Roboto', value: 'Roboto' },
+    { name: 'Open Sans', value: 'Open Sans' },
+    { name: 'Lato', value: 'Lato' },
+    { name: 'Montserrat', value: 'Montserrat' },
+];
 
 interface RichTextEditorProps {
     content: string;
@@ -71,6 +93,17 @@ export function RichTextEditor({
     const [showAltInput, setShowAltInput] = useState(false);
     const [imageAlt, setImageAlt] = useState('');
 
+    // Link popup state (appears when clicking a link)
+    const [showLinkPopup, setShowLinkPopup] = useState(false);
+    const [popupLinkUrl, setPopupLinkUrl] = useState('');
+    const [popupPosition, setPopupPosition] = useState({ top: 0, left: 0 });
+
+    // Image popup state (appears when clicking an image)
+    const [showImagePopup, setShowImagePopup] = useState(false);
+    const [popupImageAlt, setPopupImageAlt] = useState('');
+    const [imagePopupPosition, setImagePopupPosition] = useState({ top: 0, left: 0 });
+    const [selectedImageSrc, setSelectedImageSrc] = useState<string>(''); // Track which image is selected
+
     // Filter nodes when typing
     const handleUrlChange = (value: string) => {
         setLinkUrl(value);
@@ -89,6 +122,19 @@ export function RichTextEditor({
                     levels: [1, 2, 3],
                 },
             }),
+            TextStyle,
+            FontFamily.configure({
+                types: ['textStyle'],
+            }),
+            Table.configure({
+                resizable: true,
+                HTMLAttributes: {
+                    class: 'border-collapse w-full my-4',
+                },
+            }),
+            TableRow,
+            TableCell,
+            TableHeader,
             Link.configure({
                 openOnClick: false,
                 autolink: false,
@@ -98,9 +144,14 @@ export function RichTextEditor({
                 },
             }),
             Image.configure({
+                allowBase64: true,
                 HTMLAttributes: {
-                    class: 'rounded-lg max-w-full h-auto my-4',
+                    class: 'rounded-lg max-w-full h-auto my-4 cursor-pointer transition-all hover:ring-2 hover:ring-indigo-300',
                 },
+            }),
+            TextAlign.configure({
+                types: ['heading', 'paragraph'],
+                alignments: ['left', 'center', 'right', 'justify'],
             }),
             Placeholder.configure({
                 placeholder,
@@ -121,8 +172,323 @@ export function RichTextEditor({
             attributes: {
                 class: 'prose prose-lg max-w-none focus:outline-none min-h-[400px] p-4 text-gray-900',
             },
+            // Handle clicks on links and images
+            handleClick(view, pos, event) {
+                const target = event.target as HTMLElement;
+                const link = target.closest('a');
+                const img = target.closest('img');
+
+                // Handle link clicks
+                if (link && link.href) {
+                    event.preventDefault();
+                    event.stopPropagation();
+
+                    // Dispatch custom event to handle in React
+                    const customEvent = new CustomEvent('editor-link-click', {
+                        detail: {
+                            href: link.href,
+                            rect: link.getBoundingClientRect(),
+                        }
+                    });
+                    view.dom.dispatchEvent(customEvent);
+
+                    return true; // Prevent default ProseMirror handling
+                }
+
+                // Handle image clicks
+                if (img) {
+                    event.preventDefault();
+                    event.stopPropagation();
+
+                    // Dispatch custom event to handle in React
+                    const customEvent = new CustomEvent('editor-image-click', {
+                        detail: {
+                            src: img.src,
+                            alt: img.alt || '',
+                            rect: img.getBoundingClientRect(),
+                        }
+                    });
+                    view.dom.dispatchEvent(customEvent);
+
+                    return true;
+                }
+
+                return false;
+            },
+            // Clean up pasted HTML from Google Docs and other sources
+            transformPastedHTML(html: string) {
+                // Create a temporary DOM element to parse the HTML
+                const doc = new DOMParser().parseFromString(html, 'text/html');
+
+                // Remove all style attributes (except from images)
+                doc.querySelectorAll('[style]').forEach(el => {
+                    if (el.tagName !== 'IMG') {
+                        el.removeAttribute('style');
+                    }
+                });
+
+                // Remove all class attributes (except from images)
+                doc.querySelectorAll('[class]').forEach(el => {
+                    if (el.tagName !== 'IMG') {
+                        el.removeAttribute('class');
+                    }
+                });
+
+                // Process images - keep them and add our styling classes
+                doc.querySelectorAll('img').forEach(img => {
+                    // Add our styling classes to images
+                    img.setAttribute('class', 'rounded-lg max-w-full h-auto my-4');
+                    // Remove any width/height constraints that might be inline
+                    img.style.maxWidth = '100%';
+                    img.style.height = 'auto';
+                });
+
+                // Remove ALL bold tags - Google Docs wraps everything in nested <b> tags
+                // Users can re-select and bold specific words after pasting
+                doc.querySelectorAll('b, strong').forEach(bold => {
+                    bold.replaceWith(...bold.childNodes);
+                });
+
+                // Remove ALL spans (Google Docs uses them excessively)
+                doc.querySelectorAll('span').forEach(span => {
+                    span.replaceWith(...span.childNodes);
+                });
+
+                // Clean up empty elements (but not images)
+                doc.querySelectorAll('b:empty, strong:empty, i:empty, em:empty, span:empty').forEach(el => el.remove());
+
+                return doc.body.innerHTML
+                    // Normalize whitespace
+                    .replace(/&nbsp;/gi, ' ');
+            },
+            // Handle paste events for clipboard images
+            handlePaste(view, event) {
+                const items = event.clipboardData?.items;
+                const htmlData = event.clipboardData?.getData('text/html');
+                if (!items) return false;
+
+                // First, check if clipboard contains image files directly (screenshots, copied images)
+                for (let i = 0; i < items.length; i++) {
+                    const item = items[i];
+                    if (item.type.indexOf('image') !== -1 && item.kind === 'file') {
+                        const file = item.getAsFile();
+                        if (file) {
+                            event.preventDefault();
+
+                            // Convert image file to base64 and insert
+                            const reader = new FileReader();
+                            reader.onload = (e) => {
+                                const base64 = e.target?.result as string;
+                                if (base64) {
+                                    const { state, dispatch } = view;
+                                    const node = state.schema.nodes.image.create({
+                                        src: base64,
+                                        alt: file.name || 'Pasted image',
+                                    });
+                                    const tr = state.tr.replaceSelectionWith(node);
+                                    dispatch(tr);
+                                }
+                            };
+                            reader.readAsDataURL(file);
+                            return true;
+                        }
+                    }
+                }
+
+                // If HTML contains images but no direct image file, 
+                // process the HTML and try to load the images
+                if (htmlData && htmlData.includes('<img')) {
+                    event.preventDefault();
+
+                    const doc = new window.DOMParser().parseFromString(htmlData, 'text/html');
+                    const images = doc.querySelectorAll('img');
+
+                    // Process images - try to fetch and convert to base64
+                    const imagePromises: Promise<void>[] = [];
+
+                    images.forEach(img => {
+                        const src = img.getAttribute('src') || '';
+
+                        // If already base64, keep it
+                        if (src.startsWith('data:')) {
+                            img.setAttribute('class', 'rounded-lg max-w-full h-auto my-4');
+                            return;
+                        }
+
+                        // For external URLs, try to fetch via canvas
+                        if (src.startsWith('http') || src.startsWith('blob:')) {
+                            const promise = new Promise<void>((resolve) => {
+                                const imgEl = new window.Image();
+                                imgEl.crossOrigin = 'anonymous';
+                                imgEl.onload = () => {
+                                    try {
+                                        const canvas = document.createElement('canvas');
+                                        canvas.width = imgEl.naturalWidth;
+                                        canvas.height = imgEl.naturalHeight;
+                                        const ctx = canvas.getContext('2d');
+                                        ctx?.drawImage(imgEl, 0, 0);
+                                        const dataUrl = canvas.toDataURL('image/png');
+                                        img.setAttribute('src', dataUrl);
+                                        img.setAttribute('class', 'rounded-lg max-w-full h-auto my-4');
+                                    } catch {
+                                        console.warn('[Paste] Canvas tainted, using placeholder');
+                                        img.setAttribute('alt', 'Image could not be loaded - please re-upload');
+                                        img.setAttribute('src', 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="200" height="100" viewBox="0 0 200 100"%3E%3Crect fill="%23fef3c7" width="200" height="100" rx="8"/%3E%3Ctext fill="%23d97706" font-family="sans-serif" font-size="11" x="50%25" y="50%25" text-anchor="middle"%3EImage not loaded - re-upload%3C/text%3E%3C/svg%3E');
+                                    }
+                                    resolve();
+                                };
+                                imgEl.onerror = () => {
+                                    console.warn('[Paste] Could not load image:', src.substring(0, 50));
+                                    img.setAttribute('alt', 'Image could not be loaded - please re-upload');
+                                    img.setAttribute('src', 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="200" height="100" viewBox="0 0 200 100"%3E%3Crect fill="%23fef3c7" width="200" height="100" rx="8"/%3E%3Ctext fill="%23d97706" font-family="sans-serif" font-size="11" x="50%25" y="50%25" text-anchor="middle"%3EImage not loaded - re-upload%3C/text%3E%3C/svg%3E');
+                                    resolve();
+                                };
+                                imgEl.src = src;
+                            });
+                            imagePromises.push(promise);
+                        }
+                    });
+
+                    // Wait for all images to be processed, then insert content
+                    Promise.all(imagePromises).then(() => {
+                        // Clean up the HTML
+                        doc.querySelectorAll('[style]').forEach(el => {
+                            if (el.tagName !== 'IMG') el.removeAttribute('style');
+                        });
+                        doc.querySelectorAll('[class]').forEach(el => {
+                            if (el.tagName !== 'IMG') el.removeAttribute('class');
+                        });
+                        // Remove bold/span tags
+                        doc.querySelectorAll('b, strong').forEach(el => el.replaceWith(...el.childNodes));
+                        doc.querySelectorAll('span').forEach(el => el.replaceWith(...el.childNodes));
+
+                        const cleanedHtml = doc.body.innerHTML.replace(/&nbsp;/gi, ' ');
+
+                        // Insert the cleaned HTML using the editor's setContent
+                        const { state, dispatch } = view;
+                        const parser = view.state.schema;
+                        const tempDiv = document.createElement('div');
+                        tempDiv.innerHTML = cleanedHtml;
+
+                        // Insert at current cursor position
+                        const { $from } = state.selection;
+                        let tr = state.tr;
+
+                        // Use insertContent method to paste
+                        const content = tempDiv.innerHTML;
+                        const fragment = new window.DOMParser().parseFromString(content, 'text/html').body;
+
+                        // Insert each child node
+                        Array.from(fragment.childNodes).forEach(child => {
+                            if (child.nodeType === Node.ELEMENT_NODE || child.nodeType === Node.TEXT_NODE) {
+                                const element = child as Element;
+                                if (element.tagName === 'IMG') {
+                                    const node = state.schema.nodes.image.create({
+                                        src: element.getAttribute('src') || '',
+                                        alt: element.getAttribute('alt') || 'Pasted image',
+                                    });
+                                    tr = tr.insert(tr.selection.$from.pos, node);
+                                }
+                            }
+                        });
+
+                        dispatch(tr);
+                    });
+
+                    return true;
+                }
+
+                // Let default handling process text paste
+                return false;
+            },
         },
     });
+
+    // Handle link clicks to show popup instead of navigating
+    useEffect(() => {
+        if (!editor) return;
+
+        const handleLinkClick = (event: Event) => {
+            const customEvent = event as CustomEvent<{ href: string; rect: DOMRect }>;
+            const { href, rect } = customEvent.detail;
+
+            const editorContainer = editor.view.dom.parentElement;
+            const containerRect = editorContainer?.getBoundingClientRect();
+
+            setPopupLinkUrl(href);
+            setPopupPosition({
+                top: rect.bottom - (containerRect?.top || 0) + 8,
+                left: rect.left - (containerRect?.left || 0),
+            });
+            setShowLinkPopup(true);
+        };
+
+        const editorElement = editor.view.dom;
+        editorElement.addEventListener('editor-link-click', handleLinkClick);
+
+        return () => {
+            editorElement.removeEventListener('editor-link-click', handleLinkClick);
+        };
+    }, [editor]);
+
+    // Handle image clicks to show popup
+    useEffect(() => {
+        if (!editor) return;
+
+        const handleImageClick = (event: Event) => {
+            const customEvent = event as CustomEvent<{ src: string; alt: string; rect: DOMRect }>;
+            const { src, alt, rect } = customEvent.detail;
+
+            const editorContainer = editor.view.dom.parentElement;
+            const containerRect = editorContainer?.getBoundingClientRect();
+
+            setSelectedImageSrc(src); // Store which image was clicked
+            setPopupImageAlt(alt);
+            setImagePopupPosition({
+                top: rect.bottom - (containerRect?.top || 0) + 8,
+                left: rect.left - (containerRect?.left || 0),
+            });
+            setShowImagePopup(true);
+            setShowLinkPopup(false); // Close link popup if open
+        };
+
+        const editorElement = editor.view.dom;
+        editorElement.addEventListener('editor-image-click', handleImageClick);
+
+        return () => {
+            editorElement.removeEventListener('editor-image-click', handleImageClick);
+        };
+    }, [editor]);
+
+    // Close link popup when clicking outside
+    useEffect(() => {
+        if (!showLinkPopup) return;
+
+        const handleClickOutside = (e: MouseEvent) => {
+            const popup = document.getElementById('link-popup');
+            if (popup && !popup.contains(e.target as Node)) {
+                setShowLinkPopup(false);
+            }
+        };
+
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, [showLinkPopup]);
+
+    // Close image popup when clicking outside
+    useEffect(() => {
+        if (!showImagePopup) return;
+
+        const handleClickOutside = (e: MouseEvent) => {
+            const popup = document.getElementById('image-popup');
+            if (popup && !popup.contains(e.target as Node)) {
+                setShowImagePopup(false);
+            }
+        };
+
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, [showImagePopup]);
 
     const openLinkInput = useCallback(() => {
         if (!editor) return;
@@ -235,6 +601,28 @@ export function RichTextEditor({
         <div className="border border-gray-200 rounded-lg overflow-hidden bg-white flex flex-col h-full min-h-[500px]">
             {/* Toolbar - Fixed at top */}
             <div className="flex items-center gap-1 p-2 border-b border-gray-200 bg-gray-50 flex-wrap shrink-0">
+                {/* Font Family Dropdown */}
+                <select
+                    value={editor.getAttributes('textStyle').fontFamily || ''}
+                    onChange={(e) => {
+                        if (e.target.value) {
+                            editor.chain().focus().setFontFamily(e.target.value).run();
+                        } else {
+                            editor.chain().focus().unsetFontFamily().run();
+                        }
+                    }}
+                    className="px-2 py-1.5 text-sm border border-gray-300 rounded bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer min-w-[120px]"
+                    title="Font Family"
+                >
+                    {FONTS.map((font) => (
+                        <option key={font.value} value={font.value} style={{ fontFamily: font.value || 'inherit' }}>
+                            {font.name}
+                        </option>
+                    ))}
+                </select>
+
+                <div className="w-px h-6 bg-gray-300 mx-1" />
+
                 <ToolbarButton
                     onClick={() => editor.chain().focus().toggleBold().run()}
                     isActive={editor.isActive('bold')}
@@ -310,6 +698,38 @@ export function RichTextEditor({
                     title="Quote"
                 >
                     <Quote className="w-4 h-4" />
+                </ToolbarButton>
+
+                <div className="w-px h-6 bg-gray-300 mx-1" />
+
+                {/* Text Alignment */}
+                <ToolbarButton
+                    onClick={() => editor.chain().focus().setTextAlign('left').run()}
+                    isActive={editor.isActive({ textAlign: 'left' })}
+                    title="Align Left"
+                >
+                    <AlignLeft className="w-4 h-4" />
+                </ToolbarButton>
+                <ToolbarButton
+                    onClick={() => editor.chain().focus().setTextAlign('center').run()}
+                    isActive={editor.isActive({ textAlign: 'center' })}
+                    title="Align Center"
+                >
+                    <AlignCenter className="w-4 h-4" />
+                </ToolbarButton>
+                <ToolbarButton
+                    onClick={() => editor.chain().focus().setTextAlign('right').run()}
+                    isActive={editor.isActive({ textAlign: 'right' })}
+                    title="Align Right"
+                >
+                    <AlignRight className="w-4 h-4" />
+                </ToolbarButton>
+                <ToolbarButton
+                    onClick={() => editor.chain().focus().setTextAlign('justify').run()}
+                    isActive={editor.isActive({ textAlign: 'justify' })}
+                    title="Justify"
+                >
+                    <AlignJustify className="w-4 h-4" />
                 </ToolbarButton>
 
                 <div className="w-px h-6 bg-gray-300 mx-1" />
@@ -489,8 +909,134 @@ export function RichTextEditor({
             )}
 
             {/* Editor Content - Scrollable */}
-            <div className="flex-1 overflow-y-auto">
+            <div className="flex-1 overflow-y-auto relative">
                 <EditorContent editor={editor} />
+
+                {/* Link Popup - appears when clicking on a link */}
+                {showLinkPopup && (
+                    <div
+                        id="link-popup"
+                        className="absolute z-50 bg-white border border-gray-200 rounded-lg shadow-lg p-2 flex items-center gap-2 max-w-md"
+                        style={{
+                            top: popupPosition.top,
+                            left: popupPosition.left,
+                        }}
+                    >
+                        <a
+                            href={popupLinkUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-2 text-sm text-indigo-600 hover:text-indigo-800 truncate max-w-[250px]"
+                            title={popupLinkUrl}
+                        >
+                            <ExternalLink className="w-4 h-4 shrink-0" />
+                            <span className="truncate">{popupLinkUrl}</span>
+                        </a>
+                        <div className="w-px h-5 bg-gray-200" />
+                        <button
+                            onClick={() => {
+                                setShowLinkPopup(false);
+                                openLinkInput();
+                            }}
+                            className="p-1.5 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded transition-colors"
+                            title="Edit Link"
+                        >
+                            <Pencil className="w-4 h-4" />
+                        </button>
+                        <button
+                            onClick={() => {
+                                editor?.chain().focus().unsetLink().run();
+                                setShowLinkPopup(false);
+                            }}
+                            className="p-1.5 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+                            title="Remove Link"
+                        >
+                            <Unlink2 className="w-4 h-4" />
+                        </button>
+                        <button
+                            onClick={() => setShowLinkPopup(false)}
+                            className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded transition-colors"
+                            title="Close"
+                        >
+                            <X className="w-4 h-4" />
+                        </button>
+                    </div>
+                )}
+
+                {/* Image Popup - appears when clicking on an image */}
+                {showImagePopup && (
+                    <div
+                        id="image-popup"
+                        className="absolute z-50 bg-white border border-gray-200 rounded-lg shadow-lg p-3 w-72"
+                        style={{
+                            top: imagePopupPosition.top,
+                            left: imagePopupPosition.left,
+                        }}
+                    >
+                        <div className="flex items-center gap-2 mb-2">
+                            <ImageIcon className="w-4 h-4 text-green-600" />
+                            <span className="text-sm font-medium text-gray-700">Image Alt Text</span>
+                        </div>
+                        <input
+                            type="text"
+                            value={popupImageAlt}
+                            onChange={(e) => setPopupImageAlt(e.target.value)}
+                            placeholder="Describe this image for SEO & accessibility"
+                            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md text-gray-900 focus:outline-none focus:ring-2 focus:ring-green-500 mb-2"
+                            autoFocus
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                    e.preventDefault();
+                                    // Find the image by src and update its alt text
+                                    if (editor && selectedImageSrc) {
+                                        const currentContent = editor.getHTML();
+                                        // Create a regex to find the image and update its alt
+                                        const imgRegex = new RegExp(`(<img[^>]*src=["']${selectedImageSrc.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}["'][^>]*)alt=["'][^"']*["']`, 'g');
+                                        let newContent = currentContent.replace(imgRegex, `$1alt="${popupImageAlt}"`);
+                                        // If image didn't have alt attribute, add it
+                                        if (newContent === currentContent) {
+                                            const addAltRegex = new RegExp(`(<img[^>]*src=["']${selectedImageSrc.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}["'])([^>]*>)`, 'g');
+                                            newContent = currentContent.replace(addAltRegex, `$1 alt="${popupImageAlt}"$2`);
+                                        }
+                                        editor.commands.setContent(newContent);
+                                    }
+                                    setShowImagePopup(false);
+                                } else if (e.key === 'Escape') {
+                                    setShowImagePopup(false);
+                                }
+                            }}
+                        />
+                        <div className="flex justify-end gap-2">
+                            <button
+                                onClick={() => setShowImagePopup(false)}
+                                className="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded transition-colors"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={() => {
+                                    // Find the image by src and update its alt text
+                                    if (editor && selectedImageSrc) {
+                                        const currentContent = editor.getHTML();
+                                        // Create a regex to find the image and update its alt
+                                        const imgRegex = new RegExp(`(<img[^>]*src=["']${selectedImageSrc.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}["'][^>]*)alt=["'][^"']*["']`, 'g');
+                                        let newContent = currentContent.replace(imgRegex, `$1alt="${popupImageAlt}"`);
+                                        // If image didn't have alt attribute, add it
+                                        if (newContent === currentContent) {
+                                            const addAltRegex = new RegExp(`(<img[^>]*src=["']${selectedImageSrc.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}["'])([^>]*>)`, 'g');
+                                            newContent = currentContent.replace(addAltRegex, `$1 alt="${popupImageAlt}"$2`);
+                                        }
+                                        editor.commands.setContent(newContent);
+                                    }
+                                    setShowImagePopup(false);
+                                }}
+                                className="px-3 py-1.5 text-sm bg-green-600 text-white rounded hover:bg-green-700 transition-colors"
+                            >
+                                Save Alt Text
+                            </button>
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     );

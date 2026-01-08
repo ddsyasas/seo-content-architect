@@ -145,7 +145,7 @@ export function ArticleEditor({ projectId, nodeId }: ArticleEditorProps) {
                 .eq('id', nodeId);
 
             // Upsert article
-            await supabase
+            const { error: articleError } = await supabase
                 .from('articles')
                 .upsert({
                     id: article?.id,
@@ -157,6 +157,13 @@ export function ArticleEditor({ projectId, nodeId }: ArticleEditorProps) {
                     seo_description: seoDescription,
                 }, { onConflict: 'node_id' });
 
+            if (articleError) {
+                console.error('[Save] Failed to save article:', articleError);
+                console.error('[Save] Content size:', content?.length || 0, 'bytes');
+            } else {
+                console.log('[Save] Article saved successfully. Content size:', content?.length || 0, 'bytes');
+            }
+
             // Auto-sync edges with internal links (bidirectional) and outbound links
             if (project?.domain && content) {
                 console.log('[Link-Sync] Starting sync. Domain:', project.domain);
@@ -165,11 +172,12 @@ export function ArticleEditor({ projectId, nodeId }: ArticleEditorProps) {
                 const internalLinks = extractInternalLinks(content, project.domain);
                 const externalLinks = extractExternalLinks(content, project.domain);
                 console.log('[Link-Sync] Links found:', { internal: internalLinks.length, external: externalLinks.length });
+                console.log('[Link-Sync] External links detail:', externalLinks.map(l => ({ href: l.href, anchor: l.anchorText })));
 
                 // Get all nodes in this project to find targets
                 const { data: allNodes } = await supabase
                     .from('nodes')
-                    .select('id, slug, node_type, title, position_x, position_y')
+                    .select('id, slug, node_type, title, position_x, position_y, url')
                     .eq('project_id', projectId);
 
                 const internalNodes = allNodes?.filter(n => n.node_type !== 'external') || [];
@@ -186,12 +194,18 @@ export function ArticleEditor({ projectId, nodeId }: ArticleEditorProps) {
                 // Create a map of current link slugs
                 const currentLinkSlugs = new Set(internalLinks.map(l => l.slug));
 
-                // DELETE edges that no longer have corresponding links
+                // DELETE internal edges that no longer have corresponding links
+                // (skip outbound and backlink edges - they're handled separately)
                 for (const edge of existingEdges || []) {
+                    // Skip outbound and backlink edges - only clean up internal link edges
+                    if (edge.edge_type === 'outbound' || edge.edge_type === 'backlink') {
+                        continue;
+                    }
+
                     const targetNode = allNodes?.find(n => n.id === edge.target_node_id);
                     if (targetNode && !currentLinkSlugs.has(targetNode.slug)) {
                         await supabase.from('edges').delete().eq('id', edge.id);
-                        console.log(`[Link-Sync] DELETED edge to ${targetNode.slug}`);
+                        console.log(`[Link-Sync] DELETED internal edge to ${targetNode.slug}`);
                     }
                 }
 
@@ -257,34 +271,35 @@ export function ArticleEditor({ projectId, nodeId }: ArticleEditorProps) {
                     }
                 }
                 // --- Handle Outbound (External) Links ---
-                // Group external links by domain
-                // Group external links by domain and aggregate anchor texts
-                const outboundDomains = new Map<string, Set<string>>();
+                // Create one external node per unique URL (not grouped by domain)
+                const outboundLinks = new Map<string, { anchor: string; domain: string }>();
                 for (const link of externalLinks) {
                     try {
                         const urlObj = new URL(link.href.startsWith('http') ? link.href : `https://${link.href}`);
                         const domain = urlObj.hostname.replace(/^www\./, '');
-                        if (domain) {
-                            if (!outboundDomains.has(domain)) {
-                                outboundDomains.set(domain, new Set());
-                            }
-                            if (link.anchorText.trim()) {
-                                outboundDomains.get(domain)?.add(link.anchorText.trim());
-                            }
+                        const normalizedUrl = link.href.trim();
+
+                        if (domain && normalizedUrl && !outboundLinks.has(normalizedUrl)) {
+                            outboundLinks.set(normalizedUrl, {
+                                anchor: link.anchorText.trim() || domain,
+                                domain
+                            });
                         }
                     } catch (e) { /* ignore */ }
                 }
+                console.log('[Link-Sync] Unique outbound URLs:', Array.from(outboundLinks.keys()));
 
                 const existingOutboundEdgeTargetIds = new Set(
                     existingEdges?.filter(e => e.edge_type === 'outbound').map(e => e.target_node_id)
                 );
 
-                // Process outbound domains
-                for (const [domain] of outboundDomains) {
-                    let externalNode = externalNodes.find(n => n.title === domain);
+                // Process each unique outbound link
+                for (const [url, linkData] of outboundLinks) {
+                    // Find existing external node by URL
+                    let externalNode = externalNodes.find(n => n.url === url);
 
                     if (!externalNode) {
-                        // Create new external node
+                        // Create new external node for this URL
                         const currentX = allNodes?.find(n => n.id === nodeId)?.position_x || 0;
                         const currentY = allNodes?.find(n => n.id === nodeId)?.position_y || 0;
 
@@ -294,10 +309,11 @@ export function ArticleEditor({ projectId, nodeId }: ArticleEditorProps) {
                                 id: uuidv4(),
                                 project_id: projectId,
                                 node_type: 'external',
-                                title: domain,
+                                title: linkData.anchor, // Use anchor text as title
                                 slug: `ext-${uuidv4().substring(0, 8)}`,
+                                url: url, // Store the full URL
                                 status: 'published',
-                                position_x: currentX + 300 + (Math.random() * 50),
+                                position_x: currentX + 300 + (Math.random() * 100),
                                 position_y: currentY + (Math.random() * 200 - 100),
                             })
                             .select()
@@ -305,7 +321,7 @@ export function ArticleEditor({ projectId, nodeId }: ArticleEditorProps) {
 
                         if (newNode) {
                             externalNode = newNode;
-                            console.log(`[Link-Sync] Created new External Node: ${domain}`);
+                            console.log(`[Link-Sync] Created new External Node: "${linkData.anchor}" (URL: ${url})`);
                             externalNodes.push(newNode);
                         }
                     }
@@ -327,33 +343,23 @@ export function ArticleEditor({ projectId, nodeId }: ArticleEditorProps) {
 
                             // Determine primary direction
                             if (Math.abs(dx) > Math.abs(dy)) {
-                                // Horizontal dominant
                                 if (dx > 0) {
-                                    // Target is to the right
                                     sourceHandle = 'right';
                                     targetHandle = 'left';
                                 } else {
-                                    // Target is to the left
                                     sourceHandle = 'left';
                                     targetHandle = 'right';
                                 }
                             } else {
-                                // Vertical dominant
                                 if (dy > 0) {
-                                    // Target is below
                                     sourceHandle = 'bottom';
                                     targetHandle = 'top';
                                 } else {
-                                    // Target is above
                                     sourceHandle = 'top';
                                     targetHandle = 'bottom';
                                 }
                             }
                         }
-
-                        // Get anchor texts
-                        const anchors = Array.from(outboundDomains.get(domain) || []);
-                        const label = anchors.length > 0 ? anchors.join(', ').substring(0, 30) + (anchors.join(', ').length > 30 ? '...' : '') : null;
 
                         await supabase.from('edges').insert({
                             id: uuidv4(),
@@ -363,21 +369,26 @@ export function ArticleEditor({ projectId, nodeId }: ArticleEditorProps) {
                             source_handle_id: sourceHandle,
                             target_handle_id: targetHandle,
                             edge_type: 'outbound',
-                            label: label,
+                            label: linkData.anchor.substring(0, 30) + (linkData.anchor.length > 30 ? '...' : ''),
                         });
-                        console.log(`[Link-Sync] CREATED outbound edge to ${domain} [${sourceHandle}->${targetHandle}] Label: ${label}`);
+                        console.log(`[Link-Sync] CREATED outbound edge to "${linkData.anchor}" [${sourceHandle}->${targetHandle}]`);
                     }
                 }
 
-                // Cleanup outbound edges
-                for (const edge of existingEdges || []) {
-                    if (edge.edge_type === 'outbound') {
-                        const targetExtNode = externalNodes.find(n => n.id === edge.target_node_id);
-                        if (targetExtNode && !outboundDomains.has(targetExtNode.title)) {
-                            await supabase.from('edges').delete().eq('id', edge.id);
-                            console.log(`[Link-Sync] DELETED outbound edge to ${targetExtNode.title}`);
+                // Cleanup outbound edges - only if we detected some links
+                // (prevents deleting all edges when content isn't properly loaded)
+                if (externalLinks.length > 0 || outboundLinks.size > 0) {
+                    for (const edge of existingEdges || []) {
+                        if (edge.edge_type === 'outbound') {
+                            const targetExtNode = externalNodes.find(n => n.id === edge.target_node_id);
+                            if (targetExtNode && targetExtNode.url && !outboundLinks.has(targetExtNode.url)) {
+                                await supabase.from('edges').delete().eq('id', edge.id);
+                                console.log(`[Link-Sync] DELETED outbound edge to ${targetExtNode.url}`);
+                            }
                         }
                     }
+                } else {
+                    console.log('[Link-Sync] Skipping outbound edge cleanup - no external links detected');
                 }
 
             } else if (!project?.domain) {
@@ -391,6 +402,19 @@ export function ArticleEditor({ projectId, nodeId }: ArticleEditorProps) {
             setIsSaving(false);
         }
     }, [node, nodeId, projectId, project, article, title, slug, targetKeyword, nodeType, status, content, wordCount, seoTitle, seoDescription]);
+
+    // Keyboard shortcut for save (Cmd+S on Mac, Ctrl+S on Windows/Linux)
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if ((e.metaKey || e.ctrlKey) && e.key === 's') {
+                e.preventDefault(); // Prevent browser's save dialog
+                saveData();
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [saveData]);
 
     // Auto-save every 5 seconds if there are changes
     useEffect(() => {

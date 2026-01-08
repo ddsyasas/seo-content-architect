@@ -154,15 +154,18 @@ function calculateTargetKeywordScore(article: ArticleContent, analysis: ContentA
     });
     totalPoints += firstParaPoints;
 
-    // Stuffing check
-    const stuffingStatus: IndicatorStatus = density <= config.stuffingThreshold ? 'good' : 'poor';
-    const stuffingPoints = stuffingStatus === 'good' ? config.points.noStuffing : 0;
+    // Stuffing check - only award points if there's actual content
+    const hasContent = analysis.wordCount >= 50; // Minimum content threshold
+    const stuffingStatus: IndicatorStatus = hasContent && density <= config.stuffingThreshold ? 'good' : (hasContent ? 'poor' : 'okay');
+    const stuffingPoints = hasContent && stuffingStatus === 'good' ? config.points.noStuffing : 0;
 
     indicators.push({
         id: 'keyword-stuffing',
-        message: stuffingStatus === 'good'
-            ? 'No keyword stuffing detected'
-            : 'Keyword stuffing detected - reduce keyword usage to improve readability',
+        message: !hasContent
+            ? 'Add more content to check keyword usage'
+            : (stuffingStatus === 'good'
+                ? 'No keyword stuffing detected'
+                : 'Keyword stuffing detected - reduce keyword usage to improve readability'),
         status: stuffingStatus,
         points: stuffingPoints,
         maxPoints: config.points.noStuffing,
@@ -370,29 +373,36 @@ function calculateContentStructureScore(article: ArticleContent, analysis: Conte
     });
     totalPoints += h2KeywordPoints;
 
-    // Heading hierarchy
-    const hierarchyPoints = analysis.headingHierarchyValid ? config.points.properHierarchy : 0;
+    // Heading hierarchy - only award points if there are actually headings
+    const hasHeadings = analysis.h1Count > 0 || analysis.h2Count > 0 || analysis.h3Count > 0;
+    const hierarchyPoints = hasHeadings && analysis.headingHierarchyValid ? config.points.properHierarchy : 0;
 
     indicators.push({
         id: 'structure-hierarchy',
-        message: analysis.headingHierarchyValid
-            ? 'Heading hierarchy is correct (H1 → H2 → H3)'
-            : 'Fix heading hierarchy - don\'t skip heading levels',
-        status: analysis.headingHierarchyValid ? 'good' : 'okay',
+        message: !hasHeadings
+            ? 'Add headings to structure your content'
+            : (analysis.headingHierarchyValid
+                ? 'Heading hierarchy is correct (H1 → H2 → H3)'
+                : 'Fix heading hierarchy - don\'t skip heading levels'),
+        status: !hasHeadings ? 'okay' : (analysis.headingHierarchyValid ? 'good' : 'okay'),
         points: hierarchyPoints,
         maxPoints: config.points.properHierarchy,
     });
     totalPoints += hierarchyPoints;
 
-    // H2 frequency
+    // H2 frequency - only score if there's actual content
+    const hasEnoughContent = analysis.wordCount >= 100; // Minimum for H2 evaluation
     const targetH2Count = Math.floor(analysis.wordCount / config.h2.wordsPerHeading);
-    const h2Ratio = targetH2Count > 0 ? analysis.h2Count / targetH2Count : 1;
+    const h2Ratio = targetH2Count > 0 ? analysis.h2Count / targetH2Count : 0;
 
     let h2FreqStatus: IndicatorStatus;
     let h2FreqPoints = 0;
     let h2FreqMessage = '';
 
-    if (h2Ratio >= config.h2.ratioThresholds.good) {
+    if (!hasEnoughContent) {
+        h2FreqStatus = 'okay';
+        h2FreqMessage = 'Add more content to evaluate heading structure';
+    } else if (h2Ratio >= config.h2.ratioThresholds.good) {
         h2FreqStatus = 'good';
         h2FreqPoints = config.points.h2Frequency;
         h2FreqMessage = `Good use of H2 headings (${analysis.h2Count} headings)`;

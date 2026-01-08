@@ -10,6 +10,7 @@ import ReactFlow, {
     Connection,
     MarkerType,
     ConnectionMode,
+    SelectionMode,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { v4 as uuidv4 } from 'uuid';
@@ -399,18 +400,41 @@ function CanvasEditorInner({ projectId }: CanvasEditorProps) {
         ));
     }, [edges, setEdges]);
 
-    // Keyboard handler for delete
+    // Keyboard handler for delete (nodes and edges) - supports multi-select
     useEffect(() => {
-        const handleKeyDown = (e: KeyboardEvent) => {
-            if ((e.key === 'Delete' || e.key === 'Backspace') && selectedEdgeId) {
+        const handleKeyDown = async (e: KeyboardEvent) => {
+            // Don't trigger if user is typing in an input
+            if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+                return;
+            }
+
+            if (e.key === 'Delete' || e.key === 'Backspace') {
                 e.preventDefault();
-                handleDeleteSelectedEdge();
+
+                // Check for selected nodes (multi-select)
+                const selectedNodes = nodes.filter(n => n.selected);
+
+                if (selectedEdgeId) {
+                    // Prioritize edge deletion if an edge is selected
+                    handleDeleteSelectedEdge();
+                } else if (selectedNodes.length > 0) {
+                    // Delete all selected nodes
+                    const supabase = createClient();
+                    for (const node of selectedNodes) {
+                        await supabase.from('nodes').delete().eq('id', node.id);
+                        deleteNode(node.id);
+                    }
+                    console.log(`[Canvas] Deleted ${selectedNodes.length} node(s)`);
+                } else if (selectedNodeId) {
+                    // Fallback to single node deletion via panel
+                    handleNodeDelete();
+                }
             }
         };
 
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [selectedEdgeId, handleDeleteSelectedEdge]);
+    }, [selectedEdgeId, selectedNodeId, nodes, handleDeleteSelectedEdge, handleNodeDelete, deleteNode]);
 
     // Handle connection start - show edge modal
     const handleConnect = useCallback((connection: Connection) => {
@@ -622,6 +646,13 @@ function CanvasEditorInner({ projectId }: CanvasEditorProps) {
                     type: 'default',
                     markerEnd: { type: MarkerType.ArrowClosed, color: '#3B82F6' },
                 }}
+                // Multi-select features
+                selectionOnDrag={true}
+                selectionMode={SelectionMode.Partial}
+                panOnDrag={[1, 2]} // Pan with middle and right mouse button, left button for selection box
+                selectNodesOnDrag={true}
+                multiSelectionKeyCode="Shift"
+                deleteKeyCode={null} // Disable default delete - we handle it ourselves
             >
                 <Background gap={20} size={1} />
                 <MiniMap

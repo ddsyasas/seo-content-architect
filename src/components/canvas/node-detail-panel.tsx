@@ -112,9 +112,14 @@ export function NodeDetailPanel({ node, onClose, onChange, onDelete, projectDoma
 
                 <Input
                     label="URL"
-                    value={data.url || (domain && data.slug ? `${domain}/${data.slug}` : '')}
+                    value={
+                        // For external nodes, show the stored URL or just the title (domain)
+                        node.type === 'external'
+                            ? (data.url || data.title || '')
+                            : (data.url || (domain && data.slug ? `${domain}/${data.slug}` : ''))
+                    }
                     onChange={(e) => onChange({ url: e.target.value || null })}
-                    placeholder="https://example.com/..."
+                    placeholder={node.type === 'external' ? 'https://external-site.com/...' : 'https://example.com/...'}
                 />
 
                 <div>
