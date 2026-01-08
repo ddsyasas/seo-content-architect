@@ -23,7 +23,7 @@ export async function sendEmail({ to, toName, subject, htmlContent, textContent 
 
     sendSmtpEmail.sender = {
         name: process.env.EMAIL_FROM_NAME || 'SyncSEO',
-        email: process.env.EMAIL_FROM_ADDRESS || 'noreply@syncseo.app',
+        email: process.env.EMAIL_FROM_ADDRESS || 'hi@syncseo.io',
     };
 
     sendSmtpEmail.to = [{ email: to, name: toName || to }];
