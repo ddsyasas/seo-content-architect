@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { FileText, Layers, FolderOpen, TrendingUp, ArrowUpRight, Clock } from 'lucide-react';
+import { FileText, Layers, FolderOpen, ArrowUpRight, Clock } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import Link from 'next/link';
 import { Card } from '@/components/ui/card';
@@ -36,39 +36,19 @@ export default function DashboardPage() {
 
     const fetchStats = async () => {
         try {
-            const supabase = createClient();
-            const { data: { user } } = await supabase.auth.getUser();
+            // Use the same API as projects page for consistent data
+            const response = await fetch('/api/projects');
+            const data = await response.json();
 
-            if (!user) return;
-
-            // Fetch owned projects
-            const { data: ownedProjects } = await supabase
-                .from('projects')
-                .select('id, name, color, updated_at')
-                .eq('user_id', user.id)
-                .order('updated_at', { ascending: false });
-
-            // Fetch team projects
-            const { data: teamMemberships } = await supabase
-                .from('team_members')
-                .select('project_id')
-                .eq('user_id', user.id);
-
-            const teamProjectIds = teamMemberships?.map(m => m.project_id) || [];
-
-            let teamProjects: any[] = [];
-            if (teamProjectIds.length > 0) {
-                const { data } = await supabase
-                    .from('projects')
-                    .select('id, name, color, updated_at')
-                    .in('id', teamProjectIds);
-                teamProjects = data || [];
+            if (!response.ok) {
+                throw new Error(data.error);
             }
 
-            const allProjects = [...(ownedProjects || []), ...teamProjects];
-            const projectIds = allProjects.map(p => p.id);
+            const allProjects = data.projects || [];
+            const projectIds = allProjects.map((p: any) => p.id);
 
-            // Fetch counts
+            // Fetch counts using supabase for articles and nodes
+            const supabase = createClient();
             let totalArticles = 0;
             let totalNodes = 0;
 
@@ -87,24 +67,14 @@ export default function DashboardPage() {
             }
 
             // Get recent projects with their counts
-            const recentProjects = [];
-            for (const project of allProjects.slice(0, 3)) {
-                const { count: nodeCount } = await supabase
-                    .from('nodes')
-                    .select('*', { count: 'exact', head: true })
-                    .eq('project_id', project.id);
-
-                const { count: articleCount } = await supabase
-                    .from('articles')
-                    .select('*', { count: 'exact', head: true })
-                    .eq('project_id', project.id);
-
-                recentProjects.push({
-                    ...project,
-                    nodeCount: nodeCount || 0,
-                    articleCount: articleCount || 0,
-                });
-            }
+            const recentProjects = allProjects.slice(0, 3).map((project: any) => ({
+                id: project.id,
+                name: project.name,
+                color: project.color,
+                updated_at: project.updated_at,
+                nodeCount: project.nodeCount || 0,
+                articleCount: project.articleCount || 0,
+            }));
 
             setStats({
                 totalProjects: allProjects.length,

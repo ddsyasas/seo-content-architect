@@ -12,7 +12,7 @@ export default function HomePage() {
           {/* Logo */}
           <Link href="/" className="flex items-center">
             <Image
-              src="/SyncSEO Header logo 2.png"
+              src="/SyncSEO Header logo 2-min.png"
               alt="SyncSEO"
               width={140}
               height={40}

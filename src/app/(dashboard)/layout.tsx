@@ -90,7 +90,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                         <Link href="/" className="flex items-center">
                             {isCollapsed ? (
                                 <Image
-                                    src="/SyncSEO Header logo 2.png"
+                                    src="/SyncSEO Header logo 2-min.png"
                                     alt="SyncSEO"
                                     width={32}
                                     height={32}
@@ -98,7 +98,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                                 />
                             ) : (
                                 <Image
-                                    src="/SyncSEO Header logo 2.png"
+                                    src="/SyncSEO Header logo 2-min.png"
                                     alt="SyncSEO"
                                     width={120}
                                     height={32}
@@ -208,7 +208,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                     <div className="flex items-center justify-between p-4 border-b border-gray-200">
                         <Link href="/" className="flex items-center">
                             <Image
-                                src="/SyncSEO Header logo 2.png"
+                                src="/SyncSEO Header logo 2-min.png"
                                 alt="SyncSEO"
                                 width={120}
                                 height={32}
