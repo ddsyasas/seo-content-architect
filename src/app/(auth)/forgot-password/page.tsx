@@ -20,7 +20,7 @@ export default function ForgotPasswordPage() {
         try {
             const supabase = createClient();
 
-            const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.syncseo.io';
+            const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://syncseo.io';
             const { error } = await supabase.auth.resetPasswordForEmail(email, {
                 redirectTo: `${baseUrl}/reset-password`,
             });
