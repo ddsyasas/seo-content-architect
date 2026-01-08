@@ -55,6 +55,16 @@ body {
   stroke-width: 2px;
 }
 
+/* Hide React Flow Attribution */
+.react-flow__attribution {
+  display: none !important;
+}
+
+/* Ensure canvas fills available height */
+.react-flow__viewport {
+  height: 100%;
+}
+
 /* TipTap Editor - Selected Image Styling */
 .ProseMirror img.ProseMirror-selectednode,
 .ProseMirror-selectednode img {
