@@ -655,7 +655,8 @@ function CanvasEditorInner({ projectId, userRole = 'owner' }: CanvasEditorProps)
                 nodesDraggable={canEdit}
                 selectionOnDrag={false}
                 selectionMode={SelectionMode.Partial}
-                panOnDrag={!canEdit}
+                panOnDrag={[1, 2]} // Pan with middle and right mouse button
+                panOnScroll={true} // Also allow panning with scroll
                 multiSelectionKeyCode="Shift"
                 deleteKeyCode={null} // Disable default delete - we handle it ourselves
             >
