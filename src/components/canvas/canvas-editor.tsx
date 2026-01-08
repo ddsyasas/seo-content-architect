@@ -652,10 +652,10 @@ function CanvasEditorInner({ projectId, userRole = 'owner' }: CanvasEditorProps)
                     markerEnd: { type: MarkerType.ArrowClosed, color: '#3B82F6' },
                 }}
                 // Multi-select features
-                selectionOnDrag={true}
+                nodesDraggable={canEdit}
+                selectionOnDrag={false}
                 selectionMode={SelectionMode.Partial}
-                panOnDrag={[1, 2]} // Pan with middle and right mouse button, left button for selection box
-                selectNodesOnDrag={true}
+                panOnDrag={!canEdit}
                 multiSelectionKeyCode="Shift"
                 deleteKeyCode={null} // Disable default delete - we handle it ourselves
             >
