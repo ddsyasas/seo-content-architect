@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -10,6 +10,9 @@ import { Card, CardContent } from '@/components/ui/card';
 
 export default function LoginPage() {
     const router = useRouter();
+    const searchParams = useSearchParams();
+    const redirectTo = searchParams.get('redirect') || '/dashboard';
+
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
@@ -32,7 +35,7 @@ export default function LoginPage() {
                 return;
             }
 
-            router.push('/dashboard');
+            router.push(redirectTo);
             router.refresh();
         } catch (err) {
             setError('An unexpected error occurred');
