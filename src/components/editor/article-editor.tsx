@@ -572,36 +572,12 @@ export function ArticleEditor({ projectId, nodeId }: ArticleEditorProps) {
                     {/* Domain Warning / URL Preview */}
                     {!project?.domain ? (
                         <div className="p-3 rounded-lg bg-amber-50 border border-amber-200">
-                            <p className="text-sm text-amber-800 font-medium mb-2">
-                                ⚠️ Set project domain for auto-linking
+                            <p className="text-sm text-amber-800 font-medium mb-1">
+                                ⚠️ Project domain not set
                             </p>
-                            <p className="text-xs text-amber-600 mb-2">
-                                Internal links will auto-create edges on canvas when you set a domain.
+                            <p className="text-xs text-amber-600">
+                                Set the domain in Project Settings (3-dot menu on project card) to enable URL previews and auto-linking.
                             </p>
-                            <div className="flex gap-2">
-                                <input
-                                    type="text"
-                                    placeholder="mydomain.com"
-                                    className="flex-1 px-2 py-1 text-sm border border-amber-300 rounded text-gray-900"
-                                    onKeyDown={async (e) => {
-                                        if (e.key === 'Enter' && e.currentTarget.value) {
-                                            const supabase = createClient();
-                                            await supabase
-                                                .from('projects')
-                                                .update({ domain: e.currentTarget.value })
-                                                .eq('id', projectId);
-                                            // Reload project data
-                                            const { data } = await supabase
-                                                .from('projects')
-                                                .select('*')
-                                                .eq('id', projectId)
-                                                .single();
-                                            setProject(data);
-                                        }
-                                    }}
-                                />
-                            </div>
-                            <p className="text-xs text-amber-500 mt-1">Press Enter to save</p>
                         </div>
                     ) : (
                         <div>
