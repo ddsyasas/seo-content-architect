@@ -6,18 +6,34 @@ export default function HomePage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50">
       {/* Header */}
-      <header className="py-6 px-4">
+      <header className="py-6 px-4 border-b border-gray-100">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
+          {/* Logo */}
           <Link href="/" className="flex items-center gap-2 text-indigo-600">
             <Network className="w-8 h-8" />
-            <span className="font-bold text-xl">SEO Content Architect</span>
+            <span className="font-bold text-xl">SyncSEO</span>
           </Link>
-          <div className="flex items-center gap-4">
-            <Link href="/login">
-              <Button variant="ghost">Sign in</Button>
+
+          {/* Center Navigation */}
+          <nav className="hidden md:flex items-center gap-8">
+            <Link href="/features" className="text-gray-600 hover:text-gray-900 font-medium transition-colors">
+              Features
+            </Link>
+            <Link href="/pricing" className="text-gray-600 hover:text-gray-900 font-medium transition-colors">
+              Pricing
+            </Link>
+            <Link href="/resources" className="text-gray-600 hover:text-gray-900 font-medium transition-colors">
+              Resources
+            </Link>
+          </nav>
+
+          {/* Auth Buttons */}
+          <div className="flex items-center gap-3">
+            <Link href="/login" className="flex items-center gap-1.5 text-gray-600 hover:text-gray-900 font-medium transition-colors">
+              Login
             </Link>
             <Link href="/signup">
-              <Button>Get Started</Button>
+              <Button>Get Started Free</Button>
             </Link>
           </div>
         </div>
@@ -93,7 +109,7 @@ export default function HomePage() {
       {/* Footer */}
       <footer className="py-8 px-4 border-t border-gray-200 mt-20">
         <div className="max-w-6xl mx-auto text-center text-sm text-gray-500">
-          © {new Date().getFullYear()} SEO Content Architect. All rights reserved.
+          © {new Date().getFullYear()} SyncSEO. All rights reserved.
         </div>
       </footer>
     </div>

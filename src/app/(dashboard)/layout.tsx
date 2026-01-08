@@ -14,7 +14,8 @@ import {
     ChevronDown,
     ChevronLeft,
     ChevronRight,
-    User
+    User,
+    Users
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { cn } from '@/lib/utils/helpers';
@@ -26,15 +27,26 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     const [isCollapsed, setIsCollapsed] = useState(false);
     const [isProfileOpen, setIsProfileOpen] = useState(false);
     const [user, setUser] = useState<{ email: string; full_name?: string } | null>(null);
+    const [hasTeamAccess, setHasTeamAccess] = useState(false);
 
     useEffect(() => {
         const supabase = createClient();
-        supabase.auth.getUser().then(({ data }) => {
+        supabase.auth.getUser().then(async ({ data }) => {
             if (data.user) {
                 setUser({
                     email: data.user.email!,
                     full_name: data.user.user_metadata?.full_name,
                 });
+
+                // Check subscription plan for Team access
+                const { data: subscription } = await supabase
+                    .from('subscriptions')
+                    .select('plan')
+                    .eq('user_id', data.user.id)
+                    .single();
+
+                const plan = subscription?.plan || 'free';
+                setHasTeamAccess(plan === 'pro' || plan === 'agency');
             }
         });
     }, []);
@@ -46,9 +58,11 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         router.refresh();
     };
 
+    // Build navigation dynamically based on plan
     const navigation = [
         { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
         { name: 'Projects', href: '/dashboard', icon: FolderKanban },
+        ...(hasTeamAccess ? [{ name: 'Team', href: '/team', icon: Users }] : []),
         { name: 'Settings', href: '/settings', icon: Settings },
     ];
 
@@ -75,7 +89,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                     )}>
                         <Link href="/dashboard" className="flex items-center gap-2 text-indigo-600">
                             <Network className="w-7 h-7 shrink-0" />
-                            {!isCollapsed && <span className="font-bold text-lg">SEO Architect</span>}
+                            {!isCollapsed && <span className="font-bold text-lg">SyncSEO</span>}
                         </Link>
                     </div>
 
@@ -180,7 +194,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                     <div className="flex items-center justify-between p-4 border-b border-gray-200">
                         <Link href="/dashboard" className="flex items-center gap-2 text-indigo-600">
                             <Network className="w-7 h-7" />
-                            <span className="font-bold text-lg">SEO Architect</span>
+                            <span className="font-bold text-lg">SyncSEO</span>
                         </Link>
                         <button
                             onClick={() => setIsMobileSidebarOpen(false)}

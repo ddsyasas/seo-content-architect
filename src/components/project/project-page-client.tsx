@@ -32,7 +32,10 @@ export function ProjectPageClient({ projectId }: ProjectPageClientProps) {
     return (
         <div className="flex flex-col h-[calc(100vh-80px)] -m-6">
             {/* Tabs */}
-            <ProjectTabs activeTab={activeTab} onTabChange={setActiveTab} />
+            <ProjectTabs
+                activeTab={activeTab}
+                onTabChange={setActiveTab}
+            />
 
             {/* Content */}
             <div className="flex-1 overflow-hidden bg-gray-50">

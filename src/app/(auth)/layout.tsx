@@ -10,7 +10,7 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
                 <div className="max-w-7xl mx-auto">
                     <Link href="/" className="inline-flex items-center gap-2 text-indigo-600 hover:text-indigo-700 transition-colors">
                         <Network className="w-8 h-8" />
-                        <span className="font-bold text-xl">SEO Content Architect</span>
+                        <span className="font-bold text-xl">SyncSEO</span>
                     </Link>
                 </div>
             </header>
@@ -24,7 +24,7 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
 
             {/* Footer */}
             <footer className="py-6 px-4 text-center text-sm text-gray-500">
-                © {new Date().getFullYear()} SEO Content Architect. All rights reserved.
+                © {new Date().getFullYear()} SyncSEO. All rights reserved.
             </footer>
         </div>
     );

@@ -1,14 +1,29 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Plus, Search, FolderOpen } from 'lucide-react';
+import { Plus, Search, FolderOpen, AlertCircle, Crown } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { ProjectCard } from '@/components/dashboard/project-card';
 import { CreateProjectModal } from '@/components/dashboard/create-project-modal';
 import { DeleteProjectModal } from '@/components/dashboard/delete-project-modal';
 import type { Project, CreateProjectInput } from '@/lib/types';
+import Link from 'next/link';
+
+interface LimitsData {
+    plan: string;
+    limits: {
+        projects: number;
+        articlesPerProject: number;
+        nodesPerProject: number;
+        teamMembersPerProject: number;
+    };
+    usage: {
+        projects: number;
+        teamMembers: number;
+    };
+    canCreateProjects: boolean;
+}
 
 export default function DashboardPage() {
     const [projects, setProjects] = useState<Project[]>([]);
@@ -18,22 +33,21 @@ export default function DashboardPage() {
     const [editProject, setEditProject] = useState<Project | null>(null);
     const [deleteProject, setDeleteProject] = useState<Project | null>(null);
     const [isDeleting, setIsDeleting] = useState(false);
+    const [limits, setLimits] = useState<LimitsData | null>(null);
 
-    // Fetch projects
+    // Fetch projects and limits
     useEffect(() => {
         fetchProjects();
+        fetchLimits();
     }, []);
 
     const fetchProjects = async () => {
         try {
-            const supabase = createClient();
-            const { data, error } = await supabase
-                .from('projects')
-                .select('*')
-                .order('updated_at', { ascending: false });
+            const response = await fetch('/api/projects');
+            const data = await response.json();
 
-            if (error) throw error;
-            setProjects(data || []);
+            if (!response.ok) throw new Error(data.error);
+            setProjects(data.projects || []);
         } catch (error) {
             console.error('Failed to fetch projects:', error);
         } finally {
@@ -41,11 +55,27 @@ export default function DashboardPage() {
         }
     };
 
+    const fetchLimits = async () => {
+        try {
+            const response = await fetch('/api/limits');
+            const data = await response.json();
+            if (response.ok) {
+                setLimits(data);
+            }
+        } catch (error) {
+            console.error('Failed to fetch limits:', error);
+        }
+    };
+
     const handleCreateProject = async (input: CreateProjectInput) => {
+        // TODO: Re-add limit check after fixing the 500 error
+
         const supabase = createClient();
         const { data: { user } } = await supabase.auth.getUser();
 
         if (!user) throw new Error('Not authenticated');
+
+
 
         const { data, error } = await supabase
             .from('projects')
@@ -56,8 +86,12 @@ export default function DashboardPage() {
             .select()
             .single();
 
-        if (error) throw error;
-        setProjects((prev) => [data, ...prev]);
+        if (error) {
+            console.error('[Dashboard] Project creation error:', error);
+            throw new Error(error.message || 'Failed to create project');
+        }
+        setProjects((prev) => [{ ...data, accessType: 'owner', role: 'owner', nodeCount: 0, articleCount: 0 }, ...prev]);
+        fetchLimits(); // Refresh limits
     };
 
     const handleUpdateProject = async (input: CreateProjectInput) => {
@@ -72,7 +106,7 @@ export default function DashboardPage() {
             .single();
 
         if (error) throw error;
-        setProjects((prev) => prev.map((p) => (p.id === editProject.id ? data : p)));
+        setProjects((prev) => prev.map((p) => (p.id === editProject.id ? { ...p, ...data } : p)));
         setEditProject(null);
     };
 
@@ -90,6 +124,7 @@ export default function DashboardPage() {
             if (error) throw error;
             setProjects((prev) => prev.filter((p) => p.id !== deleteProject.id));
             setDeleteProject(null);
+            fetchLimits(); // Refresh limits
         } catch (error) {
             console.error('Failed to delete project:', error);
         } finally {
@@ -102,19 +137,59 @@ export default function DashboardPage() {
         project.name.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
+    // Count owned projects
+    const ownedProjects = projects.filter((p: any) => p.accessType === 'owner');
+    const isAtProjectLimit = limits ? ownedProjects.length >= limits.limits.projects : false;
+    const canCreate = limits?.canCreateProjects && !isAtProjectLimit;
+
     return (
         <div>
             {/* Header */}
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
                 <div>
                     <h1 className="text-2xl font-bold text-gray-900">Projects</h1>
-                    <p className="text-gray-600 mt-1">Manage your content architecture projects</p>
+                    <p className="text-gray-600 mt-1">
+                        {limits && (
+                            <span>
+                                {ownedProjects.length} of {limits.limits.projects >= 999999 ? '∞' : limits.limits.projects} projects
+                            </span>
+                        )}
+                    </p>
                 </div>
-                <Button onClick={() => setIsCreateModalOpen(true)}>
-                    <Plus className="w-4 h-4" />
-                    New Project
-                </Button>
+
+                {canCreate ? (
+                    <Button onClick={() => setIsCreateModalOpen(true)}>
+                        <Plus className="w-4 h-4" />
+                        New Project
+                    </Button>
+                ) : isAtProjectLimit ? (
+                    <Link href="/settings/subscription">
+                        <Button variant="outline" className="border-amber-300 text-amber-700 hover:bg-amber-50">
+                            <Crown className="w-4 h-4" />
+                            Upgrade to Create More
+                        </Button>
+                    </Link>
+                ) : !limits?.canCreateProjects ? (
+                    <div className="text-sm text-gray-500 flex items-center gap-1">
+                        <AlertCircle className="w-4 h-4" />
+                        Team members can't create projects
+                    </div>
+                ) : null}
             </div>
+
+            {/* Limit Warning */}
+            {isAtProjectLimit && limits && (
+                <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-lg flex items-start gap-3">
+                    <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                    <div>
+                        <p className="font-medium text-amber-800">Project limit reached</p>
+                        <p className="text-sm text-amber-700 mt-1">
+                            Your {limits.plan} plan allows {limits.limits.projects} project{limits.limits.projects > 1 ? 's' : ''}.{' '}
+                            <Link href="/settings/subscription" className="underline font-medium">Upgrade your plan</Link> to create more.
+                        </p>
+                    </div>
+                </div>
+            )}
 
             {/* Search */}
             <div className="mb-6 max-w-md">
@@ -147,10 +222,12 @@ export default function DashboardPage() {
                     </div>
                     <h2 className="text-lg font-semibold text-gray-900">No projects yet</h2>
                     <p className="text-gray-600 mt-1 mb-6">Create your first project to start mapping content architecture</p>
-                    <Button onClick={() => setIsCreateModalOpen(true)}>
-                        <Plus className="w-4 h-4" />
-                        Create First Project
-                    </Button>
+                    {canCreate && (
+                        <Button onClick={() => setIsCreateModalOpen(true)}>
+                            <Plus className="w-4 h-4" />
+                            Create First Project
+                        </Button>
+                    )}
                 </div>
             )}
 
@@ -167,7 +244,7 @@ export default function DashboardPage() {
                     {filteredProjects.map((project) => (
                         <ProjectCard
                             key={project.id}
-                            project={project}
+                            project={project as any}
                             onEdit={setEditProject}
                             onDelete={setDeleteProject}
                         />
@@ -197,3 +274,4 @@ export default function DashboardPage() {
         </div>
     );
 }
+
