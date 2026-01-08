@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 
-export default function SignupPage() {
+function SignupForm() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const redirectTo = searchParams.get('redirect') || '/dashboard';
@@ -131,5 +131,13 @@ export default function SignupPage() {
                 </p>
             </CardContent>
         </Card>
+    );
+}
+
+export default function SignupPage() {
+    return (
+        <Suspense fallback={<div className="animate-pulse bg-gray-100 rounded-xl h-96" />}>
+            <SignupForm />
+        </Suspense>
     );
 }
