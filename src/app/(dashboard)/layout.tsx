@@ -61,7 +61,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     // Build navigation dynamically based on plan
     const navigation = [
         { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-        { name: 'Projects', href: '/dashboard', icon: FolderKanban },
+        { name: 'Projects', href: '/projects', icon: FolderKanban },
         ...(hasTeamAccess ? [{ name: 'Team', href: '/team', icon: Users }] : []),
         { name: 'Settings', href: '/settings', icon: Settings },
     ];
@@ -87,7 +87,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                         'flex items-center p-4 border-b border-gray-200',
                         isCollapsed ? 'justify-center' : 'gap-2'
                     )}>
-                        <Link href="/dashboard" className="flex items-center">
+                        <Link href="/" className="flex items-center">
                             {isCollapsed ? (
                                 <Image
                                     src="/SyncSEO Header logo 2.png"
@@ -206,7 +206,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                 <div className="flex flex-col h-full">
                     {/* Logo */}
                     <div className="flex items-center justify-between p-4 border-b border-gray-200">
-                        <Link href="/dashboard" className="flex items-center">
+                        <Link href="/" className="flex items-center">
                             <Image
                                 src="/SyncSEO Header logo 2.png"
                                 alt="SyncSEO"
