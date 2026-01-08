@@ -33,13 +33,11 @@ interface Invitation {
 }
 
 const roleOptions = [
-    { value: 'admin', label: 'Admin', description: 'Can manage team and all projects', icon: Shield },
     { value: 'editor', label: 'Editor', description: 'Can create and edit content', icon: Pencil },
     { value: 'viewer', label: 'Viewer', description: 'Read-only access', icon: Eye },
 ];
 
 const roleBadgeColors: Record<string, string> = {
-    admin: 'bg-indigo-100 text-indigo-800',
     editor: 'bg-green-100 text-green-800',
     viewer: 'bg-gray-100 text-gray-800',
 };

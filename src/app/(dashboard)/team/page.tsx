@@ -253,12 +253,10 @@ export default function TeamPage() {
                                                 value={member.role}
                                                 onChange={(e) => handleRoleChange(member.user_id, e.target.value)}
                                                 disabled={updatingRole === member.user_id}
-                                                className={`appearance-none cursor-pointer pr-8 pl-3 py-1.5 rounded-lg text-sm font-medium border-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors ${member.role === 'admin' ? 'bg-indigo-50 border-indigo-200 text-indigo-700' :
-                                                        member.role === 'editor' ? 'bg-green-50 border-green-200 text-green-700' :
-                                                            'bg-gray-50 border-gray-200 text-gray-700'
+                                                className={`appearance-none cursor-pointer pr-8 pl-3 py-1.5 rounded-lg text-sm font-medium border-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors ${member.role === 'editor' ? 'bg-green-50 border-green-200 text-green-700' :
+                                                        'bg-gray-50 border-gray-200 text-gray-700'
                                                     } ${updatingRole === member.user_id ? 'opacity-50' : ''}`}
                                             >
-                                                <option value="admin">Admin</option>
                                                 <option value="editor">Editor</option>
                                                 <option value="viewer">Viewer</option>
                                             </select>

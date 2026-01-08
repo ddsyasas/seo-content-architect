@@ -2,19 +2,18 @@
  * Role-based access control utilities
  * 
  * Role hierarchy (most to least permissions):
- * - owner: Full access to everything
- * - admin: Can manage team + all editor permissions
- * - editor: Can create/edit content (nodes, articles, canvas)
+ * - owner: Full access to everything (can delete project, manage team)
+ * - editor: Can create/edit content and edit project settings
  * - viewer: Read-only access
  */
 
-export type UserRole = 'owner' | 'admin' | 'editor' | 'viewer';
+export type UserRole = 'owner' | 'editor' | 'viewer';
 
 export interface RolePermissions {
-    canEdit: boolean;        // Can edit nodes, articles, canvas
-    canManageTeam: boolean;  // Can invite, remove, change roles
-    canDelete: boolean;      // Can delete nodes, articles
-    canManageProject: boolean; // Can delete project, change settings
+    canEdit: boolean;          // Can edit nodes, articles, canvas, project settings
+    canManageTeam: boolean;    // Can invite, remove, change roles
+    canDelete: boolean;        // Can delete nodes, articles
+    canManageProject: boolean; // Can delete project (owner only)
 }
 
 export function getRolePermissions(role: UserRole): RolePermissions {
@@ -25,13 +24,6 @@ export function getRolePermissions(role: UserRole): RolePermissions {
                 canManageTeam: true,
                 canDelete: true,
                 canManageProject: true,
-            };
-        case 'admin':
-            return {
-                canEdit: true,
-                canManageTeam: true,
-                canDelete: true,
-                canManageProject: false,
             };
         case 'editor':
             return {
@@ -58,13 +50,13 @@ export function getRolePermissions(role: UserRole): RolePermissions {
 }
 
 export function canEditContent(role: UserRole): boolean {
-    return ['owner', 'admin', 'editor'].includes(role);
+    return ['owner', 'editor'].includes(role);
 }
 
 export function canManageTeam(role: UserRole): boolean {
-    return ['owner', 'admin'].includes(role);
+    return role === 'owner';
 }
 
 export function canDeleteContent(role: UserRole): boolean {
-    return ['owner', 'admin', 'editor'].includes(role);
+    return ['owner', 'editor'].includes(role);
 }
