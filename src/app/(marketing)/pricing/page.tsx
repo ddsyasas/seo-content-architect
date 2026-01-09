@@ -2,8 +2,9 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { Check, X, Loader2, Sparkles, Network } from 'lucide-react';
+import { Check, X, Loader2, Sparkles } from 'lucide-react';
 import { PLANS, PlanType } from '@/lib/stripe/config';
 import { Button } from '@/components/ui/button';
 
@@ -84,14 +85,27 @@ function PricingCard({ plan, currentPlan, isLoggedIn, onUpgrade, isLoading }: Pr
 
             <div className="text-center mb-6">
                 <h3 className="text-xl font-bold text-gray-900 mb-2">{config.name}</h3>
-                <div className="flex items-baseline justify-center gap-1">
-                    <span className="text-4xl font-bold text-gray-900">
-                        {config.price === 0 ? 'Free' : `$${config.price}`}
-                    </span>
-                    {config.price > 0 && (
-                        <span className="text-gray-500">/month</span>
-                    )}
-                </div>
+                {isPro ? (
+                    <>
+                        <div className="flex items-baseline justify-center gap-2">
+                            <span className="text-2xl text-gray-400 line-through">$19</span>
+                            <span className="text-4xl font-bold text-gray-900">$7</span>
+                            <span className="text-gray-500">/month</span>
+                        </div>
+                        <div className="mt-2 inline-flex items-center gap-1 bg-green-100 text-green-700 text-xs font-semibold px-2 py-1 rounded-full">
+                            Limited Time Offer - 63% OFF
+                        </div>
+                    </>
+                ) : (
+                    <div className="flex items-baseline justify-center gap-1">
+                        <span className="text-4xl font-bold text-gray-900">
+                            {config.price === 0 ? 'Free' : `$${config.price}`}
+                        </span>
+                        {config.price > 0 && (
+                            <span className="text-gray-500">/month</span>
+                        )}
+                    </div>
+                )}
             </div>
 
             <ul className="space-y-3 mb-8 flex-1">
@@ -191,9 +205,14 @@ export default function PricingPage() {
             {/* Header */}
             <header className="py-6 px-4 border-b border-gray-100 bg-white/80 backdrop-blur-sm sticky top-0 z-50">
                 <div className="max-w-6xl mx-auto flex items-center justify-between">
-                    <Link href="/" className="flex items-center gap-2 text-indigo-600">
-                        <Network className="w-8 h-8" />
-                        <span className="font-bold text-xl">SyncSEO</span>
+                    <Link href="/" className="flex items-center">
+                        <Image
+                            src="/SyncSEO Header logo 2-min.png"
+                            alt="SyncSEO"
+                            width={140}
+                            height={40}
+                            priority
+                        />
                     </Link>
                     <nav className="hidden md:flex items-center gap-8">
                         <Link href="/features" className="text-gray-600 hover:text-gray-900 font-medium transition-colors">

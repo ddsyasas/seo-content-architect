@@ -1,8 +1,9 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import {
-    Network, Layers, GitBranch, Target, FileText, Zap,
+    Layers, GitBranch, Target, FileText, Zap,
     BarChart3, Users, Lock, ArrowRight
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -75,9 +76,14 @@ export default function FeaturesPage() {
             {/* Header */}
             <header className="py-6 px-4 border-b border-gray-100 bg-white/80 backdrop-blur-sm sticky top-0 z-50">
                 <div className="max-w-6xl mx-auto flex items-center justify-between">
-                    <Link href="/" className="flex items-center gap-2 text-indigo-600">
-                        <Network className="w-8 h-8" />
-                        <span className="font-bold text-xl">SyncSEO</span>
+                    <Link href="/" className="flex items-center">
+                        <Image
+                            src="/SyncSEO Header logo 2-min.png"
+                            alt="SyncSEO"
+                            width={140}
+                            height={40}
+                            priority
+                        />
                     </Link>
                     <nav className="hidden md:flex items-center gap-8">
                         <Link href="/features" className="text-indigo-600 font-medium">
