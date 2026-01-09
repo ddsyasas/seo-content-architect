@@ -55,6 +55,7 @@ export function ArticleEditor({ projectId, nodeId }: ArticleEditorProps) {
 
     const [seoDescription, setSeoDescription] = useState('');
     const [availableNodes, setAvailableNodes] = useState<{ id: string; title: string; slug: string }[]>([]);
+    const [nodeLimitWarning, setNodeLimitWarning] = useState<string | null>(null);
 
     // SEO Score calculation
     const articleContent = useMemo(() => ({
@@ -281,6 +282,20 @@ export function ArticleEditor({ projectId, nodeId }: ArticleEditorProps) {
                     }
                 }
                 // --- Handle Outbound (External) Links ---
+                // Check node limit before creating external nodes
+                let nodeLimit = { allowed: true, current: 0, limit: 999999 };
+                try {
+                    const limitRes = await fetch('/api/limits', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ type: 'node', projectId })
+                    });
+                    nodeLimit = await limitRes.json();
+                } catch (e) {
+                    console.log('[Link-Sync] Could not check node limit, proceeding');
+                }
+                let nodesCreatedInThisSave = 0;
+
                 // Create one external node per unique URL (not grouped by domain)
                 const outboundLinks = new Map<string, { anchor: string; domain: string }>();
                 for (const link of externalLinks) {
@@ -312,6 +327,13 @@ export function ArticleEditor({ projectId, nodeId }: ArticleEditorProps) {
                     );
 
                     if (!externalNode) {
+                        // Check if we can create more nodes
+                        if (!nodeLimit.allowed || (nodeLimit.current + nodesCreatedInThisSave) >= nodeLimit.limit) {
+                            console.log(`[Link-Sync] Node limit reached (${nodeLimit.current + nodesCreatedInThisSave}/${nodeLimit.limit}), skipping external node for: ${url}`);
+                            setNodeLimitWarning(`Node limit reached (${nodeLimit.limit}). Some external link nodes weren't created. Upgrade your plan to add more.`);
+                            continue;
+                        }
+
                         // Create new external node for this URL
                         const currentX = allNodes?.find(n => n.id === nodeId)?.position_x || 0;
                         const currentY = allNodes?.find(n => n.id === nodeId)?.position_y || 0;
@@ -334,6 +356,7 @@ export function ArticleEditor({ projectId, nodeId }: ArticleEditorProps) {
 
                         if (newNode) {
                             externalNode = newNode;
+                            nodesCreatedInThisSave++;
                             console.log(`[Link-Sync] Created new External Node: "${linkData.anchor}" (URL: ${url})`);
                             externalNodes.push(newNode);
                         }
@@ -499,6 +522,19 @@ export function ArticleEditor({ projectId, nodeId }: ArticleEditorProps) {
                         <span className="hidden sm:inline">Save</span>
                     </Button>
                 </div>
+
+                {/* Node limit warning */}
+                {nodeLimitWarning && (
+                    <div className="mx-3 sm:mx-6 mt-2 px-4 py-2 bg-amber-50 border border-amber-200 rounded-lg flex items-center justify-between gap-2">
+                        <span className="text-amber-800 text-sm">{nodeLimitWarning}</span>
+                        <button
+                            onClick={() => setNodeLimitWarning(null)}
+                            className="text-amber-600 hover:text-amber-800 font-bold shrink-0"
+                        >
+                            ×
+                        </button>
+                    </div>
+                )}
 
                 {/* Editor - Toolbar sticks at top, content scrolls */}
                 <div className="flex-1 flex flex-col min-h-0">
