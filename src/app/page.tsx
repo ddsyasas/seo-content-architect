@@ -1,13 +1,18 @@
+'use client';
+
+import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { ArrowRight, Layers, GitBranch, Target } from 'lucide-react';
+import { ArrowRight, Layers, GitBranch, Target, Menu, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 export default function HomePage() {
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50">
       {/* Header */}
-      <header className="py-6 px-4 border-b border-gray-100">
+      <header className="py-6 px-4 border-b border-gray-100 bg-white/80 backdrop-blur-sm sticky top-0 z-50">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
           {/* Logo */}
           <Link href="/" className="flex items-center">
@@ -20,7 +25,7 @@ export default function HomePage() {
             />
           </Link>
 
-          {/* Center Navigation */}
+          {/* Center Navigation - Desktop */}
           <nav className="hidden md:flex items-center gap-8">
             <Link href="/features" className="text-gray-600 hover:text-gray-900 font-medium transition-colors">
               Features
@@ -33,16 +38,70 @@ export default function HomePage() {
             </Link>
           </nav>
 
-          {/* Auth Buttons */}
-          <div className="flex items-center gap-3">
-            <Link href="/login" className="flex items-center gap-1.5 text-gray-600 hover:text-gray-900 font-medium transition-colors">
+          {/* Auth Buttons - Desktop */}
+          <div className="hidden md:flex items-center gap-3">
+            <Link href="/login" className="text-gray-600 hover:text-gray-900 font-medium transition-colors">
               Login
             </Link>
             <Link href="/signup">
               <Button>Get Started Free</Button>
             </Link>
           </div>
+
+          {/* Mobile Menu Button */}
+          <button
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            className="md:hidden p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+            aria-label="Toggle menu"
+          >
+            {isMobileMenuOpen ? (
+              <X className="w-6 h-6" />
+            ) : (
+              <Menu className="w-6 h-6" />
+            )}
+          </button>
         </div>
+
+        {/* Mobile Menu */}
+        {isMobileMenuOpen && (
+          <div className="md:hidden mt-4 pb-4 border-t border-gray-100 pt-4">
+            <nav className="flex flex-col gap-2">
+              <Link
+                href="/features"
+                className="px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-lg font-medium transition-colors"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                Features
+              </Link>
+              <Link
+                href="/pricing"
+                className="px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-lg font-medium transition-colors"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                Pricing
+              </Link>
+              <Link
+                href="/resources"
+                className="px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-lg font-medium transition-colors"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                Resources
+              </Link>
+              <div className="border-t border-gray-100 mt-2 pt-2 flex flex-col gap-2">
+                <Link
+                  href="/login"
+                  className="px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-lg font-medium transition-colors"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  Login
+                </Link>
+                <Link href="/signup" onClick={() => setIsMobileMenuOpen(false)}>
+                  <Button className="w-full">Get Started Free</Button>
+                </Link>
+              </div>
+            </nav>
+          </div>
+        )}
       </header>
 
       {/* Hero */}
