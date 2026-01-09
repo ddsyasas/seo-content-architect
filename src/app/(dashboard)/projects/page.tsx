@@ -68,14 +68,21 @@ export default function DashboardPage() {
     };
 
     const handleCreateProject = async (input: CreateProjectInput) => {
-        // TODO: Re-add limit check after fixing the 500 error
-
         const supabase = createClient();
         const { data: { user } } = await supabase.auth.getUser();
 
         if (!user) throw new Error('Not authenticated');
 
+        // Check project limit before creating
+        const limitCheck = await fetch('/api/limits', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ type: 'project' })
+        }).then(r => r.json());
 
+        if (!limitCheck.allowed) {
+            throw new Error(limitCheck.message || `You've reached your project limit (${limitCheck.limit}). Upgrade your plan to create more projects.`);
+        }
 
         const { data, error } = await supabase
             .from('projects')

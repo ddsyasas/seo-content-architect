@@ -32,6 +32,19 @@ export function NewArticlePage({ projectId }: NewArticlePageProps) {
         setError('');
 
         try {
+            // Check article limit before creating
+            const limitCheck = await fetch('/api/limits', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ type: 'article', projectId })
+            }).then(r => r.json());
+
+            if (!limitCheck.allowed) {
+                setError(limitCheck.message || `You've reached your article limit (${limitCheck.limit}). Upgrade your plan to add more articles.`);
+                setIsCreating(false);
+                return;
+            }
+
             const supabase = createClient();
             const nodeId = uuidv4();
 

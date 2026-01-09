@@ -59,6 +59,7 @@ function CanvasEditorInner({ projectId, userRole = 'owner' }: CanvasEditorProps)
     const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null);
     const [editingEdge, setEditingEdge] = useState<{ id: string; edgeType: string; keyword: string; styleOptions: any } | null>(null);
     const [projectDomain, setProjectDomain] = useState<string>('');
+    const [limitError, setLimitError] = useState<string | null>(null);
 
     const {
         nodes,
@@ -209,6 +210,23 @@ function CanvasEditorInner({ projectId, userRole = 'owner' }: CanvasEditorProps)
 
     // Handle adding a new node
     const handleAddNode = useCallback(async (type: NodeType) => {
+        // Check node limit before creating
+        try {
+            const limitCheck = await fetch('/api/limits', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ type: 'node', projectId })
+            }).then(r => r.json());
+
+            if (!limitCheck.allowed) {
+                setLimitError(limitCheck.message || `You've reached your node limit (${limitCheck.limit}). Upgrade your plan to add more nodes.`);
+                setTimeout(() => setLimitError(null), 5000); // Auto-hide after 5s
+                return;
+            }
+        } catch (err) {
+            console.error('Failed to check node limit:', err);
+        }
+
         const viewport = getViewport();
         const id = uuidv4();
         const position = {
@@ -614,6 +632,19 @@ function CanvasEditorInner({ projectId, userRole = 'owner' }: CanvasEditorProps)
 
     return (
         <div className="h-full relative">
+            {/* Limit error banner */}
+            {limitError && (
+                <div className="absolute top-2 left-1/2 -translate-x-1/2 z-50 px-4 py-2 bg-amber-50 border border-amber-200 rounded-lg shadow-lg flex items-center gap-2 max-w-md">
+                    <span className="text-amber-800 text-sm">{limitError}</span>
+                    <button
+                        onClick={() => setLimitError(null)}
+                        className="text-amber-600 hover:text-amber-800 font-bold"
+                    >
+                        ×
+                    </button>
+                </div>
+            )}
+
             <CanvasToolbar
                 onAddNode={handleAddNode}
                 onZoomIn={zoomIn}
