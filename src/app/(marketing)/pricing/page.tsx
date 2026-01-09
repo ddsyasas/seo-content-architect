@@ -2,11 +2,11 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { Check, X, Loader2, Sparkles } from 'lucide-react';
 import { PLANS, PlanType } from '@/lib/stripe/config';
 import { Button } from '@/components/ui/button';
+import { MarketingLayout } from '@/components/marketing/marketing-layout';
 
 interface PricingCardProps {
     plan: PlanType;
@@ -201,41 +201,7 @@ export default function PricingPage() {
     ];
 
     return (
-        <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
-            {/* Header */}
-            <header className="py-6 px-4 border-b border-gray-100 bg-white/80 backdrop-blur-sm sticky top-0 z-50">
-                <div className="max-w-6xl mx-auto flex items-center justify-between">
-                    <Link href="/" className="flex items-center">
-                        <Image
-                            src="/SyncSEO Header logo 2-min.png"
-                            alt="SyncSEO"
-                            width={140}
-                            height={40}
-                            priority
-                        />
-                    </Link>
-                    <nav className="hidden md:flex items-center gap-8">
-                        <Link href="/features" className="text-gray-600 hover:text-gray-900 font-medium transition-colors">
-                            Features
-                        </Link>
-                        <Link href="/pricing" className="text-indigo-600 font-medium">
-                            Pricing
-                        </Link>
-                        <Link href="/resources" className="text-gray-600 hover:text-gray-900 font-medium transition-colors">
-                            Resources
-                        </Link>
-                    </nav>
-                    <div className="flex items-center gap-3">
-                        <Link href="/login" className="text-gray-600 hover:text-gray-900 font-medium transition-colors">
-                            Login
-                        </Link>
-                        <Link href="/signup">
-                            <Button>Get Started Free</Button>
-                        </Link>
-                    </div>
-                </div>
-            </header>
-
+        <MarketingLayout>
             {/* Hero */}
             <section className="py-16 md:py-24">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
@@ -298,12 +264,6 @@ export default function PricingPage() {
                 </div>
             </section>
 
-            {/* Footer */}
-            <footer className="py-8 border-t border-gray-200">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-gray-500">
-                    <p>© {new Date().getFullYear()} SyncSEO. All rights reserved.</p>
-                </div>
-            </footer>
-        </div>
+        </MarketingLayout>
     );
 }
