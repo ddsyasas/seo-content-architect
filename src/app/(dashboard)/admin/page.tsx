@@ -171,7 +171,7 @@ export default function AdminPage() {
 
             {/* Stats Cards */}
             {stats && (
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
                     <Card className="p-4">
                         <div className="flex items-center gap-3">
                             <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
@@ -191,6 +191,17 @@ export default function AdminPage() {
                             <div>
                                 <p className="text-2xl font-bold text-gray-900">{stats.totalProjects}</p>
                                 <p className="text-sm text-gray-500">Total Projects</p>
+                            </div>
+                        </div>
+                    </Card>
+                    <Card className="p-4">
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
+                                <User className="w-5 h-5 text-gray-600" />
+                            </div>
+                            <div>
+                                <p className="text-2xl font-bold text-gray-900">{stats.subscriptionBreakdown.free}</p>
+                                <p className="text-sm text-gray-500">Free Users</p>
                             </div>
                         </div>
                     </Card>
