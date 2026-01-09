@@ -295,8 +295,18 @@ export default function HomePage() {
             </div>
           </div>
 
-          <div className="mt-12 pt-8 border-t border-gray-200 text-center text-sm text-gray-500">
-            © {new Date().getFullYear()} SyncSEO. All rights reserved.
+          <div className="mt-12 pt-8 border-t border-gray-200">
+            <div className="flex flex-col items-center gap-4">
+              <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm">
+                <Link href="/legal/privacy-policy" className="text-gray-500 hover:text-gray-900">Privacy Policy</Link>
+                <Link href="/legal/terms-of-service" className="text-gray-500 hover:text-gray-900">Terms of Service</Link>
+                <Link href="/legal/cookie-policy" className="text-gray-500 hover:text-gray-900">Cookie Policy</Link>
+                <Link href="/legal/refund-policy" className="text-gray-500 hover:text-gray-900">Refund Policy</Link>
+              </div>
+              <p className="text-sm text-gray-500">
+                © {new Date().getFullYear()} SyncSEO. All rights reserved.
+              </p>
+            </div>
           </div>
         </div>
       </footer>
