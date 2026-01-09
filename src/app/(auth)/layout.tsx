@@ -1,6 +1,19 @@
 import { type ReactNode } from 'react';
+import { type Metadata } from 'next';
 import Image from 'next/image';
 import Link from 'next/link';
+
+// Auth pages should not be indexed
+export const metadata: Metadata = {
+    robots: {
+        index: false,
+        follow: false,
+        googleBot: {
+            index: false,
+            follow: false,
+        },
+    },
+};
 
 export default function AuthLayout({ children }: { children: ReactNode }) {
     return (

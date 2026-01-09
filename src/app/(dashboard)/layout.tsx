@@ -22,6 +22,23 @@ import { createClient } from '@/lib/supabase/client';
 import { cn } from '@/lib/utils/helpers';
 import { isSuperAdmin } from '@/lib/utils/admin';
 
+// NoIndex component for dashboard pages
+function NoIndexMeta() {
+    useEffect(() => {
+        // Add noindex meta tag for dashboard pages
+        const existingMeta = document.querySelector('meta[name="robots"]');
+        if (existingMeta) {
+            existingMeta.setAttribute('content', 'noindex, nofollow');
+        } else {
+            const meta = document.createElement('meta');
+            meta.name = 'robots';
+            meta.content = 'noindex, nofollow';
+            document.head.appendChild(meta);
+        }
+    }, []);
+    return null;
+}
+
 export default function DashboardLayout({ children }: { children: ReactNode }) {
     const router = useRouter();
     const pathname = usePathname();
@@ -75,6 +92,8 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
     return (
         <div className="min-h-screen bg-gray-50">
+            {/* Prevent indexing of dashboard pages */}
+            <NoIndexMeta />
             {/* Mobile sidebar backdrop */}
             {isMobileSidebarOpen && (
                 <div
