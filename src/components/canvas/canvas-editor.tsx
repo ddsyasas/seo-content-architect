@@ -684,7 +684,7 @@ function CanvasEditorInner({ projectId, userRole = 'owner' }: CanvasEditorProps)
                 }}
                 // Multi-select features
                 nodesDraggable={canEdit}
-                selectionOnDrag={false}
+                selectionOnDrag={true}
                 selectionMode={SelectionMode.Partial}
                 panOnDrag={[1, 2]} // Pan with middle and right mouse button
                 panOnScroll={true} // Also allow panning with scroll
