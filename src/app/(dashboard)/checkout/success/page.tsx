@@ -12,13 +12,22 @@ function CheckoutSuccessContent() {
     const [isVerifying, setIsVerifying] = useState(true);
     const [plan, setPlan] = useState<PlanType>('pro');
     const sessionId = searchParams.get('session_id');
+    const urlPlan = searchParams.get('plan') as PlanType | null;
 
     useEffect(() => {
         async function verifyAndFetchPlan() {
-            // Wait for webhook to process
-            await new Promise(resolve => setTimeout(resolve, 2000));
+            // If plan is in URL, use it immediately (most reliable)
+            if (urlPlan && (urlPlan === 'pro' || urlPlan === 'agency')) {
+                setPlan(urlPlan);
+                // Still wait a bit for webhook to process for database update
+                await new Promise(resolve => setTimeout(resolve, 1500));
+                setIsVerifying(false);
+                return;
+            }
 
-            // Fetch the actual plan from database
+            // Fallback: Wait for webhook to process and fetch from database
+            await new Promise(resolve => setTimeout(resolve, 2500));
+
             const supabase = createClient();
             const { data: { user } } = await supabase.auth.getUser();
 
@@ -38,7 +47,7 @@ function CheckoutSuccessContent() {
         }
 
         verifyAndFetchPlan();
-    }, [sessionId]);
+    }, [sessionId, urlPlan]);
 
     if (isVerifying) {
         return (
