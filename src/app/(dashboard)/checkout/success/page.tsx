@@ -32,13 +32,16 @@ function CheckoutSuccessContent() {
 
                     // Send welcome email
                     try {
-                        await fetch('/api/billing/send-welcome-email', {
+                        console.log('[Checkout Success] Sending welcome email for plan:', urlPlan);
+                        const emailRes = await fetch('/api/billing/send-welcome-email', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({ plan: urlPlan }),
                         });
+                        const emailData = await emailRes.json();
+                        console.log('[Checkout Success] Email response:', emailData);
                     } catch (emailErr) {
-                        console.error('Failed to send welcome email:', emailErr);
+                        console.error('[Checkout Success] Failed to send welcome email:', emailErr);
                     }
                 }
 
