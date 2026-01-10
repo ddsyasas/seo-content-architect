@@ -248,6 +248,9 @@ export default function HomePage() {
               <p className="mt-4 text-sm text-gray-500">
                 Visual content architecture planning for SEO teams.
               </p>
+              <Link href="/contact" className="inline-block mt-3 text-sm text-indigo-600 hover:text-indigo-700 font-medium">
+                Contact Us
+              </Link>
             </div>
 
             {/* Solutions */}
