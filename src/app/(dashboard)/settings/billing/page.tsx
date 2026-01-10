@@ -28,7 +28,8 @@ export default function BillingSettingsPage() {
                 .eq('user_id', user.id)
                 .single();
 
-            setIsPaidUser(!!subscription?.stripe_customer_id && subscription.plan !== 'free');
+            // Check if user has a paid plan (not requiring stripe_customer_id since plan can be updated client-side)
+            setIsPaidUser(subscription?.plan !== 'free' && subscription?.plan !== undefined);
             setIsLoading(false);
         }
 

@@ -57,6 +57,15 @@ function PricingCard({ plan, currentPlan, isLoggedIn, onUpgrade, isLoading }: Pr
         if (isCurrentPlan) return 'Current Plan';
         if (!isLoggedIn) return plan === 'free' ? 'Start Free' : `Get ${config.name}`;
         if (plan === 'free') return 'Downgrade';
+
+        // Check if this is a downgrade (current plan is higher)
+        const planOrder = { free: 0, pro: 1, agency: 2 };
+        const currentPlanLevel = currentPlan ? planOrder[currentPlan] : 0;
+        const targetPlanLevel = planOrder[plan];
+
+        if (targetPlanLevel < currentPlanLevel) {
+            return `Downgrade to ${config.name}`;
+        }
         return `Upgrade to ${config.name}`;
     };
 
