@@ -43,7 +43,7 @@ export const PLANS = {
     },
     pro: {
         name: 'Pro',
-        price: 19,
+        price: 7, // Promotional price (was $19)
         stripePriceId: process.env.STRIPE_PRO_PRICE_ID,
         limits: {
             projects: 5,
