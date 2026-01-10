@@ -58,7 +58,7 @@ function PricingCard({ plan, currentPlan, isLoggedIn, onUpgrade, onCancel, isLoa
     const getButtonText = () => {
         if (isCurrentPlan) return 'Current Plan';
         if (!isLoggedIn) return plan === 'free' ? 'Start Free' : `Get ${config.name}`;
-        if (plan === 'free') return 'Cancel Subscription';
+        if (plan === 'free') return 'Switch to Free';
 
         // Check if this is a downgrade (current plan is higher)
         const planOrder = { free: 0, pro: 1, agency: 2 };
@@ -80,7 +80,7 @@ function PricingCard({ plan, currentPlan, isLoggedIn, onUpgrade, onCancel, isLoa
         }
         if (plan === 'free') {
             // Confirm and cancel subscription
-            if (confirm('Are you sure you want to cancel your subscription? You will be downgraded to the Free plan.')) {
+            if (confirm('Are you sure you want to switch to Free? Your subscription will be cancelled.')) {
                 onCancel();
             }
             return;
@@ -145,14 +145,27 @@ function PricingCard({ plan, currentPlan, isLoggedIn, onUpgrade, onCancel, isLoa
             <button
                 onClick={handleClick}
                 disabled={isCurrentPlan || isLoading || isCancelling}
-                className={`w-full py-3 px-6 rounded-lg font-medium transition-all ${isCurrentPlan
-                    ? 'bg-gray-100 text-gray-500 cursor-not-allowed'
-                    : isPro
-                        ? 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-lg shadow-indigo-200'
-                        : plan === 'agency'
-                            ? 'bg-gray-900 text-white hover:bg-gray-800'
-                            : 'bg-gray-100 text-gray-900 hover:bg-gray-200'
-                    }`}
+                className={`w-full py-3 px-6 rounded-lg font-medium transition-all ${(() => {
+                    if (isCurrentPlan) return 'bg-gray-100 text-gray-500 cursor-not-allowed';
+
+                    // Check if this is a downgrade
+                    const planOrder = { free: 0, pro: 1, agency: 2 };
+                    const currentPlanLevel = currentPlan ? planOrder[currentPlan] : 0;
+                    const targetPlanLevel = planOrder[plan];
+                    const isDowngrade = targetPlanLevel < currentPlanLevel;
+
+                    if (isDowngrade || plan === 'free') {
+                        return 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300';
+                    }
+
+                    if (isPro) {
+                        return 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-lg shadow-indigo-200';
+                    }
+                    if (plan === 'agency') {
+                        return 'bg-gray-900 text-white hover:bg-gray-800';
+                    }
+                    return 'bg-gray-100 text-gray-900 hover:bg-gray-200';
+                })()}`}
             >
                 {(isLoading || (plan === 'free' && isCancelling)) ? (
                     <Loader2 className="w-5 h-5 animate-spin mx-auto" />
