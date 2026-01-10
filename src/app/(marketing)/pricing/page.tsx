@@ -14,10 +14,12 @@ interface PricingCardProps {
     currentPlan?: PlanType;
     isLoggedIn: boolean;
     onUpgrade: (plan: PlanType) => void;
+    onCancel: () => void;
     isLoading: boolean;
+    isCancelling: boolean;
 }
 
-function PricingCard({ plan, currentPlan, isLoggedIn, onUpgrade, isLoading }: PricingCardProps) {
+function PricingCard({ plan, currentPlan, isLoggedIn, onUpgrade, onCancel, isLoading, isCancelling }: PricingCardProps) {
     const config = PLANS[plan];
     const isCurrentPlan = currentPlan === plan;
     const isPro = plan === 'pro';
@@ -56,7 +58,7 @@ function PricingCard({ plan, currentPlan, isLoggedIn, onUpgrade, isLoading }: Pr
     const getButtonText = () => {
         if (isCurrentPlan) return 'Current Plan';
         if (!isLoggedIn) return plan === 'free' ? 'Start Free' : `Get ${config.name}`;
-        if (plan === 'free') return 'Downgrade';
+        if (plan === 'free') return 'Cancel Subscription';
 
         // Check if this is a downgrade (current plan is higher)
         const planOrder = { free: 0, pro: 1, agency: 2 };
@@ -77,8 +79,10 @@ function PricingCard({ plan, currentPlan, isLoggedIn, onUpgrade, isLoading }: Pr
             return;
         }
         if (plan === 'free') {
-            // Redirect to billing to cancel/downgrade
-            window.location.href = '/settings/billing';
+            // Confirm and cancel subscription
+            if (confirm('Are you sure you want to cancel your subscription? You will be downgraded to the Free plan.')) {
+                onCancel();
+            }
             return;
         }
         onUpgrade(plan);
@@ -140,7 +144,7 @@ function PricingCard({ plan, currentPlan, isLoggedIn, onUpgrade, isLoading }: Pr
 
             <button
                 onClick={handleClick}
-                disabled={isCurrentPlan || isLoading}
+                disabled={isCurrentPlan || isLoading || isCancelling}
                 className={`w-full py-3 px-6 rounded-lg font-medium transition-all ${isCurrentPlan
                     ? 'bg-gray-100 text-gray-500 cursor-not-allowed'
                     : isPro
@@ -150,7 +154,7 @@ function PricingCard({ plan, currentPlan, isLoggedIn, onUpgrade, isLoading }: Pr
                             : 'bg-gray-100 text-gray-900 hover:bg-gray-200'
                     }`}
             >
-                {isLoading ? (
+                {(isLoading || (plan === 'free' && isCancelling)) ? (
                     <Loader2 className="w-5 h-5 animate-spin mx-auto" />
                 ) : (
                     getButtonText()
@@ -163,6 +167,7 @@ function PricingCard({ plan, currentPlan, isLoggedIn, onUpgrade, isLoading }: Pr
 export default function PricingPage() {
     const router = useRouter();
     const [isLoading, setIsLoading] = useState<PlanType | null>(null);
+    const [isCancelling, setIsCancelling] = useState(false);
     const [isLoggedIn, setIsLoggedIn] = useState(false);
     const [currentPlan, setCurrentPlan] = useState<PlanType>('free');
     const [isCheckingAuth, setIsCheckingAuth] = useState(true);
@@ -217,6 +222,29 @@ export default function PricingPage() {
         }
     };
 
+    const handleCancel = async () => {
+        setIsCancelling(true);
+        try {
+            const response = await fetch('/api/billing/cancel-subscription', {
+                method: 'POST',
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                setCurrentPlan('free');
+                alert('Subscription cancelled. You are now on the Free plan.');
+            } else {
+                alert(data.error || 'Failed to cancel subscription');
+            }
+        } catch (error) {
+            console.error('Cancel error:', error);
+            alert('Failed to cancel subscription. Please try again.');
+        } finally {
+            setIsCancelling(false);
+        }
+    };
+
     const faqs = [
         {
             question: 'Can I change plans later?',
@@ -263,21 +291,27 @@ export default function PricingPage() {
                             currentPlan={currentPlan}
                             isLoggedIn={isLoggedIn}
                             onUpgrade={handleUpgrade}
+                            onCancel={handleCancel}
                             isLoading={isLoading === 'free'}
+                            isCancelling={isCancelling}
                         />
                         <PricingCard
                             plan="pro"
                             currentPlan={currentPlan}
                             isLoggedIn={isLoggedIn}
                             onUpgrade={handleUpgrade}
+                            onCancel={handleCancel}
                             isLoading={isLoading === 'pro'}
+                            isCancelling={isCancelling}
                         />
                         <PricingCard
                             plan="agency"
                             currentPlan={currentPlan}
                             isLoggedIn={isLoggedIn}
                             onUpgrade={handleUpgrade}
+                            onCancel={handleCancel}
                             isLoading={isLoading === 'agency'}
+                            isCancelling={isCancelling}
                         />
                     </div>
                 </div>
