@@ -2,6 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { stripe } from '@/lib/stripe/config';
 import { createClient } from '@supabase/supabase-js';
 import Stripe from 'stripe';
+import {
+    sendWelcomeSubscriptionEmail,
+    sendSubscriptionCancelledEmail,
+    sendPaymentFailedEmail,
+} from '@/lib/email/brevo';
 
 // Create supabase admin client lazily to avoid build-time env access
 function getSupabaseAdmin() {
@@ -9,6 +14,35 @@ function getSupabaseAdmin() {
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
         process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
+}
+
+// Helper to get user email from customer ID
+async function getUserEmailFromCustomerId(customerId: string): Promise<{ email: string; name?: string } | null> {
+    const supabase = getSupabaseAdmin();
+
+    // Get user_id from subscription
+    const { data: subscription } = await supabase
+        .from('subscriptions')
+        .select('user_id')
+        .eq('stripe_customer_id', customerId)
+        .single();
+
+    if (!subscription?.user_id) return null;
+
+    // Get user profile
+    const { data: profile } = await supabase
+        .from('profiles')
+        .select('email, full_name')
+        .eq('id', subscription.user_id)
+        .single();
+
+    if (!profile?.email) {
+        // Try auth.users as fallback
+        const { data: authUser } = await supabase.auth.admin.getUserById(subscription.user_id);
+        return authUser?.user?.email ? { email: authUser.user.email } : null;
+    }
+
+    return { email: profile.email, name: profile.full_name || undefined };
 }
 
 export async function POST(request: NextRequest) {
@@ -82,7 +116,7 @@ export async function POST(request: NextRequest) {
 
 async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
     const userId = session.metadata?.user_id;
-    const plan = session.metadata?.plan;
+    const plan = session.metadata?.plan as 'pro' | 'agency';
     const customerId = session.customer as string;
     const subscriptionId = session.subscription as string;
 
@@ -93,8 +127,10 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
 
     console.log(`[Webhook] Checkout completed for user ${userId}, plan: ${plan}`);
 
+    const supabase = getSupabaseAdmin();
+
     // Update or create subscription record
-    const { error } = await getSupabaseAdmin()
+    const { error } = await supabase
         .from('subscriptions')
         .upsert({
             user_id: userId,
@@ -111,6 +147,26 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
         console.error('[Webhook] Error updating subscription:', error);
     } else {
         console.log(`[Webhook] Subscription updated for user ${userId}`);
+
+        // Send welcome email
+        const { data: profile } = await supabase
+            .from('profiles')
+            .select('email, full_name')
+            .eq('id', userId)
+            .single();
+
+        if (profile?.email && (plan === 'pro' || plan === 'agency')) {
+            try {
+                await sendWelcomeSubscriptionEmail({
+                    to: profile.email,
+                    toName: profile.full_name || undefined,
+                    plan,
+                });
+                console.log(`[Webhook] Welcome email sent to ${profile.email}`);
+            } catch (emailErr) {
+                console.error('[Webhook] Failed to send welcome email:', emailErr);
+            }
+        }
     }
 }
 
@@ -140,6 +196,10 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
             plan,
             status,
             cancel_at_period_end: subscription.cancel_at_period_end,
+            // Access current_period_end from the subscription object (Stripe uses snake_case in the raw object)
+            current_period_end: (subscription as unknown as { current_period_end?: number }).current_period_end
+                ? new Date((subscription as unknown as { current_period_end: number }).current_period_end * 1000).toISOString()
+                : null,
         })
         .eq('stripe_customer_id', customerId);
 
@@ -153,7 +213,10 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
 async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
     const customerId = subscription.customer as string;
 
-    console.log(`[Webhook] Subscription deleted for customer ${customerId}`);
+    console.log(`[Webhook] Subscription deleted for customer ${customerId}`)
+
+    // Get user info before updating
+    const userInfo = await getUserEmailFromCustomerId(customerId);
 
     // Downgrade to free plan
     const { error } = await getSupabaseAdmin()
@@ -172,6 +235,25 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
         console.error('[Webhook] Error downgrading subscription:', error);
     } else {
         console.log(`[Webhook] User downgraded to free plan`);
+
+        // Send cancellation email
+        if (userInfo?.email) {
+            try {
+                const endDate = new Date().toLocaleDateString('en-US', {
+                    month: 'long',
+                    day: 'numeric',
+                    year: 'numeric',
+                });
+                await sendSubscriptionCancelledEmail({
+                    to: userInfo.email,
+                    toName: userInfo.name,
+                    endDate,
+                });
+                console.log(`[Webhook] Cancellation email sent to ${userInfo.email}`);
+            } catch (emailErr) {
+                console.error('[Webhook] Failed to send cancellation email:', emailErr);
+            }
+        }
     }
 }
 
@@ -204,5 +286,29 @@ async function handleInvoicePaymentFailed(invoice: Stripe.Invoice) {
 
     if (error) {
         console.error('[Webhook] Error updating subscription status:', error);
+    } else {
+        // Send payment failed email
+        const userInfo = await getUserEmailFromCustomerId(customerId);
+
+        if (userInfo?.email) {
+            try {
+                const retryDate = invoice.next_payment_attempt
+                    ? new Date(invoice.next_payment_attempt * 1000).toLocaleDateString('en-US', {
+                        month: 'long',
+                        day: 'numeric',
+                        year: 'numeric',
+                    })
+                    : undefined;
+
+                await sendPaymentFailedEmail({
+                    to: userInfo.email,
+                    toName: userInfo.name,
+                    retryDate,
+                });
+                console.log(`[Webhook] Payment failed email sent to ${userInfo.email}`);
+            } catch (emailErr) {
+                console.error('[Webhook] Failed to send payment failed email:', emailErr);
+            }
+        }
     }
 }

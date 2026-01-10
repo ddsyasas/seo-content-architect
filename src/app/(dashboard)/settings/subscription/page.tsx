@@ -22,8 +22,9 @@ interface UsageData {
     totalTeamMembers: number;
 }
 
-// DEV MODE FLAG - Set to true to enable plan switching without Stripe
-const DEV_MODE = true;
+// DEV MODE FLAG - Set to false to test real Stripe flow
+// Enable with ENABLE_DEV_MODE=true in .env.local if needed
+const DEV_MODE = process.env.ENABLE_DEV_MODE === 'true';
 
 export default function SubscriptionSettingsPage() {
     const router = useRouter();
@@ -175,8 +176,8 @@ export default function SubscriptionSettingsPage() {
                                 onClick={() => handleDevPlanSwitch(plan)}
                                 disabled={isSwitching || subscription?.plan === plan}
                                 className={`px-4 py-2 rounded-lg font-medium transition-colors disabled:opacity-50 ${subscription?.plan === plan
-                                        ? 'bg-yellow-600 text-white cursor-not-allowed'
-                                        : 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200'
+                                    ? 'bg-yellow-600 text-white cursor-not-allowed'
+                                    : 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200'
                                     }`}
                             >
                                 {isSwitching ? (

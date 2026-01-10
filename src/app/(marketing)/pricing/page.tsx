@@ -1,12 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Check, X, Loader2, Sparkles } from 'lucide-react';
 import { PLANS, PlanType } from '@/lib/stripe/config';
 import { Button } from '@/components/ui/button';
 import { MarketingLayout } from '@/components/marketing/marketing-layout';
+import { createClient } from '@/lib/supabase/client';
 
 interface PricingCardProps {
     plan: PlanType;
@@ -55,6 +56,7 @@ function PricingCard({ plan, currentPlan, isLoggedIn, onUpgrade, isLoading }: Pr
     const getButtonText = () => {
         if (isCurrentPlan) return 'Current Plan';
         if (!isLoggedIn) return plan === 'free' ? 'Start Free' : `Get ${config.name}`;
+        if (plan === 'free') return 'Downgrade';
         return `Upgrade to ${config.name}`;
     };
 
@@ -65,7 +67,11 @@ function PricingCard({ plan, currentPlan, isLoggedIn, onUpgrade, isLoading }: Pr
             window.location.href = '/signup';
             return;
         }
-        if (plan === 'free') return;
+        if (plan === 'free') {
+            // Redirect to billing to cancel/downgrade
+            window.location.href = '/settings/billing';
+            return;
+        }
         onUpgrade(plan);
     };
 
@@ -148,10 +154,35 @@ function PricingCard({ plan, currentPlan, isLoggedIn, onUpgrade, isLoading }: Pr
 export default function PricingPage() {
     const router = useRouter();
     const [isLoading, setIsLoading] = useState<PlanType | null>(null);
+    const [isLoggedIn, setIsLoggedIn] = useState(false);
+    const [currentPlan, setCurrentPlan] = useState<PlanType>('free');
+    const [isCheckingAuth, setIsCheckingAuth] = useState(true);
 
-    // In a real app, you'd fetch these from the session
-    const isLoggedIn = false; // Will be updated with actual auth check
-    const currentPlan: PlanType = 'free';
+    // Check authentication status and current plan
+    useEffect(() => {
+        async function checkAuth() {
+            const supabase = createClient();
+            const { data: { user } } = await supabase.auth.getUser();
+
+            if (user) {
+                setIsLoggedIn(true);
+
+                // Fetch current subscription
+                const { data: subscription } = await supabase
+                    .from('subscriptions')
+                    .select('plan')
+                    .eq('user_id', user.id)
+                    .single();
+
+                if (subscription?.plan) {
+                    setCurrentPlan(subscription.plan as PlanType);
+                }
+            }
+            setIsCheckingAuth(false);
+        }
+
+        checkAuth();
+    }, []);
 
     const handleUpgrade = async (plan: PlanType) => {
         setIsLoading(plan);
