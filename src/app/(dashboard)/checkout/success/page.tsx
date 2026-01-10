@@ -29,6 +29,17 @@ function CheckoutSuccessContent() {
                         .from('subscriptions')
                         .update({ plan: urlPlan, status: 'active' })
                         .eq('user_id', user.id);
+
+                    // Send welcome email
+                    try {
+                        await fetch('/api/billing/send-welcome-email', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ plan: urlPlan }),
+                        });
+                    } catch (emailErr) {
+                        console.error('Failed to send welcome email:', emailErr);
+                    }
                 }
 
                 // Wait a bit for UI consistency
