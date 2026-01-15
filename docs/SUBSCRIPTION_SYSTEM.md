@@ -17,11 +17,14 @@
 9. [UI Components](#ui-components)
 10. [UI Pages](#ui-pages)
 11. [User Flows](#user-flows)
-12. [Webhook Handling](#webhook-handling)
-13. [Synchronization System](#synchronization-system)
-14. [Toast Notification System](#toast-notification-system)
-15. [Email Notifications](#email-notifications)
-16. [Troubleshooting](#troubleshooting)
+12. [Proration & Billing](#proration--billing)
+13. [Payment Error Handling](#payment-error-handling)
+14. [Plan Change Confirmation](#plan-change-confirmation)
+15. [Webhook Handling](#webhook-handling)
+16. [Synchronization System](#synchronization-system)
+17. [Toast Notification System](#toast-notification-system)
+18. [Email Notifications](#email-notifications)
+19. [Troubleshooting](#troubleshooting)
 
 ---
 
@@ -212,6 +215,7 @@ src/
 ├── components/
 │   ├── billing/
 │   │   ├── UpgradeModal.tsx       # Modal for upgrade prompts
+│   │   ├── PlanChangeModal.tsx    # Confirmation modal for plan changes
 │   │   └── UsageIndicator.tsx     # Usage stats display
 │   │
 │   ├── ui/
@@ -406,9 +410,18 @@ Updates an existing subscription (upgrade/downgrade).
 ```
 
 **Behavior:**
-- **Upgrade**: Immediate change with prorated billing
+- **Upgrade**: Immediate change with **immediate proration charge** (difference charged right away)
 - **Downgrade (paid→paid)**: Scheduled for end of billing period
 - **Downgrade (paid→free)**: Sets `cancel_at_period_end: true`
+
+**Payment Error Response:**
+```json
+{
+    "error": "Payment failed",
+    "details": "Your card has insufficient funds. Please use a different card or add funds.",
+    "code": "payment_failed"
+}
+```
 
 ---
 
@@ -724,6 +737,194 @@ User → Settings/Billing → Click "Manage Billing"
                     ↓
             UI shows updated status
 ```
+
+---
+
+## Proration & Billing
+
+### Upgrade Billing (Immediate Charge)
+
+When a user upgrades from a lower plan to a higher plan (e.g., Pro → Agency), the price difference is **charged immediately** instead of being added to the next invoice.
+
+**Example: Pro ($7) → Agency ($49)**
+```
+Day of upgrade:
+├── User pays $7 for Pro on Jan 1
+├── User upgrades to Agency on Jan 15 (mid-cycle)
+├── Proration calculated: ~$21 (half month of Agency) - ~$3.50 (unused Pro) = ~$17.50
+└── Invoice created and charged IMMEDIATELY
+
+Next billing (Feb 1):
+└── User pays $49 (regular Agency price)
+```
+
+### Technical Implementation
+
+The upgrade uses `proration_behavior: 'always_invoice'` to create an immediate invoice:
+
+```typescript
+// src/app/api/billing/update-subscription/route.ts
+
+const updatedSubscription = await stripe.subscriptions.update(subscriptionId, {
+    items: [{ id: subscriptionItemId, price: newPriceId }],
+    proration_behavior: 'always_invoice', // Create invoice immediately
+    payment_behavior: 'error_if_incomplete', // Fail if payment fails
+    cancel_at_period_end: false,
+});
+
+// Ensure invoice is paid immediately
+const invoices = await stripe.invoices.list({
+    subscription: subscriptionId,
+    status: 'open',
+    limit: 1,
+});
+if (invoices.data.length > 0) {
+    await stripe.invoices.pay(invoices.data[0].id);
+}
+```
+
+### Why Immediate Billing?
+
+| Approach | Next Invoice | User Experience |
+|----------|--------------|-----------------|
+| **Old (create_prorations)** | $49 + $42 = $91 | Confusing, unexpected large charge |
+| **New (always_invoice)** | $49 | Clear, predictable billing |
+
+---
+
+## Payment Error Handling
+
+### Error Detection
+
+The update-subscription endpoint detects specific Stripe error types and returns user-friendly messages:
+
+```typescript
+// src/app/api/billing/update-subscription/route.ts
+
+const stripeError = stripeErr as { type?: string; code?: string; decline_code?: string };
+
+if (stripeError.type === 'StripeCardError' || stripeError.code === 'card_declined') {
+    const declineCode = stripeError.decline_code || 'unknown';
+    // Return specific error message based on decline code
+}
+```
+
+### Error Codes & Messages
+
+| Stripe Decline Code | User Message |
+|---------------------|--------------|
+| `insufficient_funds` | "Your card has insufficient funds. Please use a different card or add funds." |
+| `card_declined` / `generic_decline` | "Your card was declined. Please try a different payment method." |
+| `expired_card` | "Your card has expired. Please update your payment method." |
+| `incorrect_cvc` | "The CVC code is incorrect. Please check your card details." |
+| `processing_error` | "There was a processing error. Please try again in a moment." |
+| `payment_intent_action_required` | "Your bank requires additional verification. Please update your payment method in Billing Settings." |
+
+### Frontend Display
+
+Payment errors are shown as toast notifications with 8-second duration:
+
+```typescript
+// src/app/(marketing)/pricing/page.tsx
+
+if (data.code === 'payment_failed') {
+    addToast({
+        type: 'error',
+        title: 'Payment Failed',
+        message: data.details, // User-friendly message from backend
+        duration: 8000,
+    });
+}
+```
+
+### Error Handling by Scenario
+
+| Scenario | Error Handling |
+|----------|----------------|
+| **Free → Pro/Agency (new)** | Stripe Checkout handles inline - can't proceed without payment |
+| **Pro → Agency (upgrade)** | Backend catches error, frontend shows toast |
+| **3D Secure Required** | Backend returns `requires_action` code, prompts user to Billing Settings |
+
+---
+
+## Plan Change Confirmation
+
+### PlanChangeModal Component
+
+**File:** `src/components/billing/PlanChangeModal.tsx`
+
+A confirmation modal that appears before certain plan changes to prevent accidental charges or downgrades.
+
+### When Modal Appears
+
+| Action | Modal? | Reason |
+|--------|--------|--------|
+| Free → Pro (first time) | ❌ No | Goes directly to Stripe Checkout |
+| Free → Agency (first time) | ❌ No | Goes directly to Stripe Checkout |
+| **Pro → Agency** | ✅ Yes | Immediate charge, needs confirmation |
+| **Returning user → Pro/Agency** | ✅ Yes | Had subscription before, knows the cost |
+| **Agency → Pro** | ✅ Yes | Downgrade confirmation |
+| **Pro → Free** | ✅ Yes | Subscription cancellation warning |
+| **Agency → Free** | ✅ Yes | Subscription cancellation warning |
+
+### Modal Logic
+
+```typescript
+// src/app/(marketing)/pricing/page.tsx
+
+const needsModal = 
+    // Upgrade with active subscription (instant charge)
+    (isUpgrade && hasActiveSubscription && currentPlan !== 'free') ||
+    // Returning customer upgrading (had Stripe customer before)
+    (isUpgrade && hasStripeCustomer && currentPlan === 'free') ||
+    // Any downgrade
+    isDowngrade;
+
+if (needsModal) {
+    setPendingPlanChange(targetPlan);
+    setModalOpen(true);
+} else {
+    // First-time upgrade from free - goes directly to Stripe Checkout
+    handleUpgrade(targetPlan);
+}
+```
+
+### Returning Customer Detection
+
+Users who previously had a paid subscription are tracked via `stripe_customer_id`:
+
+```typescript
+const { data: subscription } = await supabase
+    .from('subscriptions')
+    .select('plan, stripe_subscription_id, stripe_customer_id')
+    .eq('user_id', user.id)
+    .single();
+
+// Track if user ever had a Stripe customer (returning user)
+if (subscription.stripe_customer_id) {
+    setHasStripeCustomer(true);
+}
+```
+
+### Modal Styling
+
+| Type | Color | Button Text | Icon |
+|------|-------|-------------|------|
+| Upgrade | Green | "Upgrade & Pay ~$42" | ↑ Arrow Up |
+| Downgrade | Amber | "Downgrade to Pro" | ↓ Arrow Down |
+| Cancel to Free | Amber | "Cancel Subscription" | ↓ Arrow Down |
+
+### Modal Content
+
+**Upgrade Modal:**
+- Shows the immediate charge amount
+- Explains that next billing will be regular price
+- Green styling to encourage action
+
+**Downgrade Modal:**
+- Explains change takes effect at period end
+- For free: warns subscription will be cancelled
+- Amber styling to encourage careful consideration
 
 ---
 
@@ -1105,6 +1306,7 @@ This shows a plan switcher on the Subscription settings page that directly updat
 | Subscription Settings | `src/app/(dashboard)/settings/subscription/page.tsx` |
 | Billing Settings | `src/app/(dashboard)/settings/billing/page.tsx` |
 | Toast System | `src/components/ui/toast.tsx` |
+| Plan Change Modal | `src/components/billing/PlanChangeModal.tsx` |
 
 ### Key URLs
 
@@ -1127,4 +1329,5 @@ const planOrder = { free: 0, pro: 1, agency: 2 };
 
 ---
 
-*Last updated: January 2026*
+*Last updated: January 15, 2026*
+
