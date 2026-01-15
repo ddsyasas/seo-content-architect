@@ -22,12 +22,11 @@ export const stripe = {
     get webhooks() { return getStripe().webhooks; },
 };
 
-// Plan configuration
-export const PLANS = {
+// Plan configuration - price IDs are loaded at runtime via getters
+const PLANS_BASE = {
     free: {
         name: 'Free',
         price: 0,
-        stripePriceId: null,
         limits: {
             projects: 1,
             articlesPerProject: 10,
@@ -44,7 +43,6 @@ export const PLANS = {
     pro: {
         name: 'Pro',
         price: 7, // Promotional price (was $19)
-        stripePriceId: process.env.STRIPE_PRO_PRICE_ID,
         limits: {
             projects: 5,
             articlesPerProject: 100,
@@ -61,7 +59,6 @@ export const PLANS = {
     agency: {
         name: 'Agency',
         price: 49,
-        stripePriceId: process.env.STRIPE_AGENCY_PRICE_ID,
         limits: {
             projects: 999999, // unlimited
             articlesPerProject: 999999,
@@ -76,6 +73,15 @@ export const PLANS = {
         },
     },
 } as const;
+
+// Helper function to get price ID at runtime
+export function getStripePriceId(plan: string): string | null {
+    if (plan === 'pro') return process.env.STRIPE_PRO_PRICE_ID || null;
+    if (plan === 'agency') return process.env.STRIPE_AGENCY_PRICE_ID || null;
+    return null;
+}
+
+export const PLANS = PLANS_BASE;
 
 export type PlanType = keyof typeof PLANS;
 export type PlanConfig = typeof PLANS[PlanType];

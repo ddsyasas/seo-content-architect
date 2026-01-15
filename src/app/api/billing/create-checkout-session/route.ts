@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { stripe, PLANS, PlanType } from '@/lib/stripe/config';
+import { stripe, PLANS, PlanType, getStripePriceId } from '@/lib/stripe/config';
 import { createClient } from '@/lib/supabase/server';
 
 export async function POST(request: NextRequest) {
@@ -20,8 +20,13 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: 'Invalid plan' }, { status: 400 });
         }
 
-        const planConfig = PLANS[plan];
-        if (!planConfig.stripePriceId) {
+        // Get price ID at runtime
+        const stripePriceId = getStripePriceId(plan);
+        if (!stripePriceId) {
+            console.error('Missing price ID for plan:', plan, 'Available env vars:', {
+                pro: process.env.STRIPE_PRO_PRICE_ID ? 'set' : 'missing',
+                agency: process.env.STRIPE_AGENCY_PRICE_ID ? 'set' : 'missing',
+            });
             return NextResponse.json({ error: 'Plan not available for purchase' }, { status: 400 });
         }
 
@@ -63,7 +68,7 @@ export async function POST(request: NextRequest) {
             payment_method_types: ['card'],
             line_items: [
                 {
-                    price: planConfig.stripePriceId,
+                    price: stripePriceId,
                     quantity: 1,
                 },
             ],
