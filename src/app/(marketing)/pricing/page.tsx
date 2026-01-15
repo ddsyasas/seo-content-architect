@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { MarketingLayout } from '@/components/marketing/marketing-layout';
 import { createClient } from '@/lib/supabase/client';
 import { useToast } from '@/components/ui/toast';
+import { PlanChangeModal } from '@/components/billing/PlanChangeModal';
 
 interface PricingCardProps {
     plan: PlanType;
@@ -18,9 +19,11 @@ interface PricingCardProps {
     onCancel: () => void;
     isLoading: boolean;
     isCancelling: boolean;
+    hasActiveSubscription: boolean;
+    hasStripeCustomer: boolean;
 }
 
-function PricingCard({ plan, currentPlan, isLoggedIn, onUpgrade, onCancel, isLoading, isCancelling }: PricingCardProps) {
+function PricingCard({ plan, currentPlan, isLoggedIn, onUpgrade, onCancel, isLoading, isCancelling, hasActiveSubscription, hasStripeCustomer }: PricingCardProps) {
     const config = PLANS[plan];
     const isCurrentPlan = currentPlan === plan;
     const isPro = plan === 'pro';
@@ -79,13 +82,7 @@ function PricingCard({ plan, currentPlan, isLoggedIn, onUpgrade, onCancel, isLoa
             window.location.href = '/signup';
             return;
         }
-        if (plan === 'free') {
-            // Confirm and cancel subscription
-            if (confirm('Are you sure you want to switch to Free? Your subscription will be cancelled.')) {
-                onCancel();
-            }
-            return;
-        }
+        // All plan changes go through onUpgrade - modal/confirmation handled by parent
         onUpgrade(plan);
     };
 
@@ -186,7 +183,12 @@ export default function PricingPage() {
     const [isLoggedIn, setIsLoggedIn] = useState(false);
     const [currentPlan, setCurrentPlan] = useState<PlanType>('free');
     const [hasActiveSubscription, setHasActiveSubscription] = useState(false);
+    const [hasStripeCustomer, setHasStripeCustomer] = useState(false); // Was a paying customer before
     const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+
+    // Modal state
+    const [modalOpen, setModalOpen] = useState(false);
+    const [pendingPlanChange, setPendingPlanChange] = useState<PlanType | null>(null);
 
     // Check authentication status and current plan
     useEffect(() => {
@@ -218,19 +220,27 @@ export default function PricingPage() {
                 if (subscriptionPlan === 'free' && !stripeSubscriptionId) {
                     const { data: subscription } = await supabase
                         .from('subscriptions')
-                        .select('plan, stripe_subscription_id')
+                        .select('plan, stripe_subscription_id, stripe_customer_id')
                         .eq('user_id', user.id)
                         .single();
 
                     if (subscription?.plan) {
                         subscriptionPlan = subscription.plan as PlanType;
                         stripeSubscriptionId = subscription.stripe_subscription_id;
+                        // Track if user ever had a Stripe customer (returning user)
+                        if (subscription.stripe_customer_id) {
+                            setHasStripeCustomer(true);
+                        }
                     }
                 }
 
                 setCurrentPlan(subscriptionPlan);
                 // User has active Stripe subscription if they have a stripe_subscription_id
                 setHasActiveSubscription(!!stripeSubscriptionId);
+                // Also set hasStripeCustomer if they have an active subscription
+                if (stripeSubscriptionId) {
+                    setHasStripeCustomer(true);
+                }
             }
             setIsCheckingAuth(false);
         }
@@ -238,6 +248,37 @@ export default function PricingPage() {
         checkAuth();
     }, []);
 
+    // Determine if we need to show a confirmation modal
+    const requestPlanChange = (targetPlan: PlanType) => {
+        const planOrder = { free: 0, pro: 1, agency: 2 };
+        const currentLevel = planOrder[currentPlan];
+        const targetLevel = planOrder[targetPlan];
+        const isUpgrade = targetLevel > currentLevel;
+        const isDowngrade = targetLevel < currentLevel;
+
+        // Scenarios that need confirmation modal:
+        // 1. Upgrades from Pro to Agency (instant $42 charge)
+        // 2. Returning customers (free but had subscription before) upgrading
+        // 3. All downgrades (Agency→Pro, Pro→Free, Agency→Free)
+
+        const needsModal =
+            // Upgrade with active subscription (instant charge)
+            (isUpgrade && hasActiveSubscription && currentPlan !== 'free') ||
+            // Returning customer upgrading (had Stripe customer before)
+            (isUpgrade && hasStripeCustomer && currentPlan === 'free') ||
+            // Any downgrade
+            isDowngrade;
+
+        if (needsModal) {
+            setPendingPlanChange(targetPlan);
+            setModalOpen(true);
+        } else {
+            // First-time upgrade from free - goes directly to Stripe Checkout
+            handleUpgrade(targetPlan);
+        }
+    };
+
+    // Handle the actual plan change after confirmation
     const handleUpgrade = async (plan: PlanType) => {
         setIsLoading(plan);
         try {
@@ -417,28 +458,34 @@ export default function PricingPage() {
                             plan="free"
                             currentPlan={currentPlan}
                             isLoggedIn={isLoggedIn}
-                            onUpgrade={handleUpgrade}
+                            onUpgrade={requestPlanChange}
                             onCancel={handleCancel}
                             isLoading={isLoading === 'free'}
                             isCancelling={isCancelling}
+                            hasActiveSubscription={hasActiveSubscription}
+                            hasStripeCustomer={hasStripeCustomer}
                         />
                         <PricingCard
                             plan="pro"
                             currentPlan={currentPlan}
                             isLoggedIn={isLoggedIn}
-                            onUpgrade={handleUpgrade}
+                            onUpgrade={requestPlanChange}
                             onCancel={handleCancel}
                             isLoading={isLoading === 'pro'}
                             isCancelling={isCancelling}
+                            hasActiveSubscription={hasActiveSubscription}
+                            hasStripeCustomer={hasStripeCustomer}
                         />
                         <PricingCard
                             plan="agency"
                             currentPlan={currentPlan}
                             isLoggedIn={isLoggedIn}
-                            onUpgrade={handleUpgrade}
+                            onUpgrade={requestPlanChange}
                             onCancel={handleCancel}
                             isLoading={isLoading === 'agency'}
                             isCancelling={isCancelling}
+                            hasActiveSubscription={hasActiveSubscription}
+                            hasStripeCustomer={hasStripeCustomer}
                         />
                     </div>
                 </div>
@@ -464,6 +511,25 @@ export default function PricingPage() {
                     </div>
                 </div>
             </section>
+
+            {/* Plan Change Confirmation Modal */}
+            <PlanChangeModal
+                isOpen={modalOpen}
+                onClose={() => {
+                    setModalOpen(false);
+                    setPendingPlanChange(null);
+                }}
+                onConfirm={() => {
+                    if (pendingPlanChange) {
+                        setModalOpen(false);
+                        handleUpgrade(pendingPlanChange);
+                        setPendingPlanChange(null);
+                    }
+                }}
+                currentPlan={currentPlan}
+                targetPlan={pendingPlanChange || 'free'}
+                isLoading={isLoading !== null}
+            />
 
         </MarketingLayout>
     );
