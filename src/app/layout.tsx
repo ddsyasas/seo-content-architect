@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import Script from "next/script";
 import "./globals.css";
 import { siteConfig, structuredData } from "@/lib/seo/config";
+import { Providers } from "@/components/providers";
 
 const GA_MEASUREMENT_ID = 'G-Q2S5G7MXB1';
 
@@ -158,7 +159,9 @@ export default function RootLayout({
             gtag('config', '${GA_MEASUREMENT_ID}');
           `}
         </Script>
-        {children}
+        <Providers>
+          {children}
+        </Providers>
       </body>
     </html>
   );

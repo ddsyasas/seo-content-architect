@@ -3,16 +3,18 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Loader2, ArrowUpRight, Calendar, AlertCircle, Wrench } from 'lucide-react';
+import { Loader2, ArrowUpRight, Calendar, AlertCircle, Wrench, RefreshCw } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { PLANS, PlanType, getPlanLimits } from '@/lib/stripe/config';
 import { UsageOverview } from '@/components/billing/UsageIndicator';
+import { useToast } from '@/components/ui/toast';
 
 interface Subscription {
     plan: PlanType;
     status: string;
     current_period_end: string | null;
     cancel_at_period_end: boolean;
+    stripe_subscription_id: string | null;
 }
 
 interface UsageData {
@@ -28,12 +30,16 @@ const DEV_MODE = process.env.ENABLE_DEV_MODE === 'true';
 
 export default function SubscriptionSettingsPage() {
     const router = useRouter();
+    const { addToast } = useToast();
     const [isLoading, setIsLoading] = useState(true);
+    const [isSyncing, setIsSyncing] = useState(false);
     const [isSwitching, setIsSwitching] = useState(false);
+    const [isCancelling, setIsCancelling] = useState(false);
+    const [isReactivating, setIsReactivating] = useState(false);
     const [subscription, setSubscription] = useState<Subscription | null>(null);
     const [usage, setUsage] = useState<UsageData | null>(null);
 
-    const loadData = async () => {
+    const loadData = async (syncWithStripe = false) => {
         const supabase = createClient();
         const { data: { user } } = await supabase.auth.getUser();
 
@@ -42,10 +48,32 @@ export default function SubscriptionSettingsPage() {
             return;
         }
 
-        // Load subscription
+        // If syncWithStripe is true, sync with Stripe first to get latest status
+        if (syncWithStripe) {
+            try {
+                const syncResponse = await fetch('/api/billing/sync-subscription', {
+                    method: 'POST',
+                });
+                const syncData = await syncResponse.json();
+                if (syncData.synced && syncData.subscription) {
+                    // Use the synced data directly
+                    setSubscription({
+                        plan: syncData.subscription.plan,
+                        status: syncData.subscription.status,
+                        current_period_end: syncData.subscription.current_period_end,
+                        cancel_at_period_end: syncData.subscription.cancel_at_period_end,
+                        stripe_subscription_id: syncData.subscription.stripe_subscription_id || null,
+                    } as Subscription);
+                }
+            } catch (err) {
+                console.error('Failed to sync with Stripe:', err);
+            }
+        }
+
+        // Load subscription from database
         const { data: subData } = await supabase
             .from('subscriptions')
-            .select('plan, status, current_period_end, cancel_at_period_end')
+            .select('plan, status, current_period_end, cancel_at_period_end, stripe_subscription_id')
             .eq('user_id', user.id)
             .single();
 
@@ -58,6 +86,7 @@ export default function SubscriptionSettingsPage() {
                 status: 'active',
                 current_period_end: null,
                 cancel_at_period_end: false,
+                stripe_subscription_id: null,
             });
         }
 
@@ -93,8 +122,131 @@ export default function SubscriptionSettingsPage() {
     };
 
     useEffect(() => {
-        loadData();
+        // Sync with Stripe on initial load to ensure data is up-to-date
+        loadData(true);
     }, [router]);
+
+    const handleCancelSubscription = async () => {
+        if (!confirm('Are you sure you want to cancel your subscription? You will keep access to premium features until the end of your billing period.')) {
+            return;
+        }
+
+        setIsCancelling(true);
+        try {
+            const response = await fetch('/api/billing/update-subscription', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ plan: 'free' }),
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                addToast({
+                    type: 'success',
+                    title: 'Subscription Cancelled',
+                    message: 'Your subscription will end at the billing period. You\'ll keep access until then.',
+                    duration: 6000,
+                });
+                // Reload data and sync to show updated status
+                await loadData(true);
+            } else {
+                const errorMsg = data.details ? `${data.error}: ${data.details}` : data.error;
+                addToast({
+                    type: 'error',
+                    title: 'Cancellation Failed',
+                    message: errorMsg || 'Failed to cancel subscription',
+                });
+            }
+        } catch (error) {
+            console.error('Cancel error:', error);
+            addToast({
+                type: 'error',
+                title: 'Error',
+                message: 'Failed to cancel subscription. Please try again.',
+            });
+        } finally {
+            setIsCancelling(false);
+        }
+    };
+
+    const handleReactivateSubscription = async () => {
+        setIsReactivating(true);
+        try {
+            // To reactivate, we need to update the subscription to remove cancel_at_period_end
+            const response = await fetch('/api/billing/reactivate-subscription', {
+                method: 'POST',
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                addToast({
+                    type: 'success',
+                    title: 'Subscription Reactivated',
+                    message: 'Your subscription has been reactivated and will continue normally.',
+                    duration: 6000,
+                });
+                // Reload data to show updated status
+                await loadData(true);
+            } else {
+                const errorMsg = data.details ? `${data.error}: ${data.details}` : data.error;
+                addToast({
+                    type: 'error',
+                    title: 'Reactivation Failed',
+                    message: errorMsg || 'Failed to reactivate subscription',
+                });
+            }
+        } catch (error) {
+            console.error('Reactivate error:', error);
+            addToast({
+                type: 'error',
+                title: 'Error',
+                message: 'Failed to reactivate subscription. Please try again.',
+            });
+        } finally {
+            setIsReactivating(false);
+        }
+    };
+
+    const handleSyncStatus = async () => {
+        setIsSyncing(true);
+        try {
+            const response = await fetch('/api/billing/sync-subscription', {
+                method: 'POST',
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                if (data.synced) {
+                    addToast({
+                        type: 'success',
+                        title: 'Status Synced',
+                        message: data.message || 'Subscription status has been synced with Stripe.',
+                        duration: 4000,
+                    });
+                }
+                // Reload data to show updated status
+                await loadData(false);
+            } else {
+                addToast({
+                    type: 'error',
+                    title: 'Sync Failed',
+                    message: data.error || 'Failed to sync subscription status',
+                });
+            }
+        } catch (error) {
+            console.error('Sync error:', error);
+            addToast({
+                type: 'error',
+                title: 'Error',
+                message: 'Failed to sync subscription status. Please try again.',
+            });
+        } finally {
+            setIsSyncing(false);
+        }
+    };
 
     // DEV MODE: Switch plan directly in database
     const handleDevPlanSwitch = async (newPlan: PlanType) => {
@@ -110,6 +262,7 @@ export default function SubscriptionSettingsPage() {
                 .update({
                     plan: newPlan,
                     status: 'active',
+                    cancel_at_period_end: false,
                     current_period_end: newPlan !== 'free'
                         ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
                         : null,
@@ -118,11 +271,19 @@ export default function SubscriptionSettingsPage() {
 
             if (error) {
                 console.error('Error switching plan:', error);
-                alert('Failed to switch plan. Make sure the subscriptions table exists.');
+                addToast({
+                    type: 'error',
+                    title: 'Switch Failed',
+                    message: 'Failed to switch plan. Make sure the subscriptions table exists.',
+                });
             } else {
                 // Reload data
                 await loadData();
-                alert(`Successfully switched to ${PLANS[newPlan].name} plan!`);
+                addToast({
+                    type: 'success',
+                    title: 'Plan Switched',
+                    message: `Successfully switched to ${PLANS[newPlan].name} plan!`,
+                });
             }
         } catch (err) {
             console.error('Plan switch error:', err);
@@ -154,9 +315,22 @@ export default function SubscriptionSettingsPage() {
 
     return (
         <div className="space-y-8">
-            <div>
-                <h2 className="text-xl font-semibold text-gray-900 mb-1">Subscription</h2>
-                <p className="text-gray-500">Manage your plan and view usage</p>
+            <div className="flex items-start justify-between">
+                <div>
+                    <h2 className="text-xl font-semibold text-gray-900 mb-1">Subscription</h2>
+                    <p className="text-gray-500">Manage your plan and view usage</p>
+                </div>
+                {!DEV_MODE && subscription?.stripe_subscription_id && (
+                    <button
+                        onClick={handleSyncStatus}
+                        disabled={isSyncing}
+                        className="inline-flex items-center gap-2 px-3 py-1.5 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"
+                        title="Sync subscription status with Stripe"
+                    >
+                        <RefreshCw className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''}`} />
+                        {isSyncing ? 'Syncing...' : 'Refresh status'}
+                    </button>
+                )}
             </div>
 
             {/* DEV MODE: Plan Switcher */}
@@ -262,27 +436,51 @@ export default function SubscriptionSettingsPage() {
 
             {/* Plan Actions */}
             {!DEV_MODE && (
-                <div className="flex flex-wrap gap-4">
-                    {subscription?.plan !== 'free' && (
+                <div className="bg-white rounded-xl border border-gray-200 p-6">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Plan Actions</h3>
+                    <div className="flex flex-wrap gap-4">
+                        {subscription?.plan !== 'free' && (
+                            <Link
+                                href="/settings/billing"
+                                className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200 transition-colors"
+                            >
+                                Manage billing
+                                <ArrowUpRight className="w-4 h-4" />
+                            </Link>
+                        )}
                         <Link
-                            href="/settings/billing"
-                            className="text-indigo-600 hover:text-indigo-800 font-medium"
+                            href="/pricing"
+                            className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-100 text-indigo-700 rounded-lg font-medium hover:bg-indigo-200 transition-colors"
                         >
-                            Manage billing →
+                            {subscription?.plan === 'agency' ? 'View plans' : 'Upgrade plan'}
                         </Link>
-                    )}
-                    {subscription?.plan !== 'free' && !subscription?.cancel_at_period_end && (
-                        <button
-                            className="text-gray-500 hover:text-gray-700 font-medium"
-                            onClick={() => {
-                                if (confirm('Are you sure you want to cancel your subscription? You will lose access to premium features at the end of your billing period.')) {
-                                    alert('Please use the Billing page to cancel your subscription through Stripe.');
-                                }
-                            }}
-                        >
-                            Cancel subscription
-                        </button>
-                    )}
+                        {subscription?.plan !== 'free' && subscription?.stripe_subscription_id && !subscription?.cancel_at_period_end && (
+                            <button
+                                onClick={handleCancelSubscription}
+                                disabled={isCancelling}
+                                className="inline-flex items-center gap-2 px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg font-medium transition-colors disabled:opacity-50"
+                            >
+                                {isCancelling ? (
+                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                ) : null}
+                                Cancel subscription
+                            </button>
+                        )}
+                        {subscription?.cancel_at_period_end && subscription?.stripe_subscription_id && (
+                            <button
+                                onClick={handleReactivateSubscription}
+                                disabled={isReactivating}
+                                className="inline-flex items-center gap-2 px-4 py-2 bg-green-100 text-green-700 rounded-lg font-medium hover:bg-green-200 transition-colors disabled:opacity-50"
+                            >
+                                {isReactivating ? (
+                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                ) : (
+                                    <RefreshCw className="w-4 h-4" />
+                                )}
+                                Reactivate subscription
+                            </button>
+                        )}
+                    </div>
                 </div>
             )}
         </div>

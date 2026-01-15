@@ -8,6 +8,7 @@ import { PLANS, PlanType } from '@/lib/stripe/config';
 import { Button } from '@/components/ui/button';
 import { MarketingLayout } from '@/components/marketing/marketing-layout';
 import { createClient } from '@/lib/supabase/client';
+import { useToast } from '@/components/ui/toast';
 
 interface PricingCardProps {
     plan: PlanType;
@@ -179,10 +180,12 @@ function PricingCard({ plan, currentPlan, isLoggedIn, onUpgrade, onCancel, isLoa
 
 export default function PricingPage() {
     const router = useRouter();
+    const { addToast } = useToast();
     const [isLoading, setIsLoading] = useState<PlanType | null>(null);
     const [isCancelling, setIsCancelling] = useState(false);
     const [isLoggedIn, setIsLoggedIn] = useState(false);
     const [currentPlan, setCurrentPlan] = useState<PlanType>('free');
+    const [hasActiveSubscription, setHasActiveSubscription] = useState(false);
     const [isCheckingAuth, setIsCheckingAuth] = useState(true);
 
     // Check authentication status and current plan
@@ -194,15 +197,17 @@ export default function PricingPage() {
             if (user) {
                 setIsLoggedIn(true);
 
-                // Fetch current subscription
+                // Fetch current subscription including stripe_subscription_id
                 const { data: subscription } = await supabase
                     .from('subscriptions')
-                    .select('plan')
+                    .select('plan, stripe_subscription_id')
                     .eq('user_id', user.id)
                     .single();
 
                 if (subscription?.plan) {
                     setCurrentPlan(subscription.plan as PlanType);
+                    // User has active Stripe subscription if they have a stripe_subscription_id
+                    setHasActiveSubscription(!!subscription.stripe_subscription_id);
                 }
             }
             setIsCheckingAuth(false);
@@ -214,45 +219,121 @@ export default function PricingPage() {
     const handleUpgrade = async (plan: PlanType) => {
         setIsLoading(plan);
         try {
-            const response = await fetch('/api/billing/create-checkout-session', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ plan }),
-            });
+            // If user has an active subscription, use update endpoint
+            // Otherwise, use checkout to create new subscription
+            if (hasActiveSubscription && currentPlan !== 'free') {
+                const response = await fetch('/api/billing/update-subscription', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ plan }),
+                });
 
-            const data = await response.json();
+                const data = await response.json();
 
-            if (data.url) {
-                window.location.href = data.url;
+                if (data.success) {
+                    // Update local state
+                    if (data.action === 'upgraded') {
+                        setCurrentPlan(plan);
+                        addToast({
+                            type: 'success',
+                            title: 'Plan Upgraded!',
+                            message: `You've been upgraded to ${PLANS[plan].name}. Any unused time has been credited.`,
+                            duration: 6000,
+                        });
+                        // Refresh the page to get updated subscription data
+                        setTimeout(() => window.location.reload(), 2000);
+                    } else if (data.action === 'downgrade_scheduled') {
+                        addToast({
+                            type: 'info',
+                            title: 'Downgrade Scheduled',
+                            message: `Your plan will change to ${PLANS[plan].name} at the end of your billing period.`,
+                            duration: 6000,
+                        });
+                    }
+                } else if (data.action === 'checkout_required') {
+                    // No existing subscription, redirect to checkout
+                    await createCheckoutSession(plan);
+                } else {
+                    const errorMsg = data.details ? `${data.error}: ${data.details}` : data.error;
+                    console.error('Update error response:', data);
+                    addToast({
+                        type: 'error',
+                        title: 'Update Failed',
+                        message: errorMsg || 'Failed to update subscription',
+                    });
+                }
             } else {
-                alert(data.error || 'Failed to start checkout');
+                // No active subscription, create new checkout session
+                await createCheckoutSession(plan);
             }
         } catch (error) {
-            console.error('Checkout error:', error);
-            alert('Failed to start checkout. Please try again.');
+            console.error('Subscription error:', error);
+            addToast({
+                type: 'error',
+                title: 'Error',
+                message: 'Failed to process subscription. Please try again.',
+            });
         } finally {
             setIsLoading(null);
+        }
+    };
+
+    const createCheckoutSession = async (plan: PlanType) => {
+        const response = await fetch('/api/billing/create-checkout-session', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ plan }),
+        });
+
+        const data = await response.json();
+
+        if (data.url) {
+            window.location.href = data.url;
+        } else {
+            const errorMsg = data.details ? `${data.error}: ${data.details}` : data.error;
+            console.error('Checkout error response:', data);
+            addToast({
+                type: 'error',
+                title: 'Checkout Failed',
+                message: errorMsg || 'Failed to start checkout',
+            });
         }
     };
 
     const handleCancel = async () => {
         setIsCancelling(true);
         try {
-            const response = await fetch('/api/billing/cancel-subscription', {
+            // Use update-subscription to cancel at period end (better UX)
+            const response = await fetch('/api/billing/update-subscription', {
                 method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ plan: 'free' }),
             });
 
             const data = await response.json();
 
             if (data.success) {
-                setCurrentPlan('free');
-                alert('Subscription cancelled. You are now on the Free plan.');
+                addToast({
+                    type: 'success',
+                    title: 'Subscription Cancelled',
+                    message: 'Your subscription will end at the billing period. You\'ll keep access until then.',
+                    duration: 6000,
+                });
             } else {
-                alert(data.error || 'Failed to cancel subscription');
+                const errorMsg = data.details ? `${data.error}: ${data.details}` : data.error;
+                addToast({
+                    type: 'error',
+                    title: 'Cancellation Failed',
+                    message: errorMsg || 'Failed to cancel subscription',
+                });
             }
         } catch (error) {
             console.error('Cancel error:', error);
-            alert('Failed to cancel subscription. Please try again.');
+            addToast({
+                type: 'error',
+                title: 'Error',
+                message: 'Failed to cancel subscription. Please try again.',
+            });
         } finally {
             setIsCancelling(false);
         }

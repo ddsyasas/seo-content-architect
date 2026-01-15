@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { stripe } from '@/lib/stripe/config';
+import { getStripe } from '@/lib/stripe/config';
 
 /**
  * POST /api/billing/cancel-subscription
@@ -30,6 +30,7 @@ export async function POST(request: NextRequest) {
         // Cancel in Stripe if we have a subscription ID
         if (subscription.stripe_subscription_id) {
             try {
+                const stripe = getStripe();
                 await stripe.subscriptions.cancel(subscription.stripe_subscription_id);
             } catch (stripeErr) {
                 console.error('Stripe cancellation error:', stripeErr);

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { stripe } from '@/lib/stripe/config';
+import { getStripe } from '@/lib/stripe/config';
 import { createClient } from '@/lib/supabase/server';
 
 export async function POST(request: NextRequest) {
@@ -13,11 +13,16 @@ export async function POST(request: NextRequest) {
         }
 
         // Get user's Stripe customer ID
-        const { data: profile } = await supabase
+        const { data: profile, error: profileError } = await supabase
             .from('profiles')
             .select('stripe_customer_id')
             .eq('id', user.id)
             .single();
+
+        if (profileError) {
+            console.error('Error fetching profile:', profileError);
+            return NextResponse.json({ error: 'Failed to fetch user profile' }, { status: 500 });
+        }
 
         if (!profile?.stripe_customer_id) {
             return NextResponse.json(
@@ -28,6 +33,7 @@ export async function POST(request: NextRequest) {
 
         // Create portal session
         const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+        const stripe = getStripe();
 
         const session = await stripe.billingPortal.sessions.create({
             customer: profile.stripe_customer_id,
@@ -38,7 +44,7 @@ export async function POST(request: NextRequest) {
     } catch (error) {
         console.error('Portal session error:', error);
         return NextResponse.json(
-            { error: 'Failed to create portal session' },
+            { error: 'Failed to create portal session', details: error instanceof Error ? error.message : 'Unknown error' },
             { status: 500 }
         );
     }

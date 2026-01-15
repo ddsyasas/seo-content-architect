@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { X, Loader2, Check, Sparkles } from 'lucide-react';
 import { PLANS, PlanType } from '@/lib/stripe/config';
+import { useToast } from '@/components/ui/toast';
 
 interface UpgradeModalProps {
     isOpen: boolean;
@@ -10,6 +11,7 @@ interface UpgradeModalProps {
     resourceType: 'projects' | 'articles' | 'nodes' | 'teamMembers';
     currentLimit: number;
     currentPlan: PlanType;
+    hasActiveSubscription?: boolean;
 }
 
 export function UpgradeModal({
@@ -17,9 +19,11 @@ export function UpgradeModal({
     onClose,
     resourceType,
     currentLimit,
-    currentPlan
+    currentPlan,
+    hasActiveSubscription = false
 }: UpgradeModalProps) {
     const [isLoading, setIsLoading] = useState<PlanType | null>(null);
+    const { addToast } = useToast();
 
     if (!isOpen) return null;
 
@@ -39,24 +43,70 @@ export function UpgradeModal({
     const handleUpgrade = async (plan: PlanType) => {
         setIsLoading(plan);
         try {
-            const response = await fetch('/api/billing/create-checkout-session', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ plan }),
-            });
+            // If user has an active subscription, use update endpoint
+            if (hasActiveSubscription && currentPlan !== 'free') {
+                const response = await fetch('/api/billing/update-subscription', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ plan }),
+                });
 
-            const data = await response.json();
+                const data = await response.json();
 
-            if (data.url) {
-                window.location.href = data.url;
+                if (data.success) {
+                    addToast({
+                        type: 'success',
+                        title: 'Plan Upgraded!',
+                        message: `You've been upgraded to ${PLANS[plan].name}. Any unused time has been credited.`,
+                        duration: 6000,
+                    });
+                    onClose();
+                    setTimeout(() => window.location.reload(), 2000);
+                } else if (data.action === 'checkout_required') {
+                    await createCheckoutSession(plan);
+                } else {
+                    const errorMsg = data.details ? `${data.error}: ${data.details}` : data.error;
+                    console.error('Update error response:', data);
+                    addToast({
+                        type: 'error',
+                        title: 'Update Failed',
+                        message: errorMsg || 'Failed to update subscription',
+                    });
+                }
             } else {
-                alert(data.error || 'Failed to start checkout');
+                await createCheckoutSession(plan);
             }
         } catch (error) {
-            console.error('Checkout error:', error);
-            alert('Failed to start checkout. Please try again.');
+            console.error('Subscription error:', error);
+            addToast({
+                type: 'error',
+                title: 'Error',
+                message: 'Failed to process subscription. Please try again.',
+            });
         } finally {
             setIsLoading(null);
+        }
+    };
+
+    const createCheckoutSession = async (plan: PlanType) => {
+        const response = await fetch('/api/billing/create-checkout-session', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ plan }),
+        });
+
+        const data = await response.json();
+
+        if (data.url) {
+            window.location.href = data.url;
+        } else {
+            const errorMsg = data.details ? `${data.error}: ${data.details}` : data.error;
+            console.error('Checkout error response:', data);
+            addToast({
+                type: 'error',
+                title: 'Checkout Failed',
+                message: errorMsg || 'Failed to start checkout',
+            });
         }
     };
 
