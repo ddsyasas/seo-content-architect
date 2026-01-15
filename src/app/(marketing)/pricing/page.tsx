@@ -276,12 +276,23 @@ export default function PricingPage() {
                     // No existing subscription, redirect to checkout
                     await createCheckoutSession(plan);
                 } else {
-                    const errorMsg = data.details ? `${data.error}: ${data.details}` : data.error;
+                    // Handle different error types
+                    let errorTitle = 'Update Failed';
+                    let errorMessage = data.details || data.error || 'Failed to update subscription';
+
+                    if (data.code === 'payment_failed') {
+                        errorTitle = 'Payment Failed';
+                        // errorMessage already contains the user-friendly message
+                    } else if (data.code === 'requires_action') {
+                        errorTitle = 'Verification Required';
+                    }
+
                     console.error('Update error response:', data);
                     addToast({
                         type: 'error',
-                        title: 'Update Failed',
-                        message: errorMsg || 'Failed to update subscription',
+                        title: errorTitle,
+                        message: errorMessage,
+                        duration: 8000, // Show longer for payment errors
                     });
                 }
             } else {
