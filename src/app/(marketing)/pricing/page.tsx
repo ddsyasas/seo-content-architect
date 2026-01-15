@@ -197,18 +197,40 @@ export default function PricingPage() {
             if (user) {
                 setIsLoggedIn(true);
 
-                // Fetch current subscription including stripe_subscription_id
-                const { data: subscription } = await supabase
-                    .from('subscriptions')
-                    .select('plan, stripe_subscription_id')
-                    .eq('user_id', user.id)
-                    .single();
+                let subscriptionPlan: PlanType = 'free';
+                let stripeSubscriptionId: string | null = null;
 
-                if (subscription?.plan) {
-                    setCurrentPlan(subscription.plan as PlanType);
-                    // User has active Stripe subscription if they have a stripe_subscription_id
-                    setHasActiveSubscription(!!subscription.stripe_subscription_id);
+                // First, sync with Stripe to ensure we have the latest status
+                // This is important when user returns from Stripe Portal
+                try {
+                    const syncResponse = await fetch('/api/billing/sync-subscription', { method: 'POST' });
+                    const syncData = await syncResponse.json();
+                    if (syncData.success && syncData.subscription) {
+                        // Use synced data directly
+                        subscriptionPlan = syncData.subscription.plan as PlanType;
+                        stripeSubscriptionId = syncData.subscription.stripe_subscription_id || null;
+                    }
+                } catch (err) {
+                    console.error('Failed to sync with Stripe:', err);
                 }
+
+                // If sync didn't return data, load from database
+                if (subscriptionPlan === 'free' && !stripeSubscriptionId) {
+                    const { data: subscription } = await supabase
+                        .from('subscriptions')
+                        .select('plan, stripe_subscription_id')
+                        .eq('user_id', user.id)
+                        .single();
+
+                    if (subscription?.plan) {
+                        subscriptionPlan = subscription.plan as PlanType;
+                        stripeSubscriptionId = subscription.stripe_subscription_id;
+                    }
+                }
+
+                setCurrentPlan(subscriptionPlan);
+                // User has active Stripe subscription if they have a stripe_subscription_id
+                setHasActiveSubscription(!!stripeSubscriptionId);
             }
             setIsCheckingAuth(false);
         }

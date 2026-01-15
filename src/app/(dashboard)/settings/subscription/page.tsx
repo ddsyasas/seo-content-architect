@@ -48,6 +48,8 @@ export default function SubscriptionSettingsPage() {
             return;
         }
 
+        let subscriptionData: Subscription | null = null;
+
         // If syncWithStripe is true, sync with Stripe first to get latest status
         if (syncWithStripe) {
             try {
@@ -55,40 +57,44 @@ export default function SubscriptionSettingsPage() {
                     method: 'POST',
                 });
                 const syncData = await syncResponse.json();
-                if (syncData.synced && syncData.subscription) {
-                    // Use the synced data directly
-                    setSubscription({
+                if (syncData.success && syncData.subscription) {
+                    // Use the synced data directly - don't re-read from database
+                    subscriptionData = {
                         plan: syncData.subscription.plan,
                         status: syncData.subscription.status,
-                        current_period_end: syncData.subscription.current_period_end,
+                        current_period_end: syncData.subscription.current_period_end || null,
                         cancel_at_period_end: syncData.subscription.cancel_at_period_end,
                         stripe_subscription_id: syncData.subscription.stripe_subscription_id || null,
-                    } as Subscription);
+                    } as Subscription;
                 }
             } catch (err) {
                 console.error('Failed to sync with Stripe:', err);
             }
         }
 
-        // Load subscription from database
-        const { data: subData } = await supabase
-            .from('subscriptions')
-            .select('plan, status, current_period_end, cancel_at_period_end, stripe_subscription_id')
-            .eq('user_id', user.id)
-            .single();
+        // Only load from database if we didn't get data from sync
+        if (!subscriptionData) {
+            const { data: subData } = await supabase
+                .from('subscriptions')
+                .select('plan, status, current_period_end, cancel_at_period_end, stripe_subscription_id')
+                .eq('user_id', user.id)
+                .single();
 
-        if (subData) {
-            setSubscription(subData as Subscription);
-        } else {
-            // Default to free plan
-            setSubscription({
-                plan: 'free',
-                status: 'active',
-                current_period_end: null,
-                cancel_at_period_end: false,
-                stripe_subscription_id: null,
-            });
+            if (subData) {
+                subscriptionData = subData as Subscription;
+            } else {
+                // Default to free plan
+                subscriptionData = {
+                    plan: 'free',
+                    status: 'active',
+                    current_period_end: null,
+                    cancel_at_period_end: false,
+                    stripe_subscription_id: null,
+                };
+            }
         }
+
+        setSubscription(subscriptionData);
 
         // Load usage counts
         const [projectsRes, articlesRes, nodesRes, teamRes] = await Promise.all([
@@ -108,7 +114,7 @@ export default function SubscriptionSettingsPage() {
                 .select('id', { count: 'exact' }),
         ]);
 
-        const plan = subData?.plan || 'free';
+        const plan = subscriptionData?.plan || 'free';
         const limits = getPlanLimits(plan);
 
         setUsage({

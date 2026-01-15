@@ -33,25 +33,43 @@ export default function BillingSettingsPage() {
                 return;
             }
 
+            let subscriptionData: SubscriptionData | null = null;
+
             // First, sync with Stripe to ensure we have the latest status
             // This is important when user returns from Stripe Portal
             try {
-                await fetch('/api/billing/sync-subscription', { method: 'POST' });
+                const syncResponse = await fetch('/api/billing/sync-subscription', { method: 'POST' });
+                const syncData = await syncResponse.json();
+                if (syncData.success && syncData.subscription) {
+                    // Use synced data directly
+                    subscriptionData = {
+                        plan: syncData.subscription.plan as PlanType,
+                        stripe_customer_id: syncData.subscription.stripe_customer_id || null,
+                        cancel_at_period_end: syncData.subscription.cancel_at_period_end,
+                        current_period_end: syncData.subscription.current_period_end || null,
+                    };
+                }
             } catch (err) {
                 console.error('Failed to sync with Stripe:', err);
             }
 
-            // Then load from database
-            const { data: subData } = await supabase
-                .from('subscriptions')
-                .select('plan, stripe_customer_id, cancel_at_period_end, current_period_end')
-                .eq('user_id', user.id)
-                .single();
+            // If sync didn't return data, load from database
+            if (!subscriptionData) {
+                const { data: subData } = await supabase
+                    .from('subscriptions')
+                    .select('plan, stripe_customer_id, cancel_at_period_end, current_period_end')
+                    .eq('user_id', user.id)
+                    .single();
 
-            if (subData) {
-                setSubscription(subData as SubscriptionData);
+                if (subData) {
+                    subscriptionData = subData as SubscriptionData;
+                }
+            }
+
+            if (subscriptionData) {
+                setSubscription(subscriptionData);
                 // Check if user has a paid plan
-                setIsPaidUser(subData.plan !== 'free');
+                setIsPaidUser(subscriptionData.plan !== 'free');
             }
             setIsLoading(false);
         }

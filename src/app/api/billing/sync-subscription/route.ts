@@ -96,6 +96,8 @@ export async function POST(request: NextRequest) {
                     status,
                     cancel_at_period_end: stripeSubscription.cancel_at_period_end,
                     current_period_end: currentPeriodEnd,
+                    stripe_subscription_id: subscription.stripe_subscription_id,
+                    stripe_customer_id: subscription.stripe_customer_id,
                 }
             });
         } catch (stripeErr: unknown) {
