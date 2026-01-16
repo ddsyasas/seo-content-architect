@@ -15,11 +15,18 @@ interface ProjectPageClientProps {
 
 export function ProjectPageClient({ projectId }: ProjectPageClientProps) {
     const searchParams = useSearchParams();
-    const initialTab = searchParams.get('tab') === 'canvas' ? 'canvas' : 'articles';
-    const [activeTab, setActiveTab] = useState<'articles' | 'canvas'>(initialTab);
+    const [activeTab, setActiveTab] = useState<'articles' | 'canvas'>('articles');
     const [project, setProject] = useState<Project | null>(null);
     const [userRole, setUserRole] = useState<UserRole>('viewer');
     const [isLoading, setIsLoading] = useState(true);
+
+    // Handle tab from URL after mount to avoid hydration issues
+    useEffect(() => {
+        const tabParam = searchParams.get('tab');
+        if (tabParam === 'canvas') {
+            setActiveTab('canvas');
+        }
+    }, [searchParams]);
 
     useEffect(() => {
         loadProject();
