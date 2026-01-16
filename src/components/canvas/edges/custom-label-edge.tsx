@@ -27,21 +27,23 @@ function CustomLabelEdge({
         targetPosition,
     });
 
-    // Simple approach: position label at a fixed distance from source
-    // toward the target (about 50-60 pixels from source)
+    // Calculate direction vector and distance
     const dx = targetX - sourceX;
     const dy = targetY - sourceY;
     const distance = Math.sqrt(dx * dx + dy * dy);
 
-    // Normalize and move 60 pixels from source toward target
-    const labelOffset = Math.min(60, distance * 0.25);
+    // Position label at a fixed distance from source toward target
+    const labelOffset = Math.min(70, distance * 0.3);
     const labelX = sourceX + (dx / distance) * labelOffset;
     const labelY = sourceY + (dy / distance) * labelOffset;
 
-    // Apply selection styling
+    // Apply selection styling to the edge line
     const edgeStyle = selected
         ? { ...style, stroke: '#EF4444', strokeWidth: 4 }
         : style;
+
+    // Dynamic z-index: selected labels come to front above all other labels
+    const labelZIndex = selected ? 9999 : 1000;
 
     return (
         <>
@@ -58,21 +60,25 @@ function CustomLabelEdge({
                             position: 'absolute',
                             transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY}px)`,
                             pointerEvents: 'all',
-                            zIndex: 1000,
+                            zIndex: labelZIndex,
                         }}
                         className="nodrag nopan"
                     >
                         <div
+                            className={selected
+                                ? "bg-red-50 dark:bg-red-900/40 border-2 border-red-500 dark:border-red-400 text-red-600 dark:text-red-300 shadow-lg"
+                                : "bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-200 shadow-sm"
+                            }
                             style={{
-                                background: 'white',
-                                padding: '4px 8px',
-                                borderRadius: '4px',
-                                fontSize: '11px',
-                                fontWeight: 500,
-                                color: '#374151',
-                                border: '1px solid #e5e7eb',
-                                boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+                                padding: selected ? '6px 10px' : '4px 8px',
+                                borderRadius: selected ? '6px' : '4px',
+                                fontSize: selected ? '12px' : '11px',
+                                fontWeight: selected ? 600 : 500,
                                 whiteSpace: 'nowrap',
+                                transition: 'all 0.15s ease-out',
+                                boxShadow: selected
+                                    ? '0 4px 12px rgba(239, 68, 68, 0.3), 0 0 0 4px rgba(239, 68, 68, 0.1)'
+                                    : undefined,
                             }}
                         >
                             {label}

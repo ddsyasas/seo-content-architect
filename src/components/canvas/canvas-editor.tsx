@@ -16,6 +16,7 @@ import 'reactflow/dist/style.css';
 import { v4 as uuidv4 } from 'uuid';
 
 import { useCanvasStore, dbNodeToFlowNode, dbEdgeToFlowEdge } from '@/lib/store/canvas-store';
+import { useCanvasHistoryStore } from '@/lib/store/canvas-history-store';
 import { createClient } from '@/lib/supabase/client';
 import { EDGE_STYLES } from '@/lib/utils/constants';
 import { CanvasToolbar } from './canvas-toolbar';
@@ -52,6 +53,11 @@ function CanvasEditorInner({ projectId, userRole = 'owner' }: CanvasEditorProps)
     const canEdit = canEditContent(userRole);
     const { fitView, zoomIn, zoomOut, getViewport } = useReactFlow();
     const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+    const isDraggingRef = useRef(false);
+
+    // Refs to track current state for history (avoids stale closures)
+    const nodesRef = useRef(useCanvasStore.getState().nodes);
+    const edgesRef = useRef(useCanvasStore.getState().edges);
 
     // Edge modal state
     const [pendingConnection, setPendingConnection] = useState<Connection | null>(null);
@@ -79,6 +85,31 @@ function CanvasEditorInner({ projectId, userRole = 'owner' }: CanvasEditorProps)
         getSelectedNode,
         deleteEdge,
     } = useCanvasStore();
+
+    // History store for undo/redo
+    const {
+        past,
+        future,
+        setCurrentSnapshot,
+        pushState,
+        undo,
+        redo,
+        clear: clearHistory,
+    } = useCanvasHistoryStore();
+
+    const canUndo = past.length > 0;
+    const canRedo = future.length > 0;
+
+    // Keep refs in sync with current state (for use in callbacks without stale closures)
+    useEffect(() => {
+        nodesRef.current = nodes;
+        edgesRef.current = edges;
+    }, [nodes, edges]);
+
+    // Clear history when project changes
+    useEffect(() => {
+        clearHistory();
+    }, [projectId, clearHistory]);
 
     // Load project data
     useEffect(() => {
@@ -185,6 +216,22 @@ function CanvasEditorInner({ projectId, userRole = 'owner' }: CanvasEditorProps)
 
     // Handle node changes with debounced save
     const handleNodesChange = useCallback((changes: any) => {
+        // Check for drag start (capture snapshot before dragging)
+        const dragStartChange = changes.find((c: any) => c.type === 'position' && c.dragging === true);
+        if (dragStartChange && !isDraggingRef.current) {
+            isDraggingRef.current = true;
+            // Use refs to avoid stale closure issues
+            setCurrentSnapshot(nodesRef.current, edgesRef.current);
+        }
+
+        // Check for drag end (push to history after dragging)
+        const dragEndChange = changes.find((c: any) => c.type === 'position' && c.dragging === false);
+        if (dragEndChange && isDraggingRef.current) {
+            isDraggingRef.current = false;
+            // Push history after the state update
+            setTimeout(() => pushState('Moved Node'), 0);
+        }
+
         onNodesChange(changes);
 
         // Save position changes
@@ -206,7 +253,7 @@ function CanvasEditorInner({ projectId, userRole = 'owner' }: CanvasEditorProps)
                 }
             }, 500);
         }
-    }, [onNodesChange]);
+    }, [onNodesChange, setCurrentSnapshot, pushState]);
 
     // Handle adding a new node
     const handleAddNode = useCallback(async (type: NodeType) => {
@@ -226,6 +273,9 @@ function CanvasEditorInner({ projectId, userRole = 'owner' }: CanvasEditorProps)
         } catch (err) {
             console.error('Failed to check node limit:', err);
         }
+
+        // Capture current state before adding node
+        setCurrentSnapshot(nodesRef.current, edgesRef.current);
 
         const viewport = getViewport();
         const id = uuidv4();
@@ -267,8 +317,11 @@ function CanvasEditorInner({ projectId, userRole = 'owner' }: CanvasEditorProps)
             },
         });
 
+        // Push state to history
+        pushState(`Added ${type.charAt(0).toUpperCase() + type.slice(1)} Node`);
+
         setSelectedNodeId(id);
-    }, [projectId, getViewport, addNode, setSelectedNodeId]);
+    }, [projectId, getViewport, addNode, setSelectedNodeId, setCurrentSnapshot, pushState]);
 
     // Handle node click
     const handleNodeClick = useCallback((_: any, node: any) => {
@@ -299,11 +352,17 @@ function CanvasEditorInner({ projectId, userRole = 'owner' }: CanvasEditorProps)
     const handleNodeDelete = useCallback(async () => {
         if (!selectedNodeId) return;
 
+        // Capture current state before deleting
+        setCurrentSnapshot(nodesRef.current, edgesRef.current);
+
         const supabase = createClient();
         await supabase.from('nodes').delete().eq('id', selectedNodeId);
 
         deleteNode(selectedNodeId);
-    }, [selectedNodeId, deleteNode]);
+
+        // Push state to history
+        pushState('Deleted Node');
+    }, [selectedNodeId, deleteNode, setCurrentSnapshot, pushState]);
 
     // Handle edge click (select edge)
     const handleEdgeClick = useCallback((_: any, edge: any) => {
@@ -332,6 +391,9 @@ function CanvasEditorInner({ projectId, userRole = 'owner' }: CanvasEditorProps)
     // Handle edge delete - also removes link from article if applicable
     const handleDeleteSelectedEdge = useCallback(async () => {
         if (!selectedEdgeId) return;
+
+        // Capture current state before deleting
+        setCurrentSnapshot(nodesRef.current, edgesRef.current);
 
         const supabase = createClient();
 
@@ -400,7 +462,10 @@ function CanvasEditorInner({ projectId, userRole = 'owner' }: CanvasEditorProps)
         await supabase.from('edges').delete().eq('id', selectedEdgeId);
         deleteEdge(selectedEdgeId);
         setSelectedEdgeId(null);
-    }, [selectedEdgeId, edges, nodes, projectId, deleteEdge]);
+
+        // Push state to history
+        pushState('Deleted Link');
+    }, [selectedEdgeId, edges, nodes, projectId, deleteEdge, pushState, setCurrentSnapshot]);
 
     // Handle edge update (reconnection by dragging)
     const handleEdgeUpdate = useCallback(async (oldEdge: any, newConnection: Connection) => {
@@ -422,11 +487,43 @@ function CanvasEditorInner({ projectId, userRole = 'owner' }: CanvasEditorProps)
         ));
     }, [edges, setEdges]);
 
-    // Keyboard handler for delete (nodes and edges) - supports multi-select
+    // Handle undo - restore previous state
+    const handleUndo = useCallback(() => {
+        const snapshot = undo();
+        if (snapshot) {
+            setNodes(snapshot.nodes);
+            setEdges(snapshot.edges);
+        }
+    }, [undo, setNodes, setEdges]);
+
+    // Handle redo - restore next state
+    const handleRedo = useCallback(() => {
+        const snapshot = redo();
+        if (snapshot) {
+            setNodes(snapshot.nodes);
+            setEdges(snapshot.edges);
+        }
+    }, [redo, setNodes, setEdges]);
+
+    // Keyboard handler for delete (nodes and edges) and undo/redo
     useEffect(() => {
         const handleKeyDown = async (e: KeyboardEvent) => {
             // Don't trigger if user is typing in an input
             if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+                return;
+            }
+
+            // Undo: Ctrl/Cmd + Z (without Shift)
+            if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+                e.preventDefault();
+                handleUndo();
+                return;
+            }
+
+            // Redo: Ctrl/Cmd + Shift + Z
+            if ((e.ctrlKey || e.metaKey) && e.key === 'z' && e.shiftKey) {
+                e.preventDefault();
+                handleRedo();
                 return;
             }
 
@@ -456,7 +553,7 @@ function CanvasEditorInner({ projectId, userRole = 'owner' }: CanvasEditorProps)
 
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [selectedEdgeId, selectedNodeId, nodes, handleDeleteSelectedEdge, handleNodeDelete, deleteNode]);
+    }, [selectedEdgeId, selectedNodeId, nodes, handleDeleteSelectedEdge, handleNodeDelete, deleteNode, handleUndo, handleRedo]);
 
     // Handle connection start - show edge modal
     const handleConnect = useCallback((connection: Connection) => {
@@ -523,6 +620,9 @@ function CanvasEditorInner({ projectId, userRole = 'owner' }: CanvasEditorProps)
 
         // CREATE MODE - Create new edge
         if (!pendingConnection) return;
+
+        // Capture current state before adding edge
+        setCurrentSnapshot(nodesRef.current, edgesRef.current);
 
         const id = uuidv4();
 
@@ -595,8 +695,11 @@ function CanvasEditorInner({ projectId, userRole = 'owner' }: CanvasEditorProps)
             }
         }
 
+        // Push state to history
+        pushState('Added Link');
+
         setPendingConnection(null);
-    }, [pendingConnection, editingEdge, projectId, edges, setEdges, nodes, setNodes]);
+    }, [pendingConnection, editingEdge, projectId, edges, setEdges, nodes, setNodes, setCurrentSnapshot, pushState]);
 
     // Handle edge modal close
     const handleEdgeModalClose = useCallback(() => {
@@ -650,6 +753,10 @@ function CanvasEditorInner({ projectId, userRole = 'owner' }: CanvasEditorProps)
                 onZoomIn={zoomIn}
                 onZoomOut={zoomOut}
                 onFitView={() => fitView({ padding: 0.2 })}
+                onUndo={handleUndo}
+                onRedo={handleRedo}
+                canUndo={canUndo}
+                canRedo={canRedo}
                 zoom={zoom}
                 canEdit={canEdit}
             />
@@ -670,6 +777,7 @@ function CanvasEditorInner({ projectId, userRole = 'owner' }: CanvasEditorProps)
                 edgesUpdatable={true}
                 edgesFocusable={true}
                 elementsSelectable={true}
+                elevateEdgesOnSelect={true}
                 edgeUpdaterRadius={20}
                 fitView
                 fitViewOptions={{ padding: 0.2 }}

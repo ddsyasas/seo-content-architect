@@ -86,20 +86,20 @@ export function NewArticlePage({ projectId }: NewArticlePageProps) {
     };
 
     return (
-        <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 max-w-md w-full">
+        <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center p-6">
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-8 max-w-md w-full">
                 <div className="flex items-center gap-3 mb-6">
                     <button
                         onClick={() => router.push(`/project/${projectId}`)}
-                        className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                        className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
                     >
-                        <ArrowLeft className="w-5 h-5" />
+                        <ArrowLeft className="w-5 h-5 text-gray-600 dark:text-gray-300" />
                     </button>
-                    <h1 className="text-xl font-bold text-gray-900">New Article</h1>
+                    <h1 className="text-xl font-bold text-gray-900 dark:text-white">New Article</h1>
                 </div>
 
                 {error && (
-                    <div className="mb-4 p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm">
+                    <div className="mb-4 p-3 rounded-lg bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 text-sm">
                         {error}
                     </div>
                 )}
@@ -114,7 +114,7 @@ export function NewArticlePage({ projectId }: NewArticlePageProps) {
                     />
 
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                             Content Type
                         </label>
                         <div className="grid grid-cols-2 gap-2">
@@ -126,8 +126,8 @@ export function NewArticlePage({ projectId }: NewArticlePageProps) {
                                     className={cn(
                                         'px-3 py-3 text-sm rounded-lg border transition-colors',
                                         nodeType === type
-                                            ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
-                                            : 'border-gray-200 hover:border-gray-300'
+                                            ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300'
+                                            : 'border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:border-gray-300 dark:hover:border-gray-500 hover:bg-gray-50 dark:hover:bg-gray-700'
                                     )}
                                 >
                                     {NODE_TYPE_LABELS[type]}

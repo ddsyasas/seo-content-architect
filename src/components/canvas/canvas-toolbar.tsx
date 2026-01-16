@@ -1,6 +1,6 @@
 'use client';
 
-import { Plus, ChevronDown } from 'lucide-react';
+import { Plus, ChevronDown, Undo2, Redo2 } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils/helpers';
@@ -12,6 +12,10 @@ interface CanvasToolbarProps {
     onZoomIn: () => void;
     onZoomOut: () => void;
     onFitView: () => void;
+    onUndo?: () => void;
+    onRedo?: () => void;
+    canUndo?: boolean;
+    canRedo?: boolean;
     zoom: number;
     canEdit?: boolean;
 }
@@ -21,6 +25,10 @@ export function CanvasToolbar({
     onZoomIn,
     onZoomOut,
     onFitView,
+    onUndo,
+    onRedo,
+    canUndo = false,
+    canRedo = false,
     zoom,
     canEdit = true
 }: CanvasToolbarProps) {
@@ -54,7 +62,7 @@ export function CanvasToolbar({
                     {isAddMenuOpen && (
                         <>
                             <div className="fixed inset-0" onClick={() => setIsAddMenuOpen(false)} />
-                            <div className="absolute left-0 top-full mt-2 w-48 py-1 bg-white border border-gray-200 rounded-lg shadow-lg">
+                            <div className="absolute left-0 top-full mt-2 w-48 py-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg">
                                 {nodeTypes.map(({ type, color }) => (
                                     <button
                                         key={type}
@@ -62,7 +70,7 @@ export function CanvasToolbar({
                                             onAddNode(type);
                                             setIsAddMenuOpen(false);
                                         }}
-                                        className="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                                        className="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700"
                                     >
                                         <span className={cn('w-3 h-3 rounded', color)} />
                                         {NODE_TYPE_LABELS[type]}
@@ -74,20 +82,43 @@ export function CanvasToolbar({
                 </div>
             )}
 
+            {/* Undo/Redo Buttons - Only show for editors */}
+            {canEdit && (
+                <div className="flex items-center gap-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm">
+                    <button
+                        onClick={onUndo}
+                        disabled={!canUndo}
+                        className="p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-l-lg disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                        title="Undo (Ctrl+Z)"
+                    >
+                        <Undo2 className="w-4 h-4" />
+                    </button>
+                    <div className="w-px h-6 bg-gray-200 dark:bg-gray-600" />
+                    <button
+                        onClick={onRedo}
+                        disabled={!canRedo}
+                        className="p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-r-lg disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                        title="Redo (Ctrl+Shift+Z)"
+                    >
+                        <Redo2 className="w-4 h-4" />
+                    </button>
+                </div>
+            )}
+
             {/* Zoom Controls */}
-            <div className="flex items-center bg-white border border-gray-200 rounded-lg shadow-sm">
+            <div className="flex items-center bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm">
                 <button
                     onClick={onZoomOut}
-                    className="px-3 py-2 text-gray-600 hover:bg-gray-50 border-r border-gray-200"
+                    className="px-3 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 border-r border-gray-200 dark:border-gray-600"
                 >
                     −
                 </button>
-                <span className="px-3 py-2 text-sm text-gray-700 min-w-[60px] text-center">
+                <span className="px-3 py-2 text-sm text-gray-700 dark:text-gray-300 min-w-[60px] text-center">
                     {Math.round(zoom * 100)}%
                 </span>
                 <button
                     onClick={onZoomIn}
-                    className="px-3 py-2 text-gray-600 hover:bg-gray-50 border-l border-gray-200"
+                    className="px-3 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 border-l border-gray-200 dark:border-gray-600"
                 >
                     +
                 </button>
