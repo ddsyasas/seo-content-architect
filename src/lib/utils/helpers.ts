@@ -25,3 +25,25 @@ export function formatRelativeTime(date: string | Date) {
 
     return formatDate(date);
 }
+
+/**
+ * Normalizes a string into a URL-friendly slug
+ * - Converts to lowercase
+ * - Removes special characters: & ? = % # @ ! + / \ , . ' "
+ * - Replaces spaces with hyphens
+ * - Collapses multiple hyphens into single hyphen
+ * - Removes leading/trailing hyphens
+ *
+ * Example: "Keyword New Pillar article 888" → "keyword-new-pillar-article-888"
+ */
+export function normalizeSlug(input: string): string {
+    if (!input) return '';
+
+    return input
+        .toLowerCase()
+        .trim()
+        .replace(/[&?=%#@!+/\\,.'"`]/g, '')
+        .replace(/\s+/g, '-')
+        .replace(/-+/g, '-')
+        .replace(/^-|-$/g, '');
+}

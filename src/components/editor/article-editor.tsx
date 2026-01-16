@@ -9,7 +9,7 @@ import { RichTextEditor } from '@/components/editor/rich-text-editor';
 import { SEOScorePanel } from '@/components/editor/seo-panel';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { cn } from '@/lib/utils/helpers';
+import { cn, normalizeSlug } from '@/lib/utils/helpers';
 import { extractInternalLinks, extractExternalLinks } from '@/lib/utils/link-parser';
 import { NODE_TYPE_LABELS, STATUS_LABELS } from '@/lib/utils/constants';
 import { useSEOScore } from '@/hooks/useSEOScore';
@@ -143,12 +143,18 @@ export function ArticleEditor({ projectId, nodeId }: ArticleEditorProps) {
         const supabase = createClient();
 
         try {
+            // Normalize slug before saving
+            const normalizedSlug = normalizeSlug(slug);
+            if (normalizedSlug !== slug) {
+                setSlug(normalizedSlug);
+            }
+
             // Update node
             await supabase
                 .from('nodes')
                 .update({
                     title,
-                    slug,
+                    slug: normalizedSlug,
                     target_keyword: targetKeyword,
                     node_type: nodeType,
                     status,
@@ -460,11 +466,7 @@ export function ArticleEditor({ projectId, nodeId }: ArticleEditorProps) {
     }, [content, title, slug, targetKeyword, nodeType, status, seoTitle, seoDescription]);
 
     const generateSlug = () => {
-        const generated = title
-            .toLowerCase()
-            .replace(/[^a-z0-9]+/g, '-')
-            .replace(/(^-|-$)/g, '');
-        setSlug(generated);
+        setSlug(normalizeSlug(title));
     };
 
     if (isLoading) {

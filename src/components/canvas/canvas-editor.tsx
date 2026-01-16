@@ -20,6 +20,7 @@ import { useCanvasStore, dbNodeToFlowNode, dbEdgeToFlowEdge } from '@/lib/store/
 import { useCanvasHistoryStore } from '@/lib/store/canvas-history-store';
 import { createClient } from '@/lib/supabase/client';
 import { EDGE_STYLES } from '@/lib/utils/constants';
+import { normalizeSlug } from '@/lib/utils/helpers';
 import { CanvasToolbar } from './canvas-toolbar';
 import { NodeDetailPanel } from './node-detail-panel';
 import { EdgeModal } from './edge-modal';
@@ -204,17 +205,28 @@ function CanvasEditorInner({ projectId, userRole = 'owner' }: CanvasEditorProps)
     const saveNodeToDb = useCallback(async (nodeId: string, data: Partial<ContentNode>) => {
         setIsSaving(true);
         try {
+            // Normalize slug before saving
+            const saveData = { ...data };
+            if (saveData.slug) {
+                saveData.slug = normalizeSlug(saveData.slug);
+            }
+
             const supabase = createClient();
             await supabase
                 .from('nodes')
-                .update(data)
+                .update(saveData)
                 .eq('id', nodeId);
+
+            // Update local node state with normalized slug so UI shows correct value
+            if (data.slug && saveData.slug !== data.slug) {
+                updateNode(nodeId, { slug: saveData.slug });
+            }
         } catch (error) {
             console.error('Failed to save node:', error);
         } finally {
             setIsSaving(false);
         }
-    }, [setIsSaving]);
+    }, [setIsSaving, updateNode]);
 
     // Handle node changes with debounced save
     const handleNodesChange = useCallback((changes: any) => {
