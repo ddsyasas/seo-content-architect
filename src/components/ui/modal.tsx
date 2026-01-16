@@ -35,18 +35,18 @@ export function Modal({ isOpen, onClose, title, children, size = 'md' }: ModalPr
                 {/* Modal panel */}
                 <div
                     className={cn(
-                        'relative w-full transform rounded-xl bg-white shadow-2xl transition-all',
+                        'relative w-full transform rounded-xl bg-white shadow-2xl transition-all dark:bg-gray-900',
                         sizes[size]
                     )}
                     onClick={(e) => e.stopPropagation()}
                 >
                     {/* Header */}
                     {title && (
-                        <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
-                            <h2 className="text-lg font-semibold text-gray-900">{title}</h2>
+                        <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4 dark:border-gray-700">
+                            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">{title}</h2>
                             <button
                                 onClick={onClose}
-                                className="rounded-lg p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors"
+                                className="rounded-lg p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors dark:hover:bg-gray-800 dark:hover:text-gray-300"
                             >
                                 <X className="h-5 w-5" />
                             </button>
@@ -57,7 +57,7 @@ export function Modal({ isOpen, onClose, title, children, size = 'md' }: ModalPr
                     {!title && (
                         <button
                             onClick={onClose}
-                            className="absolute right-4 top-4 rounded-lg p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors"
+                            className="absolute right-4 top-4 rounded-lg p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors dark:hover:bg-gray-800 dark:hover:text-gray-300"
                         >
                             <X className="h-5 w-5" />
                         </button>
@@ -78,7 +78,7 @@ export interface ModalFooterProps {
 
 export function ModalFooter({ children, className }: ModalFooterProps) {
     return (
-        <div className={cn('flex justify-end gap-3 border-t border-gray-200 px-6 py-4 -mx-6 -mb-4 mt-4 bg-gray-50 rounded-b-xl', className)}>
+        <div className={cn('flex justify-end gap-3 border-t border-gray-200 px-6 py-4 -mx-6 -mb-4 mt-4 bg-gray-50 rounded-b-xl dark:border-gray-700 dark:bg-gray-800', className)}>
             {children}
         </div>
     );

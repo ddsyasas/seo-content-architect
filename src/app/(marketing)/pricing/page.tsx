@@ -88,8 +88,8 @@ function PricingCard({ plan, currentPlan, isLoggedIn, onUpgrade, onCancel, isLoa
 
     return (
         <div className={`relative rounded-2xl border-2 p-8 flex flex-col ${isPro
-            ? 'border-indigo-500 bg-gradient-to-b from-indigo-50/50 to-white shadow-xl scale-105'
-            : 'border-gray-200 bg-white'
+            ? 'border-indigo-500 bg-gradient-to-b from-indigo-50/50 to-white shadow-xl scale-105 dark:from-indigo-900/20 dark:to-gray-900 dark:border-indigo-500'
+            : 'border-gray-200 bg-white dark:bg-gray-800 dark:border-gray-700'
             }`}>
             {isPro && (
                 <div className="absolute -top-4 left-1/2 -translate-x-1/2">
@@ -101,13 +101,13 @@ function PricingCard({ plan, currentPlan, isLoggedIn, onUpgrade, onCancel, isLoa
             )}
 
             <div className="text-center mb-6">
-                <h3 className="text-xl font-bold text-gray-900 mb-2">{config.name}</h3>
+                <h3 className="text-xl font-bold text-gray-900 mb-2 dark:text-white">{config.name}</h3>
                 {isPro ? (
                     <>
                         <div className="flex items-baseline justify-center gap-2">
-                            <span className="text-2xl text-gray-400 line-through">$19</span>
-                            <span className="text-4xl font-bold text-gray-900">$7</span>
-                            <span className="text-gray-500">/month</span>
+                            <span className="text-2xl text-gray-400 line-through dark:text-gray-500">$19</span>
+                            <span className="text-4xl font-bold text-gray-900 dark:text-white">$7</span>
+                            <span className="text-gray-500 dark:text-gray-400">/month</span>
                         </div>
                         <div className="mt-2 inline-flex items-center gap-1 bg-green-100 text-green-700 text-xs font-semibold px-2 py-1 rounded-full">
                             Limited Time Offer - 63% OFF
@@ -115,11 +115,11 @@ function PricingCard({ plan, currentPlan, isLoggedIn, onUpgrade, onCancel, isLoa
                     </>
                 ) : (
                     <div className="flex items-baseline justify-center gap-1">
-                        <span className="text-4xl font-bold text-gray-900">
+                        <span className="text-4xl font-bold text-gray-900 dark:text-white">
                             {config.price === 0 ? 'Free' : `$${config.price}`}
                         </span>
                         {config.price > 0 && (
-                            <span className="text-gray-500">/month</span>
+                            <span className="text-gray-500 dark:text-gray-400">/month</span>
                         )}
                     </div>
                 )}
@@ -133,7 +133,7 @@ function PricingCard({ plan, currentPlan, isLoggedIn, onUpgrade, onCancel, isLoa
                         ) : (
                             <X className="w-5 h-5 text-gray-300 shrink-0 mt-0.5" />
                         )}
-                        <span className={feature.included ? 'text-gray-700' : 'text-gray-400'}>
+                        <span className={feature.included ? 'text-gray-700 dark:text-gray-300' : 'text-gray-400 dark:text-gray-600'}>
                             {feature.name}
                         </span>
                     </li>
@@ -144,7 +144,7 @@ function PricingCard({ plan, currentPlan, isLoggedIn, onUpgrade, onCancel, isLoa
                 onClick={handleClick}
                 disabled={isCurrentPlan || isLoading || isCancelling}
                 className={`w-full py-3 px-6 rounded-lg font-medium transition-all ${(() => {
-                    if (isCurrentPlan) return 'bg-gray-100 text-gray-500 cursor-not-allowed';
+                    if (isCurrentPlan) return 'bg-gray-100 text-gray-500 cursor-not-allowed dark:bg-gray-700 dark:text-gray-400';
 
                     // Check if this is a downgrade
                     const planOrder = { free: 0, pro: 1, agency: 2 };
@@ -153,16 +153,16 @@ function PricingCard({ plan, currentPlan, isLoggedIn, onUpgrade, onCancel, isLoa
                     const isDowngrade = targetPlanLevel < currentPlanLevel;
 
                     if (isDowngrade || plan === 'free') {
-                        return 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300';
+                        return 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300 dark:bg-gray-800 dark:text-gray-200 dark:border-gray-600 dark:hover:bg-gray-700';
                     }
 
                     if (isPro) {
                         return 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-lg shadow-indigo-200';
                     }
                     if (plan === 'agency') {
-                        return 'bg-gray-900 text-white hover:bg-gray-800';
+                        return 'bg-gray-900 text-white hover:bg-gray-800 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-gray-200';
                     }
-                    return 'bg-gray-100 text-gray-900 hover:bg-gray-200';
+                    return 'bg-gray-100 text-gray-900 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-100 dark:hover:bg-gray-700';
                 })()}`}
             >
                 {(isLoading || (plan === 'free' && isCancelling)) ? (
@@ -441,10 +441,10 @@ export default function PricingPage() {
             {/* Hero */}
             <section className="py-16 md:py-24">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-                    <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
+                    <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4 dark:text-white">
                         Simple, transparent pricing
                     </h1>
-                    <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+                    <p className="text-xl text-gray-600 max-w-2xl mx-auto dark:text-gray-400">
                         Start free, upgrade when you need more. No hidden fees, no surprises.
                     </p>
                 </div>
@@ -492,18 +492,18 @@ export default function PricingPage() {
             </section>
 
             {/* FAQ */}
-            <section className="py-16 bg-gray-50 border-t border-gray-200">
+            <section className="py-16 bg-gray-50 border-t border-gray-200 dark:bg-gray-900 dark:border-gray-800">
                 <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <h2 className="text-3xl font-bold text-gray-900 text-center mb-12">
+                    <h2 className="text-3xl font-bold text-gray-900 text-center mb-12 dark:text-white">
                         Frequently Asked Questions
                     </h2>
                     <div className="space-y-6">
                         {faqs.map((faq, index) => (
-                            <div key={index} className="bg-white rounded-lg p-6 shadow-sm border border-gray-200">
-                                <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                            <div key={index} className="bg-white rounded-lg p-6 shadow-sm border border-gray-200 dark:bg-gray-800 dark:border-gray-700">
+                                <h3 className="text-lg font-semibold text-gray-900 mb-2 dark:text-white">
                                     {faq.question}
                                 </h3>
-                                <p className="text-gray-600">
+                                <p className="text-gray-600 dark:text-gray-400">
                                     {faq.answer}
                                 </p>
                             </div>

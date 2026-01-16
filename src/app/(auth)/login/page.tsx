@@ -45,16 +45,16 @@ function LoginForm() {
     };
 
     return (
-        <Card className="shadow-xl border-0">
+        <Card className="shadow-xl border-0 dark:bg-gray-800 dark:border-gray-700">
             <CardContent className="pt-8 pb-6">
                 <div className="text-center mb-8">
-                    <h1 className="text-2xl font-bold text-gray-900">Welcome back</h1>
-                    <p className="mt-2 text-gray-600">Sign in to your account to continue</p>
+                    <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Welcome back</h1>
+                    <p className="mt-2 text-gray-600 dark:text-gray-400">Sign in to your account to continue</p>
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-5">
                     {error && (
-                        <div className="p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm">
+                        <div className="p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm dark:bg-red-900/30 dark:border-red-800 dark:text-red-300">
                             {error}
                         </div>
                     )}
@@ -81,10 +81,10 @@ function LoginForm() {
 
                     <div className="flex items-center justify-between text-sm">
                         <label className="flex items-center gap-2">
-                            <input type="checkbox" className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
-                            <span className="text-gray-600">Remember me</span>
+                            <input type="checkbox" className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-700 dark:ring-offset-gray-900" />
+                            <span className="text-gray-600 dark:text-gray-400">Remember me</span>
                         </label>
-                        <Link href="/forgot-password" className="text-indigo-600 hover:text-indigo-700 font-medium">
+                        <Link href="/forgot-password" className="text-indigo-600 hover:text-indigo-700 font-medium dark:text-indigo-400 dark:hover:text-indigo-300">
                             Forgot password?
                         </Link>
                     </div>
@@ -94,9 +94,9 @@ function LoginForm() {
                     </Button>
                 </form>
 
-                <p className="mt-6 text-center text-sm text-gray-600">
+                <p className="mt-6 text-center text-sm text-gray-600 dark:text-gray-400">
                     Don't have an account?{' '}
-                    <Link href="/signup" className="text-indigo-600 hover:text-indigo-700 font-medium">
+                    <Link href="/signup" className="text-indigo-600 hover:text-indigo-700 font-medium dark:text-indigo-400 dark:hover:text-indigo-300">
                         Sign up for free
                     </Link>
                 </p>
@@ -107,7 +107,7 @@ function LoginForm() {
 
 export default function LoginPage() {
     return (
-        <Suspense fallback={<div className="animate-pulse bg-gray-100 rounded-xl h-96" />}>
+        <Suspense fallback={<div className="animate-pulse bg-gray-100 rounded-xl h-96 dark:bg-gray-800" />}>
             <LoginForm />
         </Suspense>
     );

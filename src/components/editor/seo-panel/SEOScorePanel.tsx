@@ -17,8 +17,8 @@ export function SEOScorePanel({ score, isLoading }: SEOScorePanelProps) {
 
     if (!score) {
         return (
-            <div className="border-t border-gray-200 pt-4 mt-4">
-                <div className="flex items-center gap-2 text-sm text-gray-500 p-3 bg-gray-50 rounded-lg">
+            <div className="border-t border-gray-200 dark:border-gray-700 pt-4 mt-4">
+                <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
                     <Target className="w-4 h-4" />
                     <span>Enter a target keyword to see SEO analysis</span>
                 </div>
@@ -27,7 +27,7 @@ export function SEOScorePanel({ score, isLoading }: SEOScorePanelProps) {
     }
 
     return (
-        <div className="border-t border-gray-200 pt-4 mt-4">
+        <div className="border-t border-gray-200 dark:border-gray-700 pt-4 mt-4">
             {/* Header - Always Visible */}
             <button
                 onClick={() => setIsExpanded(!isExpanded)}
@@ -35,11 +35,11 @@ export function SEOScorePanel({ score, isLoading }: SEOScorePanelProps) {
             >
                 <div className="flex items-center gap-2">
                     {isExpanded ? (
-                        <ChevronDown className="w-4 h-4 text-gray-500" />
+                        <ChevronDown className="w-4 h-4 text-gray-500 dark:text-gray-400" />
                     ) : (
-                        <ChevronRight className="w-4 h-4 text-gray-500" />
+                        <ChevronRight className="w-4 h-4 text-gray-500 dark:text-gray-400" />
                     )}
-                    <span className="font-semibold text-gray-900">SEO Score</span>
+                    <span className="font-semibold text-gray-900 dark:text-white">SEO Score</span>
                 </div>
                 <div className="flex items-center gap-2">
                     <span
@@ -52,7 +52,7 @@ export function SEOScorePanel({ score, isLoading }: SEOScorePanelProps) {
             </button>
 
             {/* Mini progress bar - Always Visible */}
-            <div className="mt-2 h-2 bg-gray-200 rounded-full overflow-hidden">
+            <div className="mt-2 h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
                 <div
                     className="h-full rounded-full transition-all duration-500"
                     style={{
@@ -71,7 +71,7 @@ export function SEOScorePanel({ score, isLoading }: SEOScorePanelProps) {
                 >
                     {score.zoneLabel}
                 </span>
-                <span className="text-xs text-gray-400">
+                <span className="text-xs text-gray-400 dark:text-gray-500">
                     Click to {isExpanded ? 'collapse' : 'expand'}
                 </span>
             </div>

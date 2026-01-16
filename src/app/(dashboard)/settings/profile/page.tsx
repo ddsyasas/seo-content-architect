@@ -124,14 +124,14 @@ export default function ProfileSettingsPage() {
     return (
         <div className="space-y-8">
             <div>
-                <h2 className="text-xl font-semibold text-gray-900 mb-1">Profile Settings</h2>
-                <p className="text-gray-500">Manage your personal information</p>
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-1">Profile Settings</h2>
+                <p className="text-gray-500 dark:text-gray-400">Manage your personal information</p>
             </div>
 
             {message && (
                 <div className={`p-4 rounded-lg ${message.type === 'success'
-                    ? 'bg-green-50 text-green-700 border border-green-200'
-                    : 'bg-red-50 text-red-700 border border-red-200'
+                    ? 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 border border-green-200 dark:border-green-800'
+                    : 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800'
                     }`}>
                     {message.text}
                 </div>
@@ -140,29 +140,29 @@ export default function ProfileSettingsPage() {
             {/* Personal Information */}
             <form onSubmit={handleSaveProfile} className="space-y-6">
                 <div>
-                    <h3 className="text-lg font-medium text-gray-900 mb-4">Personal Information</h3>
+                    <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Personal Information</h3>
                     <div className="grid gap-4 md:grid-cols-2">
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                                 Full Name
                             </label>
                             <input
                                 type="text"
                                 value={profile.fullName}
                                 onChange={(e) => setProfile(p => ({ ...p, fullName: e.target.value }))}
-                                className="w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white bg-white dark:bg-gray-700 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                                 required
                             />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                                 Email
                             </label>
                             <input
                                 type="email"
                                 value={profile.email}
                                 onChange={(e) => setProfile(p => ({ ...p, email: e.target.value }))}
-                                className="w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white bg-white dark:bg-gray-700 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                                 required
                             />
                         </div>
@@ -183,45 +183,45 @@ export default function ProfileSettingsPage() {
                 </button>
             </form>
 
-            <hr className="border-gray-200" />
+            <hr className="border-gray-200 dark:border-gray-700" />
 
             {/* Change Password */}
             <form onSubmit={handleChangePassword} className="space-y-6">
                 <div>
-                    <h3 className="text-lg font-medium text-gray-900 mb-4">Change Password</h3>
+                    <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Change Password</h3>
                     <div className="grid gap-4 max-w-md">
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                                 Current Password
                             </label>
                             <input
                                 type="password"
                                 value={passwords.current}
                                 onChange={(e) => setPasswords(p => ({ ...p, current: e.target.value }))}
-                                className="w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white bg-white dark:bg-gray-700 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                             />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                                 New Password
                             </label>
                             <input
                                 type="password"
                                 value={passwords.new}
                                 onChange={(e) => setPasswords(p => ({ ...p, new: e.target.value }))}
-                                className="w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white bg-white dark:bg-gray-700 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                                 minLength={8}
                             />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                                 Confirm New Password
                             </label>
                             <input
                                 type="password"
                                 value={passwords.confirm}
                                 onChange={(e) => setPasswords(p => ({ ...p, confirm: e.target.value }))}
-                                className="w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white bg-white dark:bg-gray-700 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                                 minLength={8}
                             />
                         </div>
@@ -231,7 +231,7 @@ export default function ProfileSettingsPage() {
                 <button
                     type="submit"
                     disabled={isSaving || !passwords.new}
-                    className="inline-flex items-center gap-2 px-4 py-2 bg-gray-900 text-white rounded-lg font-medium hover:bg-gray-800 disabled:opacity-50 transition-colors"
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-gray-900 dark:bg-gray-700 text-white rounded-lg font-medium hover:bg-gray-800 dark:hover:bg-gray-600 disabled:opacity-50 transition-colors"
                 >
                     {isSaving ? (
                         <Loader2 className="w-4 h-4 animate-spin" />
@@ -240,21 +240,21 @@ export default function ProfileSettingsPage() {
                 </button>
             </form>
 
-            <hr className="border-gray-200" />
+            <hr className="border-gray-200 dark:border-gray-700" />
 
             {/* Danger Zone */}
             <div>
-                <h3 className="text-lg font-medium text-red-600 mb-4 flex items-center gap-2">
+                <h3 className="text-lg font-medium text-red-600 dark:text-red-400 mb-4 flex items-center gap-2">
                     <AlertTriangle className="w-5 h-5" />
                     Danger Zone
                 </h3>
-                <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                    <p className="text-sm text-red-700 mb-3">
+                <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+                    <p className="text-sm text-red-700 dark:text-red-300 mb-3">
                         Once you delete your account, there is no going back. All your data will be permanently deleted.
                     </p>
                     <button
                         type="button"
-                        className="px-4 py-2 border border-red-300 text-red-700 rounded-lg font-medium hover:bg-red-100 transition-colors"
+                        className="px-4 py-2 border border-red-300 dark:border-red-700 text-red-700 dark:text-red-400 rounded-lg font-medium hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors"
                     >
                         Delete Account
                     </button>

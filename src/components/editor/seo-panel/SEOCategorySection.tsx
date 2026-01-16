@@ -26,18 +26,18 @@ export function SEOCategorySection({ category }: SEOCategorySectionProps) {
     };
 
     return (
-        <div className="border border-gray-100 rounded-lg overflow-hidden">
+        <div className="border border-gray-100 dark:border-gray-700 rounded-lg overflow-hidden">
             <button
                 onClick={() => setIsExpanded(!isExpanded)}
-                className="w-full flex items-center justify-between p-2.5 hover:bg-gray-50 transition-colors"
+                className="w-full flex items-center justify-between p-2.5 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
             >
                 <div className="flex items-center gap-2">
                     {isExpanded ? (
-                        <ChevronDown className="w-3.5 h-3.5 text-gray-400" />
+                        <ChevronDown className="w-3.5 h-3.5 text-gray-400 dark:text-gray-500" />
                     ) : (
-                        <ChevronRight className="w-3.5 h-3.5 text-gray-400" />
+                        <ChevronRight className="w-3.5 h-3.5 text-gray-400 dark:text-gray-500" />
                     )}
-                    <span className="text-sm font-medium text-gray-700">
+                    <span className="text-sm font-medium text-gray-700 dark:text-gray-200">
                         {category.name}
                     </span>
                     {hasIssues && (
@@ -59,7 +59,7 @@ export function SEOCategorySection({ category }: SEOCategorySectionProps) {
             </button>
 
             {isExpanded && (
-                <div className="px-2 pb-2 space-y-0.5 border-t border-gray-100">
+                <div className="px-2 pb-2 space-y-0.5 border-t border-gray-100 dark:border-gray-700">
                     {category.indicators.map(indicator => (
                         <SEOIndicator key={indicator.id} indicator={indicator} />
                     ))}

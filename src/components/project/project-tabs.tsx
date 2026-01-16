@@ -20,7 +20,7 @@ export function ProjectTabs({ activeTab, onTabChange, userRole = 'owner' }: Proj
     const isViewer = !canEditContent(userRole);
 
     return (
-        <div className="border-b border-gray-200 bg-white">
+        <div className="border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
             <nav className="flex items-center justify-between px-6" aria-label="Project tabs">
                 <div className="flex gap-4">
                     {tabs.map(({ id, label, icon: Icon }) => (
@@ -30,8 +30,8 @@ export function ProjectTabs({ activeTab, onTabChange, userRole = 'owner' }: Proj
                             className={cn(
                                 'flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 -mb-px transition-colors',
                                 activeTab === id
-                                    ? 'border-indigo-600 text-indigo-600'
-                                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                    ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400 dark:border-indigo-400'
+                                    : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600'
                             )}
                         >
                             <Icon className="w-4 h-4" />
@@ -41,7 +41,7 @@ export function ProjectTabs({ activeTab, onTabChange, userRole = 'owner' }: Proj
                 </div>
 
                 {isViewer && (
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 text-gray-600 rounded-full text-sm font-medium">
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-full text-sm font-medium">
                         <Eye className="w-4 h-4" />
                         View Only
                     </span>

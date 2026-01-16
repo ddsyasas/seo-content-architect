@@ -16,17 +16,17 @@ function MenuItem({ href, icon, title, description, onClick }: MenuItemProps) {
     return (
         <Link
             href={href}
-            className="flex items-start gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors group"
+            className="flex items-start gap-3 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors group"
             onClick={onClick}
         >
-            <div className="w-10 h-10 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-600 group-hover:bg-indigo-100 transition-colors shrink-0">
+            <div className="w-10 h-10 rounded-lg bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400 group-hover:bg-indigo-100 dark:group-hover:bg-indigo-900/50 transition-colors shrink-0">
                 {icon}
             </div>
             <div>
-                <div className="font-medium text-gray-900 group-hover:text-indigo-600 transition-colors">
+                <div className="font-medium text-gray-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
                     {title}
                 </div>
-                <div className="text-sm text-gray-500">
+                <div className="text-sm text-gray-500 dark:text-gray-400">
                     {description}
                 </div>
             </div>
@@ -47,7 +47,7 @@ export function MegaMenu({ label, children, isOpen, onToggle, onClose }: MegaMen
         <div className="relative">
             <button
                 onClick={onToggle}
-                className={`flex items-center gap-1 font-medium transition-colors ${isOpen ? 'text-indigo-600' : 'text-gray-600 hover:text-gray-900'
+                className={`flex items-center gap-1 font-medium transition-colors ${isOpen ? 'text-indigo-600 dark:text-indigo-400' : 'text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white'
                     }`}
             >
                 {label}
@@ -62,7 +62,7 @@ export function MegaMenu({ label, children, isOpen, onToggle, onClose }: MegaMen
                         onClick={onClose}
                     />
                     {/* Menu */}
-                    <div className="absolute top-full left-1/2 -translate-x-1/2 mt-4 bg-white rounded-xl shadow-xl border border-gray-200 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+                    <div className="absolute top-full left-1/2 -translate-x-1/2 mt-4 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
                         {children}
                     </div>
                 </>
@@ -81,7 +81,7 @@ export function SolutionsMenu({ onClose }: SolutionsMenuProps) {
             <div className="grid grid-cols-3 gap-6">
                 {/* By Role */}
                 <div>
-                    <div className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
+                    <div className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-3">
                         By Role
                     </div>
                     <div className="space-y-1">
@@ -111,7 +111,7 @@ export function SolutionsMenu({ onClose }: SolutionsMenuProps) {
 
                 {/* By Team */}
                 <div>
-                    <div className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
+                    <div className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-3">
                         By Team
                     </div>
                     <div className="space-y-1">
@@ -134,7 +134,7 @@ export function SolutionsMenu({ onClose }: SolutionsMenuProps) {
 
                 {/* By Industry */}
                 <div>
-                    <div className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
+                    <div className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-3">
                         By Industry
                     </div>
                     <div className="space-y-1">
@@ -169,7 +169,7 @@ export function ResourcesMenu({ onClose }: ResourcesMenuProps) {
             <div className="grid grid-cols-3 gap-6">
                 {/* Learn */}
                 <div>
-                    <div className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
+                    <div className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-3">
                         Learn
                     </div>
                     <div className="space-y-1">
@@ -199,7 +199,7 @@ export function ResourcesMenu({ onClose }: ResourcesMenuProps) {
 
                 {/* Explore */}
                 <div>
-                    <div className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
+                    <div className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-3">
                         Explore
                     </div>
                     <div className="space-y-1">
@@ -229,7 +229,7 @@ export function ResourcesMenu({ onClose }: ResourcesMenuProps) {
 
                 {/* Free Resources */}
                 <div>
-                    <div className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
+                    <div className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-3">
                         Free Resources
                     </div>
                     <div className="space-y-1">

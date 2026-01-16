@@ -65,8 +65,8 @@ function ToolbarButton({
             disabled={disabled}
             title={title}
             className={cn(
-                'p-2 rounded hover:bg-gray-100 transition-colors text-gray-600',
-                isActive && 'bg-indigo-100 text-indigo-700',
+                'p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-600 dark:text-gray-300',
+                isActive && 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300',
                 disabled && 'opacity-50 cursor-not-allowed'
             )}
         >
@@ -170,7 +170,7 @@ export function RichTextEditor({
         },
         editorProps: {
             attributes: {
-                class: 'prose prose-lg max-w-none focus:outline-none min-h-[400px] p-4 text-gray-900',
+                class: 'prose prose-lg dark:prose-invert max-w-none focus:outline-none min-h-[400px] p-4',
             },
             // Handle clicks on links and images
             handleClick(view, pos, event) {
@@ -593,14 +593,14 @@ export function RichTextEditor({
 
     if (!editor) {
         return (
-            <div className="border border-gray-200 rounded-lg p-4 bg-gray-50 animate-pulse h-[500px]" />
+            <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 bg-gray-50 dark:bg-gray-800 animate-pulse h-[500px]" />
         );
     }
 
     return (
-        <div className="border border-gray-200 rounded-lg overflow-hidden bg-white flex flex-col h-full min-h-[500px]">
+        <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden bg-white dark:bg-gray-900 flex flex-col h-full min-h-[500px]">
             {/* Toolbar - Fixed at top */}
-            <div className="flex items-center gap-1 p-2 border-b border-gray-200 bg-gray-50 flex-wrap shrink-0">
+            <div className="flex items-center gap-1 p-2 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 flex-wrap shrink-0">
                 {/* Font Family Dropdown */}
                 <select
                     value={editor.getAttributes('textStyle').fontFamily || ''}
@@ -611,7 +611,7 @@ export function RichTextEditor({
                             editor.chain().focus().unsetFontFamily().run();
                         }
                     }}
-                    className="px-2 py-1.5 text-sm border border-gray-300 rounded bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer min-w-[120px]"
+                    className="px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer min-w-[120px]"
                     title="Font Family"
                 >
                     {FONTS.map((font) => (
@@ -621,7 +621,7 @@ export function RichTextEditor({
                     ))}
                 </select>
 
-                <div className="w-px h-6 bg-gray-300 mx-1" />
+                <div className="w-px h-6 bg-gray-300 dark:bg-gray-600 mx-1" />
 
                 <ToolbarButton
                     onClick={() => editor.chain().focus().toggleBold().run()}
@@ -652,7 +652,7 @@ export function RichTextEditor({
                     <Code className="w-4 h-4" />
                 </ToolbarButton>
 
-                <div className="w-px h-6 bg-gray-300 mx-1" />
+                <div className="w-px h-6 bg-gray-300 dark:bg-gray-600 mx-1" />
 
                 <ToolbarButton
                     onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
@@ -676,7 +676,7 @@ export function RichTextEditor({
                     <Heading3 className="w-4 h-4" />
                 </ToolbarButton>
 
-                <div className="w-px h-6 bg-gray-300 mx-1" />
+                <div className="w-px h-6 bg-gray-300 dark:bg-gray-600 mx-1" />
 
                 <ToolbarButton
                     onClick={() => editor.chain().focus().toggleBulletList().run()}
@@ -700,7 +700,7 @@ export function RichTextEditor({
                     <Quote className="w-4 h-4" />
                 </ToolbarButton>
 
-                <div className="w-px h-6 bg-gray-300 mx-1" />
+                <div className="w-px h-6 bg-gray-300 dark:bg-gray-600 mx-1" />
 
                 {/* Text Alignment */}
                 <ToolbarButton
@@ -732,7 +732,7 @@ export function RichTextEditor({
                     <AlignJustify className="w-4 h-4" />
                 </ToolbarButton>
 
-                <div className="w-px h-6 bg-gray-300 mx-1" />
+                <div className="w-px h-6 bg-gray-300 dark:bg-gray-600 mx-1" />
 
                 <ToolbarButton
                     onClick={openLinkInput}
@@ -750,7 +750,7 @@ export function RichTextEditor({
                     </ToolbarButton>
                 )}
 
-                <div className="w-px h-6 bg-gray-300 mx-1" />
+                <div className="w-px h-6 bg-gray-300 dark:bg-gray-600 mx-1" />
 
                 {/* Image Upload */}
                 <input
@@ -781,8 +781,8 @@ export function RichTextEditor({
                         className={cn(
                             'px-2 py-1 rounded text-xs font-bold transition-colors border',
                             showAltInput
-                                ? 'bg-green-100 text-green-700 border-green-300'
-                                : 'bg-gray-100 text-gray-700 border-gray-300 hover:bg-green-50 hover:text-green-600 hover:border-green-300'
+                                ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 border-green-300 dark:border-green-700'
+                                : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:bg-green-50 dark:hover:bg-green-900/20 hover:text-green-600 dark:hover:text-green-400 hover:border-green-300 dark:hover:border-green-700'
                         )}
                     >
                         ALT
@@ -809,15 +809,15 @@ export function RichTextEditor({
 
             {/* Link Input Bar */}
             {showLinkInput && (
-                <div className="flex items-center gap-2 p-2 border-b border-gray-200 bg-indigo-50">
-                    <LinkIcon className="w-4 h-4 text-indigo-600" />
+                <div className="flex items-center gap-2 p-2 border-b border-gray-200 dark:border-gray-700 bg-indigo-50 dark:bg-indigo-950">
+                    <LinkIcon className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
                     <div className="flex-1 relative">
                         <input
                             type="text"
                             value={linkUrl}
                             onChange={(e) => handleUrlChange(e.target.value)}
                             placeholder="Enter URL or search article..."
-                            className="w-full px-3 py-1.5 text-sm border border-gray-300 rounded text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                            className="w-full px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                             autoFocus
                             onKeyDown={(e) => {
                                 if (e.key === 'Enter') {
@@ -831,11 +831,11 @@ export function RichTextEditor({
 
                         {/* Autocomplete Dropdown */}
                         {showLinkInput && filteredNodes.length > 0 && (
-                            <div className="absolute top-full left-0 mt-1 w-full md:w-96 max-h-48 overflow-y-auto bg-white border border-gray-200 rounded-lg shadow-xl z-50">
+                            <div className="absolute top-full left-0 mt-1 w-full md:w-96 max-h-48 overflow-y-auto bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-xl z-50">
                                 {filteredNodes.map((node) => (
                                     <button
                                         key={node.id}
-                                        className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 flex flex-col"
+                                        className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex flex-col"
                                         onClick={() => {
                                             const url = projectDomain ? `https://${projectDomain}/${node.slug}` : `/${node.slug}`;
                                             setLinkUrl(url);
@@ -846,8 +846,8 @@ export function RichTextEditor({
                                             // I'll fill input.
                                         }}
                                     >
-                                        <span className="font-medium text-gray-900">{node.title}</span>
-                                        <span className="text-xs text-gray-500">{node.slug}</span>
+                                        <span className="font-medium text-gray-900 dark:text-gray-100">{node.title}</span>
+                                        <span className="text-xs text-gray-500 dark:text-gray-400">{node.slug}</span>
                                     </button>
                                 ))}
                             </div>
@@ -862,7 +862,7 @@ export function RichTextEditor({
                         </button>
                         <button
                             onClick={cancelLink}
-                            className="p-1.5 bg-gray-200 text-gray-600 rounded hover:bg-gray-300 transition-colors"
+                            className="p-1.5 bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
                             title="Cancel"
                         >
                             <X className="w-4 h-4" />
@@ -873,14 +873,14 @@ export function RichTextEditor({
 
             {/* Alt Text Input Bar */}
             {showAltInput && (
-                <div className="flex items-center gap-2 p-2 border-b border-gray-200 bg-green-50">
-                    <Type className="w-4 h-4 text-green-600" />
+                <div className="flex items-center gap-2 p-2 border-b border-gray-200 dark:border-gray-700 bg-green-50 dark:bg-green-950">
+                    <Type className="w-4 h-4 text-green-600 dark:text-green-400" />
                     <input
                         type="text"
                         value={imageAlt}
                         onChange={(e) => setImageAlt(e.target.value)}
                         placeholder="Enter alt text for image (improves SEO & accessibility)"
-                        className="flex-1 px-3 py-1.5 text-sm border border-gray-300 rounded text-gray-900 focus:outline-none focus:ring-2 focus:ring-green-500"
+                        className="flex-1 px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-green-500"
                         autoFocus
                         onKeyDown={(e) => {
                             if (e.key === 'Enter') {
@@ -900,7 +900,7 @@ export function RichTextEditor({
                     </button>
                     <button
                         onClick={cancelAlt}
-                        className="p-1.5 bg-gray-200 text-gray-600 rounded hover:bg-gray-300 transition-colors"
+                        className="p-1.5 bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
                         title="Cancel"
                     >
                         <X className="w-4 h-4" />
@@ -916,7 +916,7 @@ export function RichTextEditor({
                 {showLinkPopup && (
                     <div
                         id="link-popup"
-                        className="absolute z-50 bg-white border border-gray-200 rounded-lg shadow-lg p-2 flex items-center gap-2 max-w-md"
+                        className="absolute z-50 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg p-2 flex items-center gap-2 max-w-md"
                         style={{
                             top: popupPosition.top,
                             left: popupPosition.left,
@@ -932,13 +932,13 @@ export function RichTextEditor({
                             <ExternalLink className="w-4 h-4 shrink-0" />
                             <span className="truncate">{popupLinkUrl}</span>
                         </a>
-                        <div className="w-px h-5 bg-gray-200" />
+                        <div className="w-px h-5 bg-gray-200 dark:bg-gray-600" />
                         <button
                             onClick={() => {
                                 setShowLinkPopup(false);
                                 openLinkInput();
                             }}
-                            className="p-1.5 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded transition-colors"
+                            className="p-1.5 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
                             title="Edit Link"
                         >
                             <Pencil className="w-4 h-4" />
@@ -948,14 +948,14 @@ export function RichTextEditor({
                                 editor?.chain().focus().unsetLink().run();
                                 setShowLinkPopup(false);
                             }}
-                            className="p-1.5 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+                            className="p-1.5 text-gray-600 dark:text-gray-300 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 rounded transition-colors"
                             title="Remove Link"
                         >
                             <Unlink2 className="w-4 h-4" />
                         </button>
                         <button
                             onClick={() => setShowLinkPopup(false)}
-                            className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded transition-colors"
+                            className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
                             title="Close"
                         >
                             <X className="w-4 h-4" />
@@ -967,22 +967,22 @@ export function RichTextEditor({
                 {showImagePopup && (
                     <div
                         id="image-popup"
-                        className="absolute z-50 bg-white border border-gray-200 rounded-lg shadow-lg p-3 w-72"
+                        className="absolute z-50 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg p-3 w-72"
                         style={{
                             top: imagePopupPosition.top,
                             left: imagePopupPosition.left,
                         }}
                     >
                         <div className="flex items-center gap-2 mb-2">
-                            <ImageIcon className="w-4 h-4 text-green-600" />
-                            <span className="text-sm font-medium text-gray-700">Image Alt Text</span>
+                            <ImageIcon className="w-4 h-4 text-green-600 dark:text-green-400" />
+                            <span className="text-sm font-medium text-gray-700 dark:text-gray-200">Image Alt Text</span>
                         </div>
                         <input
                             type="text"
                             value={popupImageAlt}
                             onChange={(e) => setPopupImageAlt(e.target.value)}
                             placeholder="Describe this image for SEO & accessibility"
-                            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md text-gray-900 focus:outline-none focus:ring-2 focus:ring-green-500 mb-2"
+                            className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-green-500 mb-2"
                             autoFocus
                             onKeyDown={(e) => {
                                 if (e.key === 'Enter') {
@@ -1009,7 +1009,7 @@ export function RichTextEditor({
                         <div className="flex justify-end gap-2">
                             <button
                                 onClick={() => setShowImagePopup(false)}
-                                className="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded transition-colors"
+                                className="px-3 py-1.5 text-sm text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
                             >
                                 Cancel
                             </button>

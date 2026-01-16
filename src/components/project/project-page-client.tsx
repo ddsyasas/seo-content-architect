@@ -78,7 +78,7 @@ export function ProjectPageClient({ projectId }: ProjectPageClientProps) {
             />
 
             {/* Content */}
-            <div className="flex-1 overflow-hidden bg-gray-50">
+            <div className="flex-1 overflow-hidden bg-gray-50 dark:bg-gray-900">
                 {activeTab === 'articles' ? (
                     <div className="h-full overflow-y-auto">
                         <ArticlesList projectId={projectId} project={project} userRole={userRole} />

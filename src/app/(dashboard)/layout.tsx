@@ -21,6 +21,7 @@ import {
 import { createClient } from '@/lib/supabase/client';
 import { cn } from '@/lib/utils/helpers';
 import { isSuperAdmin } from '@/lib/utils/admin';
+import { ThemeToggle } from '@/components/ui/theme-toggle';
 
 // NoIndex component for dashboard pages
 function NoIndexMeta() {
@@ -91,7 +92,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     ];
 
     return (
-        <div className="min-h-screen bg-gray-50">
+        <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
             {/* Prevent indexing of dashboard pages */}
             <NoIndexMeta />
             {/* Mobile sidebar backdrop */}
@@ -104,13 +105,13 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
             {/* Sidebar - Desktop (always visible, collapsible) */}
             <aside className={cn(
-                'hidden lg:flex fixed top-0 left-0 h-full bg-white border-r border-gray-200 z-50 flex-col transition-all duration-200',
+                'hidden lg:flex fixed top-0 left-0 h-full bg-white border-r border-gray-200 z-50 flex-col transition-all duration-200 dark:bg-gray-900 dark:border-gray-800',
                 isCollapsed ? 'w-16' : 'w-64'
             )}>
                 <div className="flex flex-col h-full">
                     {/* Logo */}
                     <div className={cn(
-                        'flex items-center p-4 border-b border-gray-200',
+                        'flex items-center p-4 border-b border-gray-200 dark:border-gray-800',
                         isCollapsed ? 'justify-center' : 'gap-2'
                     )}>
                         <Link href="/" className="flex items-center">
@@ -146,8 +147,8 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                                         'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors',
                                         isCollapsed && 'justify-center px-2',
                                         isActive
-                                            ? 'bg-indigo-50 text-indigo-700'
-                                            : 'text-gray-700 hover:bg-gray-100'
+                                            ? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300'
+                                            : 'text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800'
                                     )}
                                 >
                                     <item.icon className="w-5 h-5 shrink-0" />
@@ -158,10 +159,10 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                     </nav>
 
                     {/* Collapse toggle button */}
-                    <div className="p-2 border-t border-gray-200">
+                    <div className="p-2 border-t border-gray-200 dark:border-gray-800">
                         <button
                             onClick={() => setIsCollapsed(!isCollapsed)}
-                            className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-100 transition-colors"
+                            className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-100 transition-colors dark:text-gray-400 dark:hover:bg-gray-800"
                             title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
                         >
                             {isCollapsed ? (
@@ -175,27 +176,36 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                         </button>
                     </div>
 
+                    {/* Theme Toggle - Desktop */}
+                    <div className={cn(
+                        "p-2 border-t border-gray-200 dark:border-gray-800 flex items-center",
+                        isCollapsed ? "justify-center" : "justify-between px-4"
+                    )}>
+                        {!isCollapsed && <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Theme</span>}
+                        <ThemeToggle />
+                    </div>
+
                     {/* User menu */}
-                    <div className="p-2 border-t border-gray-200">
+                    <div className="p-2 border-t border-gray-200 dark:border-gray-800">
                         <div className="relative">
                             <button
                                 onClick={() => setIsProfileOpen(!isProfileOpen)}
                                 className={cn(
-                                    'w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors',
+                                    'w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors dark:hover:bg-gray-800',
                                     isCollapsed && 'justify-center px-2'
                                 )}
                                 title={isCollapsed ? (user?.full_name || user?.email || 'User') : undefined}
                             >
-                                <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center shrink-0">
-                                    <User className="w-4 h-4 text-indigo-600" />
+                                <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center shrink-0 dark:bg-indigo-900/50">
+                                    <User className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
                                 </div>
                                 {!isCollapsed && (
                                     <>
                                         <div className="flex-1 text-left min-w-0">
-                                            <p className="text-sm font-medium text-gray-900 truncate">
+                                            <p className="text-sm font-medium text-gray-900 truncate dark:text-gray-100">
                                                 {user?.full_name || 'User'}
                                             </p>
-                                            <p className="text-xs text-gray-500 truncate">{user?.email}</p>
+                                            <p className="text-xs text-gray-500 truncate dark:text-gray-400">{user?.email}</p>
                                         </div>
                                         <ChevronDown className={cn(
                                             'w-4 h-4 text-gray-400 transition-transform shrink-0',
@@ -207,7 +217,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
                             {isProfileOpen && (
                                 <div className={cn(
-                                    'absolute bottom-full mb-2 py-1 bg-white border border-gray-200 rounded-lg shadow-lg',
+                                    'absolute bottom-full mb-2 py-1 bg-white border border-gray-200 rounded-lg shadow-lg dark:bg-gray-900 dark:border-gray-700',
                                     isCollapsed ? 'left-full ml-2 w-40' : 'left-0 right-0'
                                 )}>
                                     <button
@@ -226,12 +236,12 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
             {/* Sidebar - Mobile (slide in/out) */}
             <aside className={cn(
-                'lg:hidden fixed top-0 left-0 h-full w-64 bg-white border-r border-gray-200 z-50 transform transition-transform duration-200',
+                'lg:hidden fixed top-0 left-0 h-full w-64 bg-white border-r border-gray-200 z-50 transform transition-transform duration-200 dark:bg-gray-900 dark:border-gray-800',
                 isMobileSidebarOpen ? 'translate-x-0' : '-translate-x-full'
             )}>
                 <div className="flex flex-col h-full">
                     {/* Logo */}
-                    <div className="flex items-center justify-between p-4 border-b border-gray-200">
+                    <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-800">
                         <Link href="/" className="flex items-center">
                             <Image
                                 src="/SyncSEO Header logo 2-min.png"
@@ -242,7 +252,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                         </Link>
                         <button
                             onClick={() => setIsMobileSidebarOpen(false)}
-                            className="p-1 rounded-lg hover:bg-gray-100 text-gray-600"
+                            className="p-1 rounded-lg hover:bg-gray-100 text-gray-600 dark:hover:bg-gray-800 dark:text-gray-400"
                         >
                             <X className="w-5 h-5" />
                         </button>
@@ -260,8 +270,8 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                                     className={cn(
                                         'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors',
                                         isActive
-                                            ? 'bg-indigo-50 text-indigo-700'
-                                            : 'text-gray-700 hover:bg-gray-100'
+                                            ? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300'
+                                            : 'text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800'
                                     )}
                                 >
                                     <item.icon className="w-5 h-5" />
@@ -272,21 +282,24 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                     </nav>
 
                     {/* User menu */}
-                    <div className="p-4 border-t border-gray-200">
+                    <div className="p-4 border-t border-gray-200 dark:border-gray-800">
                         <div className="flex items-center gap-3 mb-3">
-                            <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center">
-                                <User className="w-4 h-4 text-indigo-600" />
+                            <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center dark:bg-indigo-900/50">
+                                <User className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
                             </div>
                             <div className="flex-1 min-w-0">
-                                <p className="text-sm font-medium text-gray-900 truncate">
+                                <p className="text-sm font-medium text-gray-900 truncate dark:text-gray-100">
                                     {user?.full_name || 'User'}
                                 </p>
-                                <p className="text-xs text-gray-500 truncate">{user?.email}</p>
+                                <p className="text-xs text-gray-500 truncate dark:text-gray-400">{user?.email}</p>
                             </div>
+                        </div>
+                        <div className="flex items-center justify-between mb-3">
+                            <ThemeToggle />
                         </div>
                         <button
                             onClick={handleSignOut}
-                            className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                            className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors dark:text-red-400 dark:hover:bg-red-900/30"
                         >
                             <LogOut className="w-4 h-4" />
                             Sign out
@@ -303,14 +316,15 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                 )
             } >
                 {/* Top header - Mobile only */}
-                < header className="lg:hidden sticky top-0 z-30 bg-white border-b border-gray-200" >
-                    <div className="flex items-center px-4 py-3">
+                < header className="lg:hidden sticky top-0 z-30 bg-white border-b border-gray-200 dark:bg-gray-900 dark:border-gray-800" >
+                    <div className="flex items-center justify-between px-4 py-3">
                         <button
                             onClick={() => setIsMobileSidebarOpen(true)}
-                            className="p-2 rounded-lg hover:bg-gray-100 text-gray-600"
+                            className="p-2 rounded-lg hover:bg-gray-100 text-gray-600 dark:hover:bg-gray-800 dark:text-gray-400"
                         >
                             <Menu className="w-5 h-5" />
                         </button>
+                        <ThemeToggle />
                     </div>
                 </header >
 

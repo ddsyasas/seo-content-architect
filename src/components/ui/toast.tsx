@@ -80,10 +80,10 @@ function ToastItem({ toast, onClose }: { toast: Toast; onClose: () => void }) {
     };
 
     const bgColors = {
-        success: 'bg-green-50 border-green-200',
-        error: 'bg-red-50 border-red-200',
-        info: 'bg-blue-50 border-blue-200',
-        warning: 'bg-amber-50 border-amber-200',
+        success: 'bg-green-50 border-green-200 dark:bg-green-900/30 dark:border-green-800',
+        error: 'bg-red-50 border-red-200 dark:bg-red-900/30 dark:border-red-800',
+        info: 'bg-blue-50 border-blue-200 dark:bg-blue-900/30 dark:border-blue-800',
+        warning: 'bg-amber-50 border-amber-200 dark:bg-amber-900/30 dark:border-amber-800',
     };
 
     return (
@@ -93,14 +93,14 @@ function ToastItem({ toast, onClose }: { toast: Toast; onClose: () => void }) {
         >
             <div className="shrink-0 mt-0.5">{icons[toast.type]}</div>
             <div className="flex-1 min-w-0">
-                <p className="font-medium text-gray-900">{toast.title}</p>
+                <p className="font-medium text-gray-900 dark:text-gray-100">{toast.title}</p>
                 {toast.message && (
-                    <p className="mt-1 text-sm text-gray-600">{toast.message}</p>
+                    <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">{toast.message}</p>
                 )}
             </div>
             <button
                 onClick={onClose}
-                className="shrink-0 p-1 text-gray-400 hover:text-gray-600 transition-colors"
+                className="shrink-0 p-1 text-gray-400 hover:text-gray-600 transition-colors dark:hover:text-gray-300"
             >
                 <X className="w-4 h-4" />
             </button>

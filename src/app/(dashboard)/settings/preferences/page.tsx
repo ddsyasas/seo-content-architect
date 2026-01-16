@@ -66,14 +66,14 @@ export default function PreferencesSettingsPage() {
     return (
         <div className="space-y-8">
             <div>
-                <h2 className="text-xl font-semibold text-gray-900 mb-1">Preferences</h2>
-                <p className="text-gray-500">Customize your SyncSEO experience</p>
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-1">Preferences</h2>
+                <p className="text-gray-500 dark:text-gray-400">Customize your SyncSEO experience</p>
             </div>
 
             {message && (
                 <div className={`p-4 rounded-lg ${message.type === 'success'
-                    ? 'bg-green-50 text-green-700 border border-green-200'
-                    : 'bg-red-50 text-red-700 border border-red-200'
+                    ? 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 border border-green-200 dark:border-green-800'
+                    : 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800'
                     }`}>
                     {message.text}
                 </div>
@@ -82,44 +82,44 @@ export default function PreferencesSettingsPage() {
             <form onSubmit={handleSave} className="space-y-8">
                 {/* Email Notifications */}
                 <div>
-                    <h3 className="text-lg font-medium text-gray-900 mb-4">Email Notifications</h3>
+                    <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Email Notifications</h3>
                     <div className="space-y-4">
-                        <label className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200 cursor-pointer hover:bg-gray-100 transition-colors">
+                        <label className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
                             <div>
-                                <span className="font-medium text-gray-900">Weekly usage summary</span>
-                                <p className="text-sm text-gray-500">Get a weekly report of your project activity</p>
+                                <span className="font-medium text-gray-900 dark:text-white">Weekly usage summary</span>
+                                <p className="text-sm text-gray-500 dark:text-gray-400">Get a weekly report of your project activity</p>
                             </div>
                             <input
                                 type="checkbox"
                                 checked={preferences.weeklyUsageSummary}
                                 onChange={(e) => setPreferences(p => ({ ...p, weeklyUsageSummary: e.target.checked }))}
-                                className="w-5 h-5 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500"
+                                className="w-5 h-5 text-indigo-600 rounded border-gray-300 dark:border-gray-600 focus:ring-indigo-500 dark:bg-gray-700"
                             />
                         </label>
 
-                        <label className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200 cursor-pointer hover:bg-gray-100 transition-colors">
+                        <label className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
                             <div>
-                                <span className="font-medium text-gray-900">Team invitation notifications</span>
-                                <p className="text-sm text-gray-500">Get notified when someone invites you to a project</p>
+                                <span className="font-medium text-gray-900 dark:text-white">Team invitation notifications</span>
+                                <p className="text-sm text-gray-500 dark:text-gray-400">Get notified when someone invites you to a project</p>
                             </div>
                             <input
                                 type="checkbox"
                                 checked={preferences.teamInvitations}
                                 onChange={(e) => setPreferences(p => ({ ...p, teamInvitations: e.target.checked }))}
-                                className="w-5 h-5 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500"
+                                className="w-5 h-5 text-indigo-600 rounded border-gray-300 dark:border-gray-600 focus:ring-indigo-500 dark:bg-gray-700"
                             />
                         </label>
 
-                        <label className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200 cursor-pointer hover:bg-gray-100 transition-colors">
+                        <label className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
                             <div>
-                                <span className="font-medium text-gray-900">Product updates and tips</span>
-                                <p className="text-sm text-gray-500">Receive news about new features and best practices</p>
+                                <span className="font-medium text-gray-900 dark:text-white">Product updates and tips</span>
+                                <p className="text-sm text-gray-500 dark:text-gray-400">Receive news about new features and best practices</p>
                             </div>
                             <input
                                 type="checkbox"
                                 checked={preferences.productUpdates}
                                 onChange={(e) => setPreferences(p => ({ ...p, productUpdates: e.target.checked }))}
-                                className="w-5 h-5 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500"
+                                className="w-5 h-5 text-indigo-600 rounded border-gray-300 dark:border-gray-600 focus:ring-indigo-500 dark:bg-gray-700"
                             />
                         </label>
                     </div>
@@ -127,16 +127,16 @@ export default function PreferencesSettingsPage() {
 
                 {/* Editor Preferences */}
                 <div>
-                    <h3 className="text-lg font-medium text-gray-900 mb-4">Editor Preferences</h3>
+                    <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Editor Preferences</h3>
                     <div className="grid gap-4 md:grid-cols-2">
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                                 Auto-save interval
                             </label>
                             <select
                                 value={preferences.autoSaveInterval}
                                 onChange={(e) => setPreferences(p => ({ ...p, autoSaveInterval: e.target.value }))}
-                                className="w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white bg-white dark:bg-gray-700 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                             >
                                 <option value="30">Every 30 seconds</option>
                                 <option value="60">Every 1 minute</option>
@@ -146,13 +146,13 @@ export default function PreferencesSettingsPage() {
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                                 Default content type for new articles
                             </label>
                             <select
                                 value={preferences.defaultContentType}
                                 onChange={(e) => setPreferences(p => ({ ...p, defaultContentType: e.target.value }))}
-                                className="w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white bg-white dark:bg-gray-700 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                             >
                                 <option value="pillar">Pillar Content</option>
                                 <option value="cluster">Cluster Content</option>
@@ -165,42 +165,42 @@ export default function PreferencesSettingsPage() {
 
                 {/* Canvas Preferences */}
                 <div>
-                    <h3 className="text-lg font-medium text-gray-900 mb-4">Canvas Preferences</h3>
+                    <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Canvas Preferences</h3>
                     <div className="space-y-4">
-                        <label className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200 cursor-pointer hover:bg-gray-100 transition-colors">
+                        <label className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
                             <div>
-                                <span className="font-medium text-gray-900">Snap to grid</span>
-                                <p className="text-sm text-gray-500">Align nodes to a grid when moving them</p>
+                                <span className="font-medium text-gray-900 dark:text-white">Snap to grid</span>
+                                <p className="text-sm text-gray-500 dark:text-gray-400">Align nodes to a grid when moving them</p>
                             </div>
                             <input
                                 type="checkbox"
                                 checked={preferences.snapToGrid}
                                 onChange={(e) => setPreferences(p => ({ ...p, snapToGrid: e.target.checked }))}
-                                className="w-5 h-5 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500"
+                                className="w-5 h-5 text-indigo-600 rounded border-gray-300 dark:border-gray-600 focus:ring-indigo-500 dark:bg-gray-700"
                             />
                         </label>
 
-                        <label className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200 cursor-pointer hover:bg-gray-100 transition-colors">
+                        <label className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
                             <div>
-                                <span className="font-medium text-gray-900">Show minimap</span>
-                                <p className="text-sm text-gray-500">Display a minimap for easier navigation</p>
+                                <span className="font-medium text-gray-900 dark:text-white">Show minimap</span>
+                                <p className="text-sm text-gray-500 dark:text-gray-400">Display a minimap for easier navigation</p>
                             </div>
                             <input
                                 type="checkbox"
                                 checked={preferences.showMinimap}
                                 onChange={(e) => setPreferences(p => ({ ...p, showMinimap: e.target.checked }))}
-                                className="w-5 h-5 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500"
+                                className="w-5 h-5 text-indigo-600 rounded border-gray-300 dark:border-gray-600 focus:ring-indigo-500 dark:bg-gray-700"
                             />
                         </label>
 
                         <div className="max-w-xs">
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                                 Default zoom level
                             </label>
                             <select
                                 value={preferences.defaultZoom}
                                 onChange={(e) => setPreferences(p => ({ ...p, defaultZoom: e.target.value }))}
-                                className="w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white bg-white dark:bg-gray-700 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                             >
                                 <option value="50">50%</option>
                                 <option value="75">75%</option>

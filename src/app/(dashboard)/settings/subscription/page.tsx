@@ -323,14 +323,14 @@ export default function SubscriptionSettingsPage() {
         <div className="space-y-8">
             <div className="flex items-start justify-between">
                 <div>
-                    <h2 className="text-xl font-semibold text-gray-900 mb-1">Subscription</h2>
-                    <p className="text-gray-500">Manage your plan and view usage</p>
+                    <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-1">Subscription</h2>
+                    <p className="text-gray-500 dark:text-gray-400">Manage your plan and view usage</p>
                 </div>
                 {!DEV_MODE && subscription?.stripe_subscription_id && (
                     <button
                         onClick={handleSyncStatus}
                         disabled={isSyncing}
-                        className="inline-flex items-center gap-2 px-3 py-1.5 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"
+                        className="inline-flex items-center gap-2 px-3 py-1.5 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors disabled:opacity-50"
                         title="Sync subscription status with Stripe"
                     >
                         <RefreshCw className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''}`} />
@@ -376,28 +376,28 @@ export default function SubscriptionSettingsPage() {
             )}
 
             {/* Current Plan */}
-            <div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl p-6 border border-indigo-100">
+            <div className="bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 rounded-xl p-6 border border-indigo-100 dark:border-indigo-800">
                 <div className="flex items-start justify-between">
                     <div>
                         <div className="flex items-center gap-3 mb-2">
-                            <h3 className="text-2xl font-bold text-gray-900">
+                            <h3 className="text-2xl font-bold text-gray-900 dark:text-white">
                                 {planConfig.name} Plan
                             </h3>
                             <span className={`px-2 py-1 text-xs font-medium rounded-full ${subscription?.status === 'active'
-                                ? 'bg-green-100 text-green-700'
+                                ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300'
                                 : subscription?.status === 'past_due'
-                                    ? 'bg-yellow-100 text-yellow-700'
-                                    : 'bg-gray-100 text-gray-700'
+                                    ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300'
+                                    : 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300'
                                 }`}>
                                 {subscription?.status === 'active' ? 'Active' :
                                     subscription?.status === 'past_due' ? 'Past Due' : 'Inactive'}
                             </span>
                         </div>
-                        <p className="text-3xl font-bold text-indigo-600">
+                        <p className="text-3xl font-bold text-indigo-600 dark:text-indigo-400">
                             {planConfig.price === 0 ? 'Free' : `$${planConfig.price}/month`}
                         </p>
                         {renewalDate && (
-                            <p className="flex items-center gap-2 text-sm text-gray-600 mt-2">
+                            <p className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 mt-2">
                                 <Calendar className="w-4 h-4" />
                                 {subscription?.cancel_at_period_end
                                     ? `Cancels on ${renewalDate}`
@@ -419,9 +419,9 @@ export default function SubscriptionSettingsPage() {
                 </div>
 
                 {subscription?.cancel_at_period_end && (
-                    <div className="mt-4 flex items-start gap-2 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-                        <AlertCircle className="w-5 h-5 text-yellow-600 shrink-0 mt-0.5" />
-                        <p className="text-sm text-yellow-700">
+                    <div className="mt-4 flex items-start gap-2 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+                        <AlertCircle className="w-5 h-5 text-yellow-600 dark:text-yellow-400 shrink-0 mt-0.5" />
+                        <p className="text-sm text-yellow-700 dark:text-yellow-300">
                             Your subscription is set to cancel at the end of the billing period.
                             You&apos;ll be downgraded to the Free plan after {renewalDate}.
                         </p>
@@ -442,13 +442,13 @@ export default function SubscriptionSettingsPage() {
 
             {/* Plan Actions */}
             {!DEV_MODE && (
-                <div className="bg-white rounded-xl border border-gray-200 p-6">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Plan Actions</h3>
+                <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Plan Actions</h3>
                     <div className="flex flex-wrap gap-4">
                         {subscription?.plan !== 'free' && (
                             <Link
                                 href="/settings/billing"
-                                className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200 transition-colors"
+                                className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg font-medium hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
                             >
                                 Manage billing
                                 <ArrowUpRight className="w-4 h-4" />
@@ -456,7 +456,7 @@ export default function SubscriptionSettingsPage() {
                         )}
                         <Link
                             href="/pricing"
-                            className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-100 text-indigo-700 rounded-lg font-medium hover:bg-indigo-200 transition-colors"
+                            className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 rounded-lg font-medium hover:bg-indigo-200 dark:hover:bg-indigo-900/50 transition-colors"
                         >
                             {subscription?.plan === 'agency' ? 'View plans' : 'Upgrade plan'}
                         </Link>
@@ -464,7 +464,7 @@ export default function SubscriptionSettingsPage() {
                             <button
                                 onClick={handleCancelSubscription}
                                 disabled={isCancelling}
-                                className="inline-flex items-center gap-2 px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg font-medium transition-colors disabled:opacity-50"
+                                className="inline-flex items-center gap-2 px-4 py-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg font-medium transition-colors disabled:opacity-50"
                             >
                                 {isCancelling ? (
                                     <Loader2 className="w-4 h-4 animate-spin" />
@@ -476,7 +476,7 @@ export default function SubscriptionSettingsPage() {
                             <button
                                 onClick={handleReactivateSubscription}
                                 disabled={isReactivating}
-                                className="inline-flex items-center gap-2 px-4 py-2 bg-green-100 text-green-700 rounded-lg font-medium hover:bg-green-200 transition-colors disabled:opacity-50"
+                                className="inline-flex items-center gap-2 px-4 py-2 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-lg font-medium hover:bg-green-200 dark:hover:bg-green-900/50 transition-colors disabled:opacity-50"
                             >
                                 {isReactivating ? (
                                     <Loader2 className="w-4 h-4 animate-spin" />

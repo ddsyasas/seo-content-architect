@@ -46,19 +46,19 @@ export function ArticlesList({ projectId, project, userRole = 'owner' }: Article
 
     const getStatusColor = (status: string) => {
         switch (status) {
-            case 'published': return 'bg-green-100 text-green-700';
-            case 'writing': return 'bg-amber-100 text-amber-700';
-            case 'needs_update': return 'bg-orange-100 text-orange-700';
-            default: return 'bg-gray-100 text-gray-600';
+            case 'published': return 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400';
+            case 'writing': return 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400';
+            case 'needs_update': return 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400';
+            default: return 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300';
         }
     };
 
     const getTypeColor = (type: string) => {
         switch (type) {
-            case 'pillar': return 'bg-indigo-100 text-indigo-700';
-            case 'cluster': return 'bg-blue-100 text-blue-700';
-            case 'supporting': return 'bg-cyan-100 text-cyan-700';
-            default: return 'bg-gray-100 text-gray-600';
+            case 'pillar': return 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400';
+            case 'cluster': return 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400';
+            case 'supporting': return 'bg-cyan-100 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-400';
+            default: return 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300';
         }
     };
 
@@ -75,11 +75,11 @@ export function ArticlesList({ projectId, project, userRole = 'owner' }: Article
             {/* Header */}
             <div className="flex items-center justify-between mb-6">
                 <div>
-                    <h2 className="text-xl font-semibold text-gray-900">Articles</h2>
-                    <p className="text-sm text-gray-500 mt-1">
+                    <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Articles</h2>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                         {nodes.length} articles in this project
                         {project?.domain && (
-                            <span className="ml-2 text-indigo-600">• {project.domain}</span>
+                            <span className="ml-2 text-indigo-600 dark:text-indigo-400">• {project.domain}</span>
                         )}
                     </p>
                 </div>
@@ -95,10 +95,10 @@ export function ArticlesList({ projectId, project, userRole = 'owner' }: Article
 
             {/* Articles List */}
             {nodes.length === 0 ? (
-                <div className="text-center py-16 bg-gray-50 rounded-xl border-2 border-dashed border-gray-200">
-                    <FileText className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">No articles yet</h3>
-                    <p className="text-gray-500 mb-6">
+                <div className="text-center py-16 bg-gray-50 dark:bg-gray-800 rounded-xl border-2 border-dashed border-gray-200 dark:border-gray-700">
+                    <FileText className="w-12 h-12 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
+                    <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No articles yet</h3>
+                    <p className="text-gray-500 dark:text-gray-400 mb-6">
                         {canEdit ? 'Create your first article or add nodes on the Canvas' : 'No articles have been created yet'}
                     </p>
                     {canEdit && (
@@ -111,36 +111,36 @@ export function ArticlesList({ projectId, project, userRole = 'owner' }: Article
                     )}
                 </div>
             ) : (
-                <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
                     {/* Desktop Table View */}
                     <table className="w-full hidden md:table">
-                        <thead className="bg-gray-50 border-b border-gray-200">
+                        <thead className="bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
                             <tr>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                                     Article
                                 </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                                     Type
                                 </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                                     Status
                                 </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                                     URL Preview
                                 </th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-gray-200">
+                        <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                             {nodes.map((node) => (
                                 <tr
                                     key={node.id}
-                                    className="hover:bg-gray-50 cursor-pointer transition-colors"
+                                    className="hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition-colors"
                                 >
                                     <td className="px-6 py-4">
                                         <Link href={`/project/${projectId}/article/${node.id}`} className="block">
-                                            <div className="font-medium text-gray-900">{node.title}</div>
+                                            <div className="font-medium text-gray-900 dark:text-white">{node.title}</div>
                                             {node.target_keyword && (
-                                                <div className="text-sm text-gray-500 flex items-center gap-1 mt-1">
+                                                <div className="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-1 mt-1">
                                                     <Hash className="w-3 h-3" />
                                                     {node.target_keyword}
                                                 </div>
@@ -158,7 +158,7 @@ export function ArticlesList({ projectId, project, userRole = 'owner' }: Article
                                         </span>
                                     </td>
                                     <td className="px-6 py-4">
-                                        <span className="text-sm text-gray-500">
+                                        <span className="text-sm text-gray-500 dark:text-gray-400">
                                             {project?.domain || 'domain.com'}/{node.slug || 'slug'}
                                         </span>
                                     </td>
@@ -168,23 +168,23 @@ export function ArticlesList({ projectId, project, userRole = 'owner' }: Article
                     </table>
 
                     {/* Mobile Card View */}
-                    <div className="md:hidden divide-y divide-gray-200">
+                    <div className="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
                         {nodes.map((node) => (
                             <Link
                                 key={node.id}
                                 href={`/project/${projectId}/article/${node.id}`}
-                                className="block p-4 hover:bg-gray-50 transition-colors"
+                                className="block p-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                             >
                                 <div className="flex items-start justify-between gap-3">
                                     <div className="flex-1 min-w-0">
-                                        <div className="font-medium text-gray-900 truncate">{node.title}</div>
+                                        <div className="font-medium text-gray-900 dark:text-white truncate">{node.title}</div>
                                         {node.target_keyword && (
-                                            <div className="text-sm text-gray-500 flex items-center gap-1 mt-1">
+                                            <div className="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-1 mt-1">
                                                 <Hash className="w-3 h-3" />
                                                 <span className="truncate">{node.target_keyword}</span>
                                             </div>
                                         )}
-                                        <div className="text-xs text-gray-400 mt-1 truncate">
+                                        <div className="text-xs text-gray-400 dark:text-gray-500 mt-1 truncate">
                                             {project?.domain || 'domain.com'}/{node.slug || 'slug'}
                                         </div>
                                     </div>

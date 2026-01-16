@@ -37,10 +37,10 @@ const roleIcons: Record<string, React.ReactNode> = {
 };
 
 const roleBadgeColors: Record<string, string> = {
-    owner: 'bg-yellow-100 text-yellow-800',
-    admin: 'bg-indigo-100 text-indigo-800',
-    editor: 'bg-green-100 text-green-800',
-    viewer: 'bg-gray-100 text-gray-800',
+    owner: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300',
+    admin: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300',
+    editor: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300',
+    viewer: 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300',
 };
 
 export default function TeamPage() {
@@ -148,9 +148,9 @@ export default function TeamPage() {
     if (currentPlan === 'free') {
         return (
             <div className="max-w-2xl mx-auto text-center py-12">
-                <Users className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                <h2 className="text-2xl font-bold text-gray-900 mb-2">Team Feature</h2>
-                <p className="text-gray-600 mb-6">
+                <Users className="w-16 h-16 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
+                <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Team Feature</h2>
+                <p className="text-gray-600 dark:text-gray-400 mb-6">
                     Upgrade to Pro or Agency to invite team members and collaborate on projects.
                 </p>
                 <Link
@@ -171,8 +171,8 @@ export default function TeamPage() {
             {/* Header */}
             <div className="flex items-center justify-between mb-8">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-900 mb-1">Team</h1>
-                    <p className="text-gray-600">
+                    <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-1">Team</h1>
+                    <p className="text-gray-600 dark:text-gray-400">
                         {members.length} member{members.length !== 1 ? 's' : ''} • {PLANS[currentPlan as keyof typeof PLANS]?.name} plan
                     </p>
                 </div>
@@ -189,29 +189,29 @@ export default function TeamPage() {
             {/* Owner - Always full access */}
             {ownerMember && (
                 <div className="mb-6">
-                    <h3 className="text-sm font-medium text-gray-500 mb-3 uppercase tracking-wider">Owner</h3>
-                    <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+                    <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-3 uppercase tracking-wider">Owner</h3>
+                    <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm p-4">
                         <div className="flex items-center justify-between">
                             <div className="flex items-center gap-4">
                                 <div className="w-12 h-12 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full flex items-center justify-center text-white font-semibold text-lg">
                                     {ownerMember.profiles?.full_name?.[0]?.toUpperCase() || '?'}
                                 </div>
                                 <div>
-                                    <p className="font-semibold text-gray-900">
+                                    <p className="font-semibold text-gray-900 dark:text-white">
                                         {ownerMember.profiles?.full_name || 'Unknown'}
                                         {ownerMember.profiles?.email === currentUserEmail && (
-                                            <span className="ml-2 text-xs text-gray-500">(you)</span>
+                                            <span className="ml-2 text-xs text-gray-500 dark:text-gray-400">(you)</span>
                                         )}
                                     </p>
-                                    <p className="text-sm text-gray-500">{ownerMember.profiles?.email}</p>
+                                    <p className="text-sm text-gray-500 dark:text-gray-400">{ownerMember.profiles?.email}</p>
                                 </div>
                             </div>
                             <div className="flex items-center gap-2">
-                                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-yellow-100 text-yellow-800 rounded-full text-sm font-medium">
+                                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300 rounded-full text-sm font-medium">
                                     <Crown className="w-4 h-4" />
                                     Owner
                                 </span>
-                                <span className="text-sm text-gray-500">Full access to all projects</span>
+                                <span className="text-sm text-gray-500 dark:text-gray-400">Full access to all projects</span>
                             </div>
                         </div>
                     </div>
@@ -220,19 +220,19 @@ export default function TeamPage() {
 
             {/* Team Members */}
             <div>
-                <h3 className="text-sm font-medium text-gray-500 mb-3 uppercase tracking-wider">Team Members</h3>
+                <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-3 uppercase tracking-wider">Team Members</h3>
 
                 {otherMembers.length === 0 ? (
-                    <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-8 text-center">
-                        <Users className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                        <p className="text-gray-600 mb-2">No team members yet</p>
-                        <p className="text-sm text-gray-500">
-                            Invite people from <Link href="/settings/team" className="text-indigo-600 hover:underline">Settings → Team</Link>
+                    <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm p-8 text-center">
+                        <Users className="w-12 h-12 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
+                        <p className="text-gray-600 dark:text-gray-400 mb-2">No team members yet</p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                            Invite people from <Link href="/settings/team" className="text-indigo-600 dark:text-indigo-400 hover:underline">Settings → Team</Link>
                         </p>
                     </div>
                 ) : (
-                    <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-                        <div className="divide-y divide-gray-100">
+                    <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
+                        <div className="divide-y divide-gray-100 dark:divide-gray-700">
                             {otherMembers.map((member) => (
                                 <div key={member.user_id} className="p-4">
                                     <div className="flex items-center justify-between">
@@ -241,10 +241,10 @@ export default function TeamPage() {
                                                 {member.profiles?.full_name?.[0]?.toUpperCase() || '?'}
                                             </div>
                                             <div>
-                                                <p className="font-semibold text-gray-900">
+                                                <p className="font-semibold text-gray-900 dark:text-white">
                                                     {member.profiles?.full_name || 'Unknown'}
                                                 </p>
-                                                <p className="text-sm text-gray-500">{member.profiles?.email}</p>
+                                                <p className="text-sm text-gray-500 dark:text-gray-400">{member.profiles?.email}</p>
                                             </div>
                                         </div>
 
@@ -253,8 +253,8 @@ export default function TeamPage() {
                                                 value={member.role}
                                                 onChange={(e) => handleRoleChange(member.user_id, e.target.value)}
                                                 disabled={updatingRole === member.user_id}
-                                                className={`appearance-none cursor-pointer pr-8 pl-3 py-1.5 rounded-lg text-sm font-medium border-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors ${member.role === 'editor' ? 'bg-green-50 border-green-200 text-green-700' :
-                                                        'bg-gray-50 border-gray-200 text-gray-700'
+                                                className={`appearance-none cursor-pointer pr-8 pl-3 py-1.5 rounded-lg text-sm font-medium border-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors ${member.role === 'editor' ? 'bg-green-50 dark:bg-green-900/30 border-green-200 dark:border-green-800 text-green-700 dark:text-green-300' :
+                                                        'bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300'
                                                     } ${updatingRole === member.user_id ? 'opacity-50' : ''}`}
                                             >
                                                 <option value="editor">Editor</option>
@@ -266,7 +266,7 @@ export default function TeamPage() {
 
                                     {/* Project Assignments */}
                                     <div className="mt-4 pl-16">
-                                        <p className="text-sm font-medium text-gray-700 mb-2">Assigned Projects:</p>
+                                        <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Assigned Projects:</p>
 
                                         {/* Assigned Projects with X to remove */}
                                         {member.assigned_projects.length > 0 && (
@@ -274,13 +274,13 @@ export default function TeamPage() {
                                                 {projects.filter(p => member.assigned_projects.includes(p.id)).map((project) => (
                                                     <span
                                                         key={project.id}
-                                                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-100 text-indigo-700 rounded-lg text-sm font-medium border border-indigo-200"
+                                                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 rounded-lg text-sm font-medium border border-indigo-200 dark:border-indigo-800"
                                                     >
                                                         <FolderKanban className="w-3.5 h-3.5" />
                                                         {project.name}
                                                         <button
                                                             onClick={() => handleProjectToggle(member.id, member.user_id, project.id, true)}
-                                                            className="ml-1 p-0.5 hover:bg-indigo-200 rounded-full transition-colors"
+                                                            className="ml-1 p-0.5 hover:bg-indigo-200 dark:hover:bg-indigo-800 rounded-full transition-colors"
                                                             title="Remove from project"
                                                         >
                                                             <X className="w-3.5 h-3.5" />
@@ -293,26 +293,26 @@ export default function TeamPage() {
                                         {/* Unassigned Projects as checkboxes */}
                                         {projects.filter(p => !member.assigned_projects.includes(p.id)).length > 0 && (
                                             <div className="space-y-1">
-                                                <p className="text-xs text-gray-500 mb-1">Add to project:</p>
+                                                <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Add to project:</p>
                                                 {projects.filter(p => !member.assigned_projects.includes(p.id)).map((project) => (
                                                     <label
                                                         key={project.id}
-                                                        className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 p-1 rounded"
+                                                        className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 p-1 rounded"
                                                     >
                                                         <input
                                                             type="checkbox"
                                                             checked={false}
                                                             onChange={() => handleProjectToggle(member.id, member.user_id, project.id, false)}
-                                                            className="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                                                            className="w-4 h-4 rounded border-gray-300 dark:border-gray-600 text-indigo-600 focus:ring-indigo-500 dark:bg-gray-700"
                                                         />
-                                                        <span className="text-sm text-gray-600">{project.name}</span>
+                                                        <span className="text-sm text-gray-600 dark:text-gray-300">{project.name}</span>
                                                     </label>
                                                 ))}
                                             </div>
                                         )}
 
                                         {member.assigned_projects.length === 0 && (
-                                            <p className="text-xs text-amber-600 flex items-center gap-1">
+                                            <p className="text-xs text-amber-600 dark:text-amber-400 flex items-center gap-1">
                                                 <AlertCircle className="w-3.5 h-3.5" />
                                                 No projects assigned - user cannot access any content
                                             </p>

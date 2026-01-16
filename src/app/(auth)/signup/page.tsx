@@ -77,22 +77,22 @@ function SignupForm() {
 
     if (showConfirmation) {
         return (
-            <Card className="shadow-xl border-0">
+            <Card className="shadow-xl border-0 dark:bg-gray-800 dark:border-gray-700">
                 <CardContent className="pt-8 pb-6">
                     <div className="text-center">
-                        <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                            <Mail className="w-8 h-8 text-green-600" />
+                        <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6 dark:bg-green-900/30">
+                            <Mail className="w-8 h-8 text-green-600 dark:text-green-400" />
                         </div>
-                        <h1 className="text-2xl font-bold text-gray-900 mb-2">Check your email</h1>
-                        <p className="text-gray-600 mb-6">
+                        <h1 className="text-2xl font-bold text-gray-900 mb-2 dark:text-white">Check your email</h1>
+                        <p className="text-gray-600 mb-6 dark:text-gray-300">
                             We've sent a confirmation link to<br />
-                            <strong className="text-gray-900">{email}</strong>
+                            <strong className="text-gray-900 dark:text-white">{email}</strong>
                         </p>
-                        <div className="bg-gray-50 rounded-lg p-4 mb-6">
+                        <div className="bg-gray-50 rounded-lg p-4 mb-6 dark:bg-gray-900/50 dark:border dark:border-gray-700">
                             <div className="flex items-start gap-3 text-left">
                                 <CheckCircle className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
-                                <div className="text-sm text-gray-600">
-                                    <p className="font-medium text-gray-900 mb-1">Next steps:</p>
+                                <div className="text-sm text-gray-600 dark:text-gray-400">
+                                    <p className="font-medium text-gray-900 mb-1 dark:text-gray-200">Next steps:</p>
                                     <ol className="list-decimal list-inside space-y-1">
                                         <li>Open the email we just sent you</li>
                                         <li>Click the confirmation link</li>
@@ -101,11 +101,11 @@ function SignupForm() {
                                 </div>
                             </div>
                         </div>
-                        <p className="text-sm text-gray-500">
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
                             Didn't receive the email?{' '}
                             <button
                                 onClick={() => setShowConfirmation(false)}
-                                className="text-indigo-600 hover:text-indigo-700 font-medium"
+                                className="text-indigo-600 hover:text-indigo-700 font-medium dark:text-indigo-400 dark:hover:text-indigo-300"
                             >
                                 Try again
                             </button>
@@ -117,16 +117,16 @@ function SignupForm() {
     }
 
     return (
-        <Card className="shadow-xl border-0">
+        <Card className="shadow-xl border-0 dark:bg-gray-800 dark:border-gray-700">
             <CardContent className="pt-8 pb-6">
                 <div className="text-center mb-8">
-                    <h1 className="text-2xl font-bold text-gray-900">Create your account</h1>
-                    <p className="mt-2 text-gray-600">Start mapping your content architecture</p>
+                    <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Create your account</h1>
+                    <p className="mt-2 text-gray-600 dark:text-gray-400">Start mapping your content architecture</p>
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-5">
                     {error && (
-                        <div className="p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm">
+                        <div className="p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm dark:bg-red-900/30 dark:border-red-800 dark:text-red-300">
                             {error}
                         </div>
                     )}
@@ -177,9 +177,9 @@ function SignupForm() {
                     </Button>
                 </form>
 
-                <p className="mt-6 text-center text-sm text-gray-600">
+                <p className="mt-6 text-center text-sm text-gray-600 dark:text-gray-400">
                     Already have an account?{' '}
-                    <Link href="/login" className="text-indigo-600 hover:text-indigo-700 font-medium">
+                    <Link href="/login" className="text-indigo-600 hover:text-indigo-700 font-medium dark:text-indigo-400 dark:hover:text-indigo-300">
                         Sign in
                     </Link>
                 </p>
@@ -190,7 +190,7 @@ function SignupForm() {
 
 export default function SignupPage() {
     return (
-        <Suspense fallback={<div className="animate-pulse bg-gray-100 rounded-xl h-96" />}>
+        <Suspense fallback={<div className="animate-pulse bg-gray-100 rounded-xl h-96 dark:bg-gray-800" />}>
             <SignupForm />
         </Suspense>
     );

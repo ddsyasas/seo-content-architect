@@ -42,9 +42,9 @@ export default function SettingsLayout({
     ];
 
     return (
-        <div className="min-h-screen bg-gray-50">
+        <div className="min-h-screen bg-gray-50 dark:bg-transparent">
             <div className="max-w-6xl mx-auto px-4 py-8">
-                <h1 className="text-2xl font-bold text-gray-900 mb-8">Settings</h1>
+                <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-8">Settings</h1>
 
                 <div className="flex flex-col md:flex-row gap-8">
                     {/* Sidebar */}
@@ -59,8 +59,8 @@ export default function SettingsLayout({
                                         <Link
                                             href={link.href}
                                             className={`flex items-center gap-3 px-4 py-3 rounded-lg font-medium transition-colors ${isActive
-                                                ? 'bg-indigo-50 text-indigo-700'
-                                                : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                                                ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300'
+                                                : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white'
                                                 }`}
                                         >
                                             <Icon className="w-5 h-5" />
@@ -74,7 +74,7 @@ export default function SettingsLayout({
 
                     {/* Content */}
                     <main className="flex-1 min-w-0">
-                        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+                        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm p-6">
                             {children}
                         </div>
                     </main>

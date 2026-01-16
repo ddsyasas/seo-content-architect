@@ -476,14 +476,14 @@ export function ArticleEditor({ projectId, nodeId }: ArticleEditorProps) {
     }
 
     return (
-        <div className="flex h-screen bg-white">
+        <div className="flex h-screen bg-white dark:bg-gray-900">
             {/* Main Editor */}
             <div className="flex-1 flex flex-col overflow-hidden">
                 {/* Header */}
-                <div className="flex items-center gap-2 sm:gap-4 px-3 sm:px-6 py-3 sm:py-4 border-b border-gray-200">
+                <div className="flex items-center gap-2 sm:gap-4 px-3 sm:px-6 py-3 sm:py-4 border-b border-gray-200 dark:border-gray-700">
                     <button
                         onClick={() => router.push(`/project/${projectId}`)}
-                        className="p-2 hover:bg-gray-100 rounded-lg transition-colors text-gray-600 shrink-0"
+                        className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors text-gray-600 dark:text-gray-400 shrink-0"
                     >
                         <ArrowLeft className="w-5 h-5" />
                     </button>
@@ -493,10 +493,10 @@ export function ArticleEditor({ projectId, nodeId }: ArticleEditorProps) {
                         value={title}
                         onChange={(e) => setTitle(e.target.value)}
                         placeholder="Article Title"
-                        className="flex-1 text-lg sm:text-2xl font-bold bg-transparent focus:outline-none text-gray-900 placeholder-gray-400 min-w-0"
+                        className="flex-1 text-lg sm:text-2xl font-bold bg-transparent focus:outline-none text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 min-w-0"
                     />
 
-                    <div className="hidden sm:flex items-center gap-4 text-sm text-gray-500">
+                    <div className="hidden sm:flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
                         <span className="flex items-center gap-1">
                             <FileText className="w-4 h-4" />
                             {wordCount} words
@@ -511,7 +511,7 @@ export function ArticleEditor({ projectId, nodeId }: ArticleEditorProps) {
 
                     <button
                         onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-                        className="lg:hidden p-2 hover:bg-gray-100 rounded-lg transition-colors text-gray-600 shrink-0"
+                        className="lg:hidden p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors text-gray-600 dark:text-gray-400 shrink-0"
                         title="Toggle Settings"
                     >
                         <Settings className="w-5 h-5" />
@@ -525,11 +525,11 @@ export function ArticleEditor({ projectId, nodeId }: ArticleEditorProps) {
 
                 {/* Node limit warning */}
                 {nodeLimitWarning && (
-                    <div className="mx-3 sm:mx-6 mt-2 px-4 py-2 bg-amber-50 border border-amber-200 rounded-lg flex items-center justify-between gap-2">
-                        <span className="text-amber-800 text-sm">{nodeLimitWarning}</span>
+                    <div className="mx-3 sm:mx-6 mt-2 px-4 py-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg flex items-center justify-between gap-2">
+                        <span className="text-amber-800 dark:text-amber-300 text-sm">{nodeLimitWarning}</span>
                         <button
                             onClick={() => setNodeLimitWarning(null)}
-                            className="text-amber-600 hover:text-amber-800 font-bold shrink-0"
+                            className="text-amber-600 dark:text-amber-400 hover:text-amber-800 dark:hover:text-amber-300 font-bold shrink-0"
                         >
                             ×
                         </button>
@@ -561,20 +561,20 @@ export function ArticleEditor({ projectId, nodeId }: ArticleEditorProps) {
 
             {/* Sidebar */}
             <div className={cn(
-                'fixed right-0 top-0 h-full w-80 bg-white border-l border-gray-200 overflow-y-auto z-50 transform transition-transform duration-200 lg:relative lg:translate-x-0',
+                'fixed right-0 top-0 h-full w-80 bg-white dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700 overflow-y-auto z-50 transform transition-transform duration-200 lg:relative lg:translate-x-0',
                 isSidebarOpen ? 'translate-x-0' : 'translate-x-full'
             )}>
                 <div className="p-4 space-y-6">
                     {/* SEO Score Panel - At the top for visibility */}
                     <SEOScorePanel score={seoScore} />
 
-                    <hr className="border-gray-200" />
+                    <hr className="border-gray-200 dark:border-gray-700" />
 
                     {/* SEO Settings */}
-                    <h3 className="font-semibold text-gray-900">SEO Settings</h3>
+                    <h3 className="font-semibold text-gray-900 dark:text-white">SEO Settings</h3>
 
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                             Target Keyword
                         </label>
                         <Input
@@ -585,7 +585,7 @@ export function ArticleEditor({ projectId, nodeId }: ArticleEditorProps) {
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                             SEO Title
                         </label>
                         <Input
@@ -593,13 +593,13 @@ export function ArticleEditor({ projectId, nodeId }: ArticleEditorProps) {
                             onChange={(e) => setSeoTitle(e.target.value)}
                             placeholder="Page title for search engines"
                         />
-                        <p className="text-xs text-gray-500 mt-1">
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                             {seoTitle.length}/60 characters
                         </p>
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                             SEO Description
                         </label>
                         <textarea
@@ -607,35 +607,35 @@ export function ArticleEditor({ projectId, nodeId }: ArticleEditorProps) {
                             onChange={(e) => setSeoDescription(e.target.value)}
                             placeholder="Meta description for search engines"
                             rows={3}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white bg-white dark:bg-gray-700 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                         />
-                        <p className="text-xs text-gray-500 mt-1">
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                             {seoDescription.length}/160 characters
                         </p>
                     </div>
 
-                    <hr className="border-gray-200" />
+                    <hr className="border-gray-200 dark:border-gray-700" />
 
-                    <h3 className="font-semibold text-gray-900">Article Settings</h3>
+                    <h3 className="font-semibold text-gray-900 dark:text-white">Article Settings</h3>
 
                     {/* Domain Warning / URL Preview */}
                     {!project?.domain ? (
-                        <div className="p-3 rounded-lg bg-amber-50 border border-amber-200">
-                            <p className="text-sm text-amber-800 font-medium mb-1">
+                        <div className="p-3 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
+                            <p className="text-sm text-amber-800 dark:text-amber-300 font-medium mb-1">
                                 ⚠️ Project domain not set
                             </p>
-                            <p className="text-xs text-amber-600">
+                            <p className="text-xs text-amber-600 dark:text-amber-400">
                                 Set the domain in Project Settings (3-dot menu on project card) to enable URL previews and auto-linking.
                             </p>
                         </div>
                     ) : (
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                                 URL Preview
                             </label>
-                            <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg text-sm">
-                                <Globe className="w-4 h-4 text-gray-400" />
-                                <span className="text-gray-600">
+                            <div className="flex items-center gap-2 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg text-sm">
+                                <Globe className="w-4 h-4 text-gray-400 dark:text-gray-500" />
+                                <span className="text-gray-600 dark:text-gray-300">
                                     {project.domain}/{slug || 'slug'}
                                 </span>
                             </div>
@@ -644,7 +644,7 @@ export function ArticleEditor({ projectId, nodeId }: ArticleEditorProps) {
 
                     {/* Slug */}
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                             Slug
                         </label>
                         <div className="flex gap-2">
@@ -666,7 +666,7 @@ export function ArticleEditor({ projectId, nodeId }: ArticleEditorProps) {
 
                     {/* Node Type */}
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                             Content Type
                         </label>
                         <div className="grid grid-cols-2 gap-2">
@@ -678,8 +678,8 @@ export function ArticleEditor({ projectId, nodeId }: ArticleEditorProps) {
                                     className={cn(
                                         'px-3 py-2 text-sm rounded-lg border transition-colors',
                                         nodeType === type
-                                            ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
-                                            : 'border-gray-200 hover:border-gray-300 text-gray-600'
+                                            ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300'
+                                            : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500 text-gray-600 dark:text-gray-400'
                                     )}
                                 >
                                     {NODE_TYPE_LABELS[type]}
@@ -690,7 +690,7 @@ export function ArticleEditor({ projectId, nodeId }: ArticleEditorProps) {
 
                     {/* Status */}
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                             Status
                         </label>
                         <div className="grid grid-cols-2 gap-2">
@@ -702,8 +702,8 @@ export function ArticleEditor({ projectId, nodeId }: ArticleEditorProps) {
                                     className={cn(
                                         'px-3 py-2 text-sm rounded-lg border transition-colors',
                                         status === s
-                                            ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
-                                            : 'border-gray-200 hover:border-gray-300 text-gray-600'
+                                            ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300'
+                                            : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500 text-gray-600 dark:text-gray-400'
                                     )}
                                 >
                                     {STATUS_LABELS[s]}

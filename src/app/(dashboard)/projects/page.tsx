@@ -154,8 +154,8 @@ export default function DashboardPage() {
             {/* Header */}
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-900">Projects</h1>
-                    <p className="text-gray-600 mt-1">
+                    <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Projects</h1>
+                    <p className="text-gray-600 dark:text-gray-400 mt-1">
                         {limits && (
                             <span>
                                 {ownedProjects.length} of {limits.limits.projects >= 999999 ? '∞' : limits.limits.projects} projects
@@ -177,7 +177,7 @@ export default function DashboardPage() {
                         </Button>
                     </Link>
                 ) : !limits?.canCreateProjects ? (
-                    <div className="text-sm text-gray-500 flex items-center gap-1">
+                    <div className="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-1">
                         <AlertCircle className="w-4 h-4" />
                         Team members can't create projects
                     </div>
@@ -186,11 +186,11 @@ export default function DashboardPage() {
 
             {/* Limit Warning */}
             {isAtProjectLimit && limits && (
-                <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-lg flex items-start gap-3">
-                    <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                <div className="mb-6 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg flex items-start gap-3">
+                    <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
                     <div>
-                        <p className="font-medium text-amber-800">Project limit reached</p>
-                        <p className="text-sm text-amber-700 mt-1">
+                        <p className="font-medium text-amber-800 dark:text-amber-300">Project limit reached</p>
+                        <p className="text-sm text-amber-700 dark:text-amber-400 mt-1">
                             Your {limits.plan} plan allows {limits.limits.projects} project{limits.limits.projects > 1 ? 's' : ''}.{' '}
                             <Link href="/settings/subscription" className="underline font-medium">Upgrade your plan</Link> to create more.
                         </p>
@@ -201,13 +201,13 @@ export default function DashboardPage() {
             {/* Search */}
             <div className="mb-6 max-w-md">
                 <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" />
                     <input
                         type="text"
                         placeholder="Search projects..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                        className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white bg-white dark:bg-gray-800 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
                     />
                 </div>
             </div>
@@ -216,7 +216,7 @@ export default function DashboardPage() {
             {isLoading && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                     {[...Array(6)].map((_, i) => (
-                        <div key={i} className="h-64 bg-gray-100 rounded-xl animate-pulse" />
+                        <div key={i} className="h-64 bg-gray-100 dark:bg-gray-800 rounded-xl animate-pulse" />
                     ))}
                 </div>
             )}
@@ -224,11 +224,11 @@ export default function DashboardPage() {
             {/* Empty state */}
             {!isLoading && projects.length === 0 && (
                 <div className="text-center py-16">
-                    <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-indigo-100 mb-4">
-                        <FolderOpen className="w-8 h-8 text-indigo-600" />
+                    <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-indigo-100 dark:bg-indigo-900/30 mb-4">
+                        <FolderOpen className="w-8 h-8 text-indigo-600 dark:text-indigo-400" />
                     </div>
-                    <h2 className="text-lg font-semibold text-gray-900">No projects yet</h2>
-                    <p className="text-gray-600 mt-1 mb-6">Create your first project to start mapping content architecture</p>
+                    <h2 className="text-lg font-semibold text-gray-900 dark:text-white">No projects yet</h2>
+                    <p className="text-gray-600 dark:text-gray-400 mt-1 mb-6">Create your first project to start mapping content architecture</p>
                     {canCreate && (
                         <Button onClick={() => setIsCreateModalOpen(true)}>
                             <Plus className="w-4 h-4" />
@@ -241,7 +241,7 @@ export default function DashboardPage() {
             {/* No search results */}
             {!isLoading && projects.length > 0 && filteredProjects.length === 0 && (
                 <div className="text-center py-16">
-                    <p className="text-gray-600">No projects found matching "{searchQuery}"</p>
+                    <p className="text-gray-600 dark:text-gray-400">No projects found matching "{searchQuery}"</p>
                 </div>
             )}
 

@@ -38,8 +38,8 @@ const roleOptions = [
 ];
 
 const roleBadgeColors: Record<string, string> = {
-    editor: 'bg-green-100 text-green-800',
-    viewer: 'bg-gray-100 text-gray-800',
+    editor: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300',
+    viewer: 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300',
 };
 
 export default function SettingsTeamPage() {
@@ -246,9 +246,9 @@ export default function SettingsTeamPage() {
     if (currentPlan === 'free') {
         return (
             <div className="text-center py-8">
-                <AlertCircle className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-                <h2 className="text-xl font-semibold text-gray-900 mb-2">Team Feature</h2>
-                <p className="text-gray-600 mb-4">
+                <AlertCircle className="w-12 h-12 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">Team Feature</h2>
+                <p className="text-gray-600 dark:text-gray-400 mb-4">
                     Upgrade to Pro or Agency to invite team members.
                 </p>
                 <Link
@@ -268,25 +268,25 @@ export default function SettingsTeamPage() {
     return (
         <div className="space-y-8">
             <div>
-                <h2 className="text-xl font-semibold text-gray-900 mb-1">Team</h2>
-                <p className="text-gray-600">
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-1">Team</h2>
+                <p className="text-gray-600 dark:text-gray-400">
                     Invite team members and manage access • {acceptedMemberCount} of {teamLimit} members
                 </p>
             </div>
 
             {/* Invite Form */}
-            <div className="bg-gray-50 rounded-xl p-6 border border-gray-200">
-                <h3 className="font-semibold text-gray-900 mb-4">
+            <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
+                <h3 className="font-semibold text-gray-900 dark:text-white mb-4">
                     <UserPlus className="w-5 h-5 inline mr-2" />
                     Invite New Member
                 </h3>
 
                 {isAtLimit ? (
-                    <div className="flex items-start gap-3 text-amber-800 bg-amber-50 p-4 rounded-lg">
+                    <div className="flex items-start gap-3 text-amber-800 dark:text-amber-300 bg-amber-50 dark:bg-amber-900/20 p-4 rounded-lg border border-amber-200 dark:border-amber-800">
                         <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
                         <div>
                             <p className="font-medium">Team limit reached</p>
-                            <p className="text-sm mt-1">
+                            <p className="text-sm mt-1 text-amber-700 dark:text-amber-400">
                                 Your {PLANS[currentPlan as keyof typeof PLANS]?.name} plan allows {teamLimit} team members.
                                 <Link href="/settings/subscription" className="ml-1 underline">Upgrade</Link>
                             </p>
@@ -295,20 +295,20 @@ export default function SettingsTeamPage() {
                 ) : (
                     <form onSubmit={handleInvite} className="space-y-4">
                         {inviteError && (
-                            <div className="bg-red-50 text-red-700 p-3 rounded-lg text-sm">
+                            <div className="bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 p-3 rounded-lg text-sm border border-red-200 dark:border-red-800">
                                 {inviteError}
                             </div>
                         )}
 
                         {inviteSuccess && (
-                            <div className="bg-green-50 text-green-700 p-3 rounded-lg text-sm">
+                            <div className="bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 p-3 rounded-lg text-sm border border-green-200 dark:border-green-800">
                                 {inviteSuccess}
                             </div>
                         )}
 
                         <div className="grid gap-4 md:grid-cols-2">
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                                     Email Address
                                 </label>
                                 <input
@@ -316,18 +316,18 @@ export default function SettingsTeamPage() {
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
                                     placeholder="colleague@example.com"
-                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white bg-white dark:bg-gray-700 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                                     required
                                 />
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                                     Role
                                 </label>
                                 <select
                                     value={role}
                                     onChange={(e) => setRole(e.target.value)}
-                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white bg-white dark:bg-gray-700 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                                 >
                                     {roleOptions.map((opt) => (
                                         <option key={opt.value} value={opt.value}>
@@ -357,11 +357,11 @@ export default function SettingsTeamPage() {
             {/* Accepted Team Members */}
             {members.filter(m => m.role !== 'owner').length > 0 && (
                 <div>
-                    <h3 className="font-semibold text-gray-900 mb-4">
+                    <h3 className="font-semibold text-gray-900 dark:text-white mb-4">
                         <Users className="w-5 h-5 inline mr-2" />
                         Team Members ({acceptedMemberCount})
                     </h3>
-                    <div className="bg-white rounded-xl border border-gray-200 divide-y divide-gray-100">
+                    <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 divide-y divide-gray-100 dark:divide-gray-700">
                         {members.filter(m => m.role !== 'owner').map((member) => (
                             <div key={member.user_id} className="p-4 flex items-center justify-between">
                                 <div className="flex items-center gap-4">
@@ -369,11 +369,11 @@ export default function SettingsTeamPage() {
                                         {member.profiles?.full_name?.[0]?.toUpperCase() || member.profiles?.email?.[0]?.toUpperCase() || '?'}
                                     </div>
                                     <div>
-                                        <p className="font-medium text-gray-900">
+                                        <p className="font-medium text-gray-900 dark:text-white">
                                             {member.profiles?.full_name || member.profiles?.email || 'Unknown'}
                                         </p>
                                         {member.profiles?.full_name && (
-                                            <p className="text-sm text-gray-500">{member.profiles.email}</p>
+                                            <p className="text-sm text-gray-500 dark:text-gray-400">{member.profiles.email}</p>
                                         )}
                                     </div>
                                 </div>
@@ -392,10 +392,10 @@ export default function SettingsTeamPage() {
                                     </select>
                                     <button
                                         onClick={() => handleRemoveMember(member)}
-                                        className="p-2 hover:bg-red-50 rounded-lg transition-colors"
+                                        className="p-2 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
                                         title="Remove member"
                                     >
-                                        <Trash2 className="w-4 h-4 text-gray-400 hover:text-red-500" />
+                                        <Trash2 className="w-4 h-4 text-gray-400 hover:text-red-500 dark:hover:text-red-400" />
                                     </button>
                                 </div>
                             </div>
@@ -407,20 +407,20 @@ export default function SettingsTeamPage() {
             {/* Pending Invitations */}
             {invitations.length > 0 && (
                 <div>
-                    <h3 className="font-semibold text-gray-900 mb-4">
+                    <h3 className="font-semibold text-gray-900 dark:text-white mb-4">
                         <Clock className="w-5 h-5 inline mr-2" />
                         Pending Invitations ({invitations.length})
                     </h3>
-                    <div className="bg-white rounded-xl border border-gray-200 divide-y divide-gray-100">
+                    <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 divide-y divide-gray-100 dark:divide-gray-700">
                         {invitations.map((inv) => (
                             <div key={inv.id} className="p-4 flex items-center justify-between">
                                 <div className="flex items-center gap-4">
-                                    <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center">
-                                        <Mail className="w-5 h-5 text-gray-400" />
+                                    <div className="w-10 h-10 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center">
+                                        <Mail className="w-5 h-5 text-gray-400 dark:text-gray-500" />
                                     </div>
                                     <div>
-                                        <p className="font-medium text-gray-900">{inv.email}</p>
-                                        <p className="text-sm text-gray-500 flex items-center gap-1">
+                                        <p className="font-medium text-gray-900 dark:text-white">{inv.email}</p>
+                                        <p className="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-1">
                                             <Clock className="w-3 h-3" />
                                             Expires {new Date(inv.expires_at).toLocaleDateString()}
                                         </p>
@@ -433,21 +433,21 @@ export default function SettingsTeamPage() {
                                     </span>
                                     <button
                                         onClick={() => copyInviteLink(inv.token)}
-                                        className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                                        className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
                                         title="Copy invite link"
                                     >
                                         {copiedToken === inv.token ? (
-                                            <Check className="w-4 h-4 text-green-600" />
+                                            <Check className="w-4 h-4 text-green-600 dark:text-green-400" />
                                         ) : (
-                                            <Copy className="w-4 h-4 text-gray-500" />
+                                            <Copy className="w-4 h-4 text-gray-500 dark:text-gray-400" />
                                         )}
                                     </button>
                                     <button
                                         onClick={() => handleDeleteInvitation(inv.id, inv.email, inv.project_id)}
-                                        className="p-2 hover:bg-red-50 rounded-lg transition-colors"
+                                        className="p-2 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
                                         title="Cancel invitation"
                                     >
-                                        <Trash2 className="w-4 h-4 text-gray-400 hover:text-red-500" />
+                                        <Trash2 className="w-4 h-4 text-gray-400 hover:text-red-500 dark:hover:text-red-400" />
                                     </button>
                                 </div>
                             </div>
@@ -457,8 +457,8 @@ export default function SettingsTeamPage() {
             )}
 
             {/* Link to Dashboard Team */}
-            <div className="bg-indigo-50 rounded-xl p-4 border border-indigo-100">
-                <p className="text-indigo-800">
+            <div className="bg-indigo-50 dark:bg-indigo-900/20 rounded-xl p-4 border border-indigo-100 dark:border-indigo-800">
+                <p className="text-indigo-800 dark:text-indigo-300">
                     💡 <strong>Tip:</strong> Go to{' '}
                     <Link href="/team" className="underline font-medium">Dashboard → Team</Link>{' '}
                     to assign team members to specific projects.

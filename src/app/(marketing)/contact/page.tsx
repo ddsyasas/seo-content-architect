@@ -136,10 +136,10 @@ export default function ContactPage() {
             {/* Hero */}
             <section className="py-16 md:py-20">
                 <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-                    <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
+                    <h1 className="text-4xl md:text-5xl font-bold text-gray-900 dark:text-white mb-4">
                         Get in Touch
                     </h1>
-                    <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+                    <p className="text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
                         Have a question or want to learn more about SyncSEO? We&apos;d love to hear from you.
                     </p>
                 </div>
@@ -151,43 +151,43 @@ export default function ContactPage() {
                     <div className="grid lg:grid-cols-2 gap-12">
                         {/* Contact Information */}
                         <div>
-                            <h2 className="text-2xl font-bold text-gray-900 mb-6">Contact Information</h2>
-                            <p className="text-gray-600 mb-8">
+                            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">Contact Information</h2>
+                            <p className="text-gray-600 dark:text-gray-300 mb-8">
                                 Reach out to us through any of the following channels. We typically respond within 24 hours.
                             </p>
 
                             <div className="space-y-6">
                                 <div className="flex items-start gap-4">
-                                    <div className="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center shrink-0">
-                                        <Mail className="w-6 h-6 text-indigo-600" />
+                                    <div className="w-12 h-12 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg flex items-center justify-center shrink-0">
+                                        <Mail className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
                                     </div>
                                     <div>
-                                        <h3 className="font-semibold text-gray-900">Email</h3>
-                                        <a href="mailto:hi@syncseo.io" className="text-indigo-600 hover:text-indigo-700">
+                                        <h3 className="font-semibold text-gray-900 dark:text-white">Email</h3>
+                                        <a href="mailto:hi@syncseo.io" className="text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300">
                                             hi@syncseo.io
                                         </a>
                                     </div>
                                 </div>
 
                                 <div className="flex items-start gap-4">
-                                    <div className="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center shrink-0">
-                                        <Phone className="w-6 h-6 text-indigo-600" />
+                                    <div className="w-12 h-12 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg flex items-center justify-center shrink-0">
+                                        <Phone className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
                                     </div>
                                     <div>
-                                        <h3 className="font-semibold text-gray-900">Phone</h3>
-                                        <a href="tel:+393884095330" className="text-indigo-600 hover:text-indigo-700">
+                                        <h3 className="font-semibold text-gray-900 dark:text-white">Phone</h3>
+                                        <a href="tel:+393884095330" className="text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300">
                                             +39 388 409 5330
                                         </a>
                                     </div>
                                 </div>
 
                                 <div className="flex items-start gap-4">
-                                    <div className="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center shrink-0">
-                                        <MapPin className="w-6 h-6 text-indigo-600" />
+                                    <div className="w-12 h-12 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg flex items-center justify-center shrink-0">
+                                        <MapPin className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
                                     </div>
                                     <div>
-                                        <h3 className="font-semibold text-gray-900">Address</h3>
-                                        <p className="text-gray-600">
+                                        <h3 className="font-semibold text-gray-900 dark:text-white">Address</h3>
+                                        <p className="text-gray-600 dark:text-gray-300">
                                             Via del Carpentiere, 32 unit 7<br />
                                             40138 BOLOGNA BO<br />
                                             Italy
@@ -197,33 +197,33 @@ export default function ContactPage() {
                             </div>
 
                             {/* Business Hours */}
-                            <div className="mt-10 p-6 bg-gray-50 rounded-xl border border-gray-200">
-                                <h3 className="font-semibold text-gray-900 mb-2">Business Hours</h3>
-                                <p className="text-gray-600 text-sm">
+                            <div className="mt-10 p-6 bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
+                                <h3 className="font-semibold text-gray-900 dark:text-white mb-2">Business Hours</h3>
+                                <p className="text-gray-600 dark:text-gray-300 text-sm">
                                     Monday - Friday: 9:00 AM - 6:00 PM (CET)<br />
                                     Saturday - Sunday: Closed
                                 </p>
                             </div>
 
                             {/* Where messages go info */}
-                            <div className="mt-6 p-4 bg-indigo-50 rounded-lg border border-indigo-100">
-                                <p className="text-sm text-indigo-800">
+                            <div className="mt-6 p-4 bg-indigo-50 dark:bg-indigo-900/30 rounded-lg border border-indigo-100 dark:border-indigo-800">
+                                <p className="text-sm text-indigo-800 dark:text-indigo-300">
                                     <strong>Note:</strong> Messages submitted through this form are sent directly to our support team at hi@syncseo.io
                                 </p>
                             </div>
                         </div>
 
                         {/* Contact Form */}
-                        <div className="bg-white rounded-2xl border border-gray-200 p-8 shadow-sm">
-                            <h2 className="text-2xl font-bold text-gray-900 mb-6">Send us a Message</h2>
+                        <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-8 shadow-sm">
+                            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">Send us a Message</h2>
 
                             {isSubmitted ? (
                                 <div className="text-center py-12">
-                                    <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                                        <CheckCircle className="w-8 h-8 text-green-600" />
+                                    <div className="w-16 h-16 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+                                        <CheckCircle className="w-8 h-8 text-green-600 dark:text-green-400" />
                                     </div>
-                                    <h3 className="text-xl font-semibold text-gray-900 mb-2">Message Sent!</h3>
-                                    <p className="text-gray-600 mb-6">
+                                    <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">Message Sent!</h3>
+                                    <p className="text-gray-600 dark:text-gray-300 mb-6">
                                         Thank you for reaching out. We&apos;ll get back to you within 24 hours.
                                     </p>
                                     <Button
@@ -236,14 +236,14 @@ export default function ContactPage() {
                             ) : (
                                 <form onSubmit={handleSubmit} className="space-y-6">
                                     {error && (
-                                        <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+                                        <div className="p-4 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-lg text-red-700 dark:text-red-300 text-sm">
                                             {error}
                                         </div>
                                     )}
 
                                     <div className="grid sm:grid-cols-2 gap-4">
                                         <div>
-                                            <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
+                                            <label htmlFor="name" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                                 Name <span className="text-red-500">*</span>
                                             </label>
                                             <input
@@ -253,12 +253,12 @@ export default function ContactPage() {
                                                 value={formData.name}
                                                 onChange={handleChange}
                                                 required
-                                                className="w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-900 bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors placeholder:text-gray-400"
+                                                className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white bg-white dark:bg-gray-700 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors placeholder:text-gray-400 dark:placeholder:text-gray-500"
                                                 placeholder="Your name"
                                             />
                                         </div>
                                         <div>
-                                            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+                                            <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                                 Email <span className="text-red-500">*</span>
                                             </label>
                                             <input
@@ -268,14 +268,14 @@ export default function ContactPage() {
                                                 value={formData.email}
                                                 onChange={handleChange}
                                                 required
-                                                className="w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-900 bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors placeholder:text-gray-400"
+                                                className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white bg-white dark:bg-gray-700 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors placeholder:text-gray-400 dark:placeholder:text-gray-500"
                                                 placeholder="your@email.com"
                                             />
                                         </div>
                                     </div>
 
                                     <div>
-                                        <label htmlFor="subject" className="block text-sm font-medium text-gray-700 mb-2">
+                                        <label htmlFor="subject" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                             Subject
                                         </label>
                                         <select
@@ -283,7 +283,7 @@ export default function ContactPage() {
                                             name="subject"
                                             value={formData.subject}
                                             onChange={handleChange}
-                                            className="w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-900 bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
+                                            className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white bg-white dark:bg-gray-700 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
                                         >
                                             <option value="">Select a topic</option>
                                             <option value="General Inquiry">General Inquiry</option>
@@ -296,7 +296,7 @@ export default function ContactPage() {
                                     </div>
 
                                     <div>
-                                        <label htmlFor="message" className="block text-sm font-medium text-gray-700 mb-2">
+                                        <label htmlFor="message" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                             Message <span className="text-red-500">*</span>
                                         </label>
                                         <textarea
@@ -306,7 +306,7 @@ export default function ContactPage() {
                                             onChange={handleChange}
                                             required
                                             rows={5}
-                                            className="w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-900 bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors resize-none placeholder:text-gray-400"
+                                            className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white bg-white dark:bg-gray-700 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors resize-none placeholder:text-gray-400 dark:placeholder:text-gray-500"
                                             placeholder="How can we help you?"
                                         />
                                     </div>
@@ -335,9 +335,9 @@ export default function ContactPage() {
                                         )}
                                     </Button>
 
-                                    <p className="text-xs text-gray-500 text-center">
+                                    <p className="text-xs text-gray-500 dark:text-gray-400 text-center">
                                         By submitting this form, you agree to our{' '}
-                                        <a href="/legal/privacy-policy" className="text-indigo-600 hover:underline">
+                                        <a href="/legal/privacy-policy" className="text-indigo-600 dark:text-indigo-400 hover:underline">
                                             Privacy Policy
                                         </a>.
                                     </p>
