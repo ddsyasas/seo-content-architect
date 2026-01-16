@@ -14,6 +14,7 @@ import ReactFlow, {
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { v4 as uuidv4 } from 'uuid';
+import { toPng } from 'html-to-image';
 
 import { useCanvasStore, dbNodeToFlowNode, dbEdgeToFlowEdge } from '@/lib/store/canvas-store';
 import { useCanvasHistoryStore } from '@/lib/store/canvas-history-store';
@@ -54,6 +55,7 @@ function CanvasEditorInner({ projectId, userRole = 'owner' }: CanvasEditorProps)
     const { fitView, zoomIn, zoomOut, getViewport } = useReactFlow();
     const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
     const isDraggingRef = useRef(false);
+    const canvasRef = useRef<HTMLDivElement>(null);
 
     // Refs to track current state for history (avoids stale closures)
     const nodesRef = useRef(useCanvasStore.getState().nodes);
@@ -505,6 +507,83 @@ function CanvasEditorInner({ projectId, userRole = 'owner' }: CanvasEditorProps)
         }
     }, [redo, setNodes, setEdges]);
 
+    // Handle export to PNG
+    const handleExportPNG = useCallback(async () => {
+        if (!canvasRef.current) return;
+
+        try {
+            // Find the ReactFlow viewport element
+            const viewport = canvasRef.current.querySelector('.react-flow__viewport') as HTMLElement;
+            if (!viewport) {
+                console.error('Could not find ReactFlow viewport');
+                return;
+            }
+
+            // Get the ReactFlow container for proper dimensions
+            const reactFlowWrapper = canvasRef.current.querySelector('.react-flow') as HTMLElement;
+            if (!reactFlowWrapper) return;
+
+            const dataUrl = await toPng(reactFlowWrapper, {
+                backgroundColor: '#f9fafb', // Light gray background
+                quality: 1,
+                pixelRatio: 2, // Higher quality
+            });
+
+            // Create download link
+            const link = document.createElement('a');
+            link.download = `canvas-${projectId}-${new Date().toISOString().split('T')[0]}.png`;
+            link.href = dataUrl;
+            link.click();
+        } catch (error) {
+            console.error('Failed to export PNG:', error);
+        }
+    }, [projectId]);
+
+    // Handle export to CSV
+    const handleExportCSV = useCallback(() => {
+        // Create CSV content for nodes
+        const nodeHeaders = ['ID', 'Type', 'Title', 'Status', 'Target Keyword', 'Slug', 'Position X', 'Position Y'];
+        const nodeRows = nodes.map(node => [
+            node.id,
+            node.type || '',
+            `"${(node.data?.title || '').replace(/"/g, '""')}"`,
+            node.data?.status || '',
+            `"${(node.data?.target_keyword || '').replace(/"/g, '""')}"`,
+            node.data?.slug || '',
+            Math.round(node.position?.x || 0),
+            Math.round(node.position?.y || 0),
+        ].join(','));
+
+        // Create CSV content for edges
+        const edgeHeaders = ['ID', 'Source Node', 'Target Node', 'Edge Type', 'Label'];
+        const edgeRows = edges.map(edge => [
+            edge.id,
+            edge.source,
+            edge.target,
+            edge.data?.edge_type || '',
+            `"${(String(edge.label || '')).replace(/"/g, '""')}"`,
+        ].join(','));
+
+        // Combine into a single CSV with sections
+        const csvContent = [
+            '--- NODES ---',
+            nodeHeaders.join(','),
+            ...nodeRows,
+            '',
+            '--- EDGES ---',
+            edgeHeaders.join(','),
+            ...edgeRows,
+        ].join('\n');
+
+        // Create and trigger download
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = `canvas-${projectId}-${new Date().toISOString().split('T')[0]}.csv`;
+        link.click();
+        URL.revokeObjectURL(link.href);
+    }, [nodes, edges, projectId]);
+
     // Keyboard handler for delete (nodes and edges) and undo/redo
     useEffect(() => {
         const handleKeyDown = async (e: KeyboardEvent) => {
@@ -734,7 +813,7 @@ function CanvasEditorInner({ projectId, userRole = 'owner' }: CanvasEditorProps)
     }
 
     return (
-        <div className="h-full relative">
+        <div className="h-full relative" ref={canvasRef}>
             {/* Limit error banner */}
             {limitError && (
                 <div className="absolute top-2 left-1/2 -translate-x-1/2 z-50 px-4 py-2 bg-amber-50 border border-amber-200 rounded-lg shadow-lg flex items-center gap-2 max-w-md">
@@ -755,6 +834,8 @@ function CanvasEditorInner({ projectId, userRole = 'owner' }: CanvasEditorProps)
                 onFitView={() => fitView({ padding: 0.2 })}
                 onUndo={handleUndo}
                 onRedo={handleRedo}
+                onExportPNG={handleExportPNG}
+                onExportCSV={handleExportCSV}
                 canUndo={canUndo}
                 canRedo={canRedo}
                 zoom={zoom}

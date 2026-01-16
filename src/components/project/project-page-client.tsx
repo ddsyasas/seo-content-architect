@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { ProjectTabs } from '@/components/project/project-tabs';
 import { ArticlesList } from '@/components/project/articles-list';
 import { CanvasEditor } from '@/components/canvas/canvas-editor';
@@ -13,7 +14,9 @@ interface ProjectPageClientProps {
 }
 
 export function ProjectPageClient({ projectId }: ProjectPageClientProps) {
-    const [activeTab, setActiveTab] = useState<'articles' | 'canvas'>('articles');
+    const searchParams = useSearchParams();
+    const initialTab = searchParams.get('tab') === 'canvas' ? 'canvas' : 'articles';
+    const [activeTab, setActiveTab] = useState<'articles' | 'canvas'>(initialTab);
     const [project, setProject] = useState<Project | null>(null);
     const [userRole, setUserRole] = useState<UserRole>('viewer');
     const [isLoading, setIsLoading] = useState(true);

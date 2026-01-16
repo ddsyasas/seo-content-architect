@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { v4 as uuidv4 } from 'uuid';
-import { ArrowLeft, Save, Clock, FileText, Globe, Settings } from 'lucide-react';
+import { ArrowLeft, Save, Clock, FileText, Globe, Settings, LayoutGrid } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { RichTextEditor } from '@/components/editor/rich-text-editor';
 import { SEOScorePanel } from '@/components/editor/seo-panel';
@@ -484,8 +484,18 @@ export function ArticleEditor({ projectId, nodeId }: ArticleEditorProps) {
                     <button
                         onClick={() => router.push(`/project/${projectId}`)}
                         className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors text-gray-600 dark:text-gray-400 shrink-0"
+                        title="Back to Articles"
                     >
                         <ArrowLeft className="w-5 h-5" />
+                    </button>
+
+                    <button
+                        onClick={() => router.push(`/project/${projectId}?tab=canvas`)}
+                        className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded-lg transition-colors shrink-0"
+                        title="View Canvas"
+                    >
+                        <LayoutGrid className="w-4 h-4" />
+                        <span>Canvas</span>
                     </button>
 
                     <input

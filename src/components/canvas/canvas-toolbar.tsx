@@ -1,6 +1,6 @@
 'use client';
 
-import { Plus, ChevronDown, Undo2, Redo2 } from 'lucide-react';
+import { Plus, ChevronDown, Undo2, Redo2, Download, Image, FileSpreadsheet } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils/helpers';
@@ -14,6 +14,8 @@ interface CanvasToolbarProps {
     onFitView: () => void;
     onUndo?: () => void;
     onRedo?: () => void;
+    onExportPNG?: () => void;
+    onExportCSV?: () => void;
     canUndo?: boolean;
     canRedo?: boolean;
     zoom: number;
@@ -27,12 +29,15 @@ export function CanvasToolbar({
     onFitView,
     onUndo,
     onRedo,
+    onExportPNG,
+    onExportCSV,
     canUndo = false,
     canRedo = false,
     zoom,
     canEdit = true
 }: CanvasToolbarProps) {
     const [isAddMenuOpen, setIsAddMenuOpen] = useState(false);
+    const [isExportMenuOpen, setIsExportMenuOpen] = useState(false);
 
     const nodeTypes: { type: NodeType; color: string }[] = [
         { type: 'pillar', color: 'bg-indigo-500' },
@@ -128,6 +133,51 @@ export function CanvasToolbar({
             <Button variant="outline" onClick={onFitView} size="sm">
                 Fit
             </Button>
+
+            {/* Export Dropdown */}
+            <div className="relative">
+                <Button
+                    variant="outline"
+                    onClick={() => setIsExportMenuOpen(!isExportMenuOpen)}
+                    size="sm"
+                    className="gap-1.5"
+                >
+                    <Download className="w-4 h-4" />
+                    Export
+                    <ChevronDown className={cn(
+                        'w-3 h-3 transition-transform',
+                        isExportMenuOpen && 'rotate-180'
+                    )} />
+                </Button>
+
+                {isExportMenuOpen && (
+                    <>
+                        <div className="fixed inset-0" onClick={() => setIsExportMenuOpen(false)} />
+                        <div className="absolute left-0 top-full mt-2 w-40 py-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg">
+                            <button
+                                onClick={() => {
+                                    onExportPNG?.();
+                                    setIsExportMenuOpen(false);
+                                }}
+                                className="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700"
+                            >
+                                <Image className="w-4 h-4" />
+                                Export as PNG
+                            </button>
+                            <button
+                                onClick={() => {
+                                    onExportCSV?.();
+                                    setIsExportMenuOpen(false);
+                                }}
+                                className="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700"
+                            >
+                                <FileSpreadsheet className="w-4 h-4" />
+                                Export as CSV
+                            </button>
+                        </div>
+                    </>
+                )}
+            </div>
         </div>
     );
 }
