@@ -66,6 +66,19 @@ function SignupForm() {
                 return;
             }
 
+            // Add user to Brevo (non-blocking - don't wait or show errors)
+            try {
+                fetch('/api/newsletter/subscribe-user', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, name: fullName }),
+                }).catch(() => {
+                    // Silently fail - don't block signup
+                });
+            } catch {
+                // Silently fail - Brevo integration shouldn't break signup
+            }
+
             // Show confirmation message
             setShowConfirmation(true);
         } catch (err) {

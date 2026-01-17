@@ -8,27 +8,42 @@ import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
 import { MegaMenu, SolutionsMenu, ResourcesMenu } from '@/components/marketing/mega-menu';
 import { PricingCards } from '@/components/pricing/PricingCard';
+import { NewsletterPopup } from '@/components/marketing/NewsletterPopup';
 
 export default function HomePage() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [openMenu, setOpenMenu] = useState<'solutions' | 'resources' | null>(null);
   const [mobileSubmenu, setMobileSubmenu] = useState<'solutions' | 'resources' | null>(null);
+  const [newsletterName, setNewsletterName] = useState('');
   const [email, setEmail] = useState('');
   const [isSubscribing, setIsSubscribing] = useState(false);
   const [subscribeMessage, setSubscribeMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   const handleSubscribe = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email) return;
+    if (!email || !newsletterName) return;
 
     setIsSubscribing(true);
     setSubscribeMessage(null);
 
-    // Simulate subscription (replace with actual API call)
     try {
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      setSubscribeMessage({ type: 'success', text: 'Thanks for subscribing! Check your inbox.' });
-      setEmail('');
+      const response = await fetch('/api/newsletter/subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, name: newsletterName }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        setSubscribeMessage({ type: 'success', text: data.message || 'Thanks for subscribing! Check your inbox.' });
+        setEmail('');
+        setNewsletterName('');
+        // Save to localStorage so popup doesn't show
+        localStorage.setItem('newsletter_subscribed', 'true');
+      } else {
+        setSubscribeMessage({ type: 'error', text: data.error || 'Something went wrong. Please try again.' });
+      }
     } catch {
       setSubscribeMessage({ type: 'error', text: 'Something went wrong. Please try again.' });
     } finally {
@@ -348,19 +363,29 @@ export default function HomePage() {
             Get weekly insights on content architecture, internal linking strategies, and SEO best practices delivered straight to your inbox.
           </p>
 
-          <form onSubmit={handleSubscribe} className="mt-8 flex flex-col sm:flex-row gap-3 max-w-lg mx-auto">
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="Enter your email address"
-              className="flex-1 px-5 py-4 rounded-xl border-2 border-transparent bg-white/10 backdrop-blur-sm text-white placeholder-indigo-200 focus:outline-none focus:border-white/50 focus:bg-white/20 transition-all"
-              required
-            />
+          <form onSubmit={handleSubscribe} className="mt-8 flex flex-col gap-3 max-w-lg mx-auto">
+            <div className="flex flex-col sm:flex-row gap-3">
+              <input
+                type="text"
+                value={newsletterName}
+                onChange={(e) => setNewsletterName(e.target.value)}
+                placeholder="Your name"
+                className="flex-1 px-5 py-4 rounded-xl border-2 border-transparent bg-white/10 backdrop-blur-sm text-white placeholder-indigo-200 focus:outline-none focus:border-white/50 focus:bg-white/20 transition-all"
+                required
+              />
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="Your email"
+                className="flex-1 px-5 py-4 rounded-xl border-2 border-transparent bg-white/10 backdrop-blur-sm text-white placeholder-indigo-200 focus:outline-none focus:border-white/50 focus:bg-white/20 transition-all"
+                required
+              />
+            </div>
             <Button
               type="submit"
               disabled={isSubscribing}
-              className="px-8 py-4 bg-white text-indigo-600 hover:bg-indigo-50 font-semibold rounded-xl transition-all"
+              className="w-full sm:w-auto sm:mx-auto px-8 py-4 bg-white text-indigo-600 hover:bg-indigo-50 font-semibold rounded-xl transition-all"
             >
               {isSubscribing ? 'Subscribing...' : 'Subscribe'}
             </Button>
@@ -458,6 +483,9 @@ export default function HomePage() {
           </div>
         </div>
       </footer>
+
+      {/* Newsletter Popup for new visitors */}
+      <NewsletterPopup />
     </div>
   );
 }
