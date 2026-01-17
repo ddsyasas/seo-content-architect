@@ -38,6 +38,7 @@ const PLANS_BASE = {
             export: false,
             integrations: false,
             support: 'community',
+            publicSharing: false,
         },
     },
     pro: {
@@ -54,6 +55,7 @@ const PLANS_BASE = {
             export: true,
             integrations: false, // future
             support: 'email',
+            publicSharing: true,
         },
     },
     agency: {
@@ -70,6 +72,7 @@ const PLANS_BASE = {
             export: true,
             integrations: true, // future: all + API access
             support: 'priority',
+            publicSharing: true,
         },
     },
 } as const;

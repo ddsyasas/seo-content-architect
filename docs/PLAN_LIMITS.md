@@ -9,32 +9,44 @@ This document explains how plan limits work in SyncSEO, where they're configured
 1. [Overview](#overview)
 2. [Plan Configuration](#plan-configuration)
 3. [Limit Enforcement Points](#limit-enforcement-points)
-4. [API Endpoints](#api-endpoints)
-5. [Database Schema](#database-schema)
-6. [How Limits Work for Users](#how-limits-work-for-users)
-7. [How to Modify Limits](#how-to-modify-limits)
-8. [Testing Limits](#testing-limits)
-9. [Important Notes & Edge Cases](#important-notes--edge-cases)
+4. [Feature Restrictions](#feature-restrictions)
+5. [API Endpoints](#api-endpoints)
+6. [Database Schema](#database-schema)
+7. [How Limits Work for Users](#how-limits-work-for-users)
+8. [How to Modify Limits](#how-to-modify-limits)
+9. [Testing Limits](#testing-limits)
+10. [Important Notes & Edge Cases](#important-notes--edge-cases)
 
 ---
 
 ## Overview
 
-SyncSEO has three subscription tiers with different resource limits:
+SyncSEO has three subscription tiers with different resource limits and feature restrictions:
 
-| Resource | Free | Pro ($19/mo) | Agency ($49/mo) |
+### Resource Limits (Numeric)
+
+| Resource | Free | Pro ($7/mo) | Agency ($49/mo) |
 |----------|------|--------------|-----------------|
 | Projects | 1 | 5 | Unlimited (999,999) |
 | Nodes per project | 20 | 200 | Unlimited (999,999) |
 | Articles per project | 10 | 100 | Unlimited (999,999) |
 | Team members per project | 1 | 3 | 10 |
 
+### Feature Restrictions (Boolean)
+
+| Feature | Free | Pro | Agency |
+|---------|------|-----|--------|
+| Public Article Sharing | ❌ No | ✅ Yes | ✅ Yes |
+| Export (PNG, CSV) | ❌ No | ✅ Yes | ✅ Yes |
+| Integrations | ❌ No | ❌ No | ✅ Yes |
+
 ### Key Concepts
 
-- **Project Owner**: The user who created the project. Their subscription determines the limits.
-- **Team Members**: Users invited to a project. They inherit the project owner's limits.
-- **Limit Check**: A server-side validation before creating resources.
-- **Graceful Degradation**: When limits are reached, operations fail gracefully with user-friendly messages.
+- **Project Owner**: The user who created the project. Their subscription determines the limits AND features.
+- **Team Members**: Users invited to a project. They inherit the project owner's limits and features.
+- **Limit Check**: A server-side validation before creating resources (numeric limits).
+- **Feature Check**: A server-side validation before using gated features (boolean features).
+- **Graceful Degradation**: When limits are reached or features unavailable, operations fail gracefully with user-friendly messages and upgrade prompts.
 
 ---
 
@@ -63,11 +75,12 @@ export const PLANS = {
             export: false,
             integrations: false,
             support: 'community',
+            publicSharing: false,  // Cannot share articles publicly
         },
     },
     pro: {
         name: 'Pro',
-        price: 19,
+        price: 7,  // Promotional price
         stripePriceId: process.env.STRIPE_PRO_PRICE_ID,
         limits: {
             projects: 5,
@@ -80,6 +93,7 @@ export const PLANS = {
             export: true,
             integrations: false,
             support: 'email',
+            publicSharing: true,   // Can share articles via public links
         },
     },
     agency: {
@@ -97,6 +111,7 @@ export const PLANS = {
             export: true,
             integrations: true,
             support: 'priority',
+            publicSharing: true,   // Can share articles via public links
         },
     },
 } as const;
@@ -239,6 +254,129 @@ if (totalMembers >= limits.teamMembersPerProject) {
 
 ---
 
+## Feature Restrictions
+
+Feature restrictions are **boolean flags** that enable or disable entire features based on plan tier. Unlike numeric limits (which count resources), feature restrictions are simple on/off switches.
+
+### How Feature Restrictions Differ from Limits
+
+| Aspect | Numeric Limits | Feature Restrictions |
+|--------|----------------|----------------------|
+| Type | Numbers (1, 5, 999999) | Booleans (true/false) |
+| Check | Count current vs max | Has feature or not |
+| Example | "Can create 5 projects" | "Can share articles publicly" |
+| Response | `{ allowed, current, limit }` | `{ allowed, plan, message }` |
+
+### 1. Public Article Sharing
+
+**Feature:** `publicSharing`
+**Available on:** Pro and Agency plans only
+**Location:** `/src/components/editor/article-editor.tsx`
+
+This feature allows users to generate shareable public links for articles. Free users see a locked section prompting them to upgrade.
+
+**Server-side Check:**
+```typescript
+// In /src/lib/utils/limit-checker.ts
+export async function checkPublicSharingFeature(projectId: string): Promise<FeatureCheckResult> {
+    const plan = await getProjectOwnerPlan(projectId);
+    const allowed = planHasFeature(plan, 'publicSharing');
+
+    return {
+        allowed,
+        plan,
+        message: allowed
+            ? undefined
+            : 'Public article sharing is available on Pro and Agency plans. Upgrade to share articles with clients.',
+    };
+}
+```
+
+**API Usage:**
+```typescript
+const result = await fetch('/api/limits', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ type: 'publicSharing', projectId })
+}).then(r => r.json());
+
+if (!result.allowed) {
+    // Show upgrade prompt
+}
+```
+
+**UI Behavior:**
+
+| Plan | UI State |
+|------|----------|
+| Free | Shows locked section with upgrade prompt, toggle disabled |
+| Pro/Agency | Full sharing controls: toggle, copy link, preview link |
+
+**Client-side Implementation:**
+```typescript
+// Check feature on load
+const featureCheck = await fetch('/api/limits', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ type: 'publicSharing', projectId })
+}).then(r => r.json());
+setCanPublicShare(featureCheck.allowed);
+
+// In the toggle handler (double-check server-side)
+const togglePublicShare = async () => {
+    // Server-side verification before allowing the action
+    const featureCheck = await fetch('/api/limits', { ... });
+    if (!featureCheck.allowed) {
+        showToast('Public sharing requires Pro or Agency plan');
+        return;
+    }
+    // Proceed with toggle...
+};
+```
+
+**Important Notes:**
+- Existing public links remain accessible even if user downgrades
+- The `is_public` flag stays in database; only UI is restricted
+- Team members inherit the project owner's feature access
+- Both client-side and server-side checks are implemented for security
+
+### Adding a New Feature Restriction
+
+1. Add the feature flag to each plan in `/src/lib/stripe/config.ts`:
+   ```typescript
+   features: {
+       // existing features...
+       newFeature: false,  // Free plan
+   },
+   ```
+
+2. Create a check function in `/src/lib/utils/limit-checker.ts`:
+   ```typescript
+   export async function checkNewFeature(projectId: string): Promise<FeatureCheckResult> {
+       const plan = await getProjectOwnerPlan(projectId);
+       const allowed = planHasFeature(plan, 'newFeature');
+       return {
+           allowed,
+           plan,
+           message: allowed ? undefined : 'Upgrade message here',
+       };
+   }
+   ```
+
+3. Add a case to `/src/app/api/limits/route.ts`:
+   ```typescript
+   case 'newFeature':
+       if (!projectId) {
+           return NextResponse.json({ error: 'projectId required' }, { status: 400 });
+       }
+       result = await checkNewFeature(projectId);
+       break;
+   ```
+
+4. Implement UI conditional rendering in the relevant component
+
+---
+
 ## API Endpoints
 
 ### GET /api/limits
@@ -267,23 +405,32 @@ Returns current user's limits and usage.
 ```
 
 ### POST /api/limits
-Check a specific limit type.
+Check a specific limit or feature.
 
 **Request:**
 ```json
 {
-    "type": "project" | "article" | "node" | "team",
-    "projectId": "uuid"  // Required for article, node, team
+    "type": "project" | "article" | "node" | "team" | "publicSharing",
+    "projectId": "uuid"  // Required for article, node, team, publicSharing
 }
 ```
 
-**Response:**
+**Response (Numeric Limit):**
 ```json
 {
     "allowed": false,
     "current": 20,
     "limit": 20,
     "message": "You've reached your node limit (20). Upgrade your plan to add more nodes."
+}
+```
+
+**Response (Feature Restriction):**
+```json
+{
+    "allowed": false,
+    "plan": "free",
+    "message": "Public article sharing is available on Pro and Agency plans. Upgrade to share articles with clients."
 }
 ```
 
@@ -512,7 +659,9 @@ All limit checks go through `/api/limits` which uses the admin Supabase client. 
 | 2026-01-09 | Initial implementation of project, node, and article limits |
 | 2026-01-09 | Added external node limit enforcement in article editor |
 | 2026-01-09 | Created this documentation |
+| 2026-01-17 | Added Feature Restrictions section with `publicSharing` feature |
+| 2026-01-17 | Added `publicSharing` type to POST /api/limits endpoint |
 
 ---
 
-*Last updated: January 9, 2026*
+*Last updated: January 17, 2026*

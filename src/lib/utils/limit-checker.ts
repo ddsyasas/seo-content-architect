@@ -1,10 +1,16 @@
 import { createAdminClient } from '@/lib/supabase/server';
-import { getPlanLimits } from '@/lib/stripe/config';
+import { getPlanLimits, planHasFeature } from '@/lib/stripe/config';
 
 interface LimitCheckResult {
     allowed: boolean;
     current: number;
     limit: number;
+    message?: string;
+}
+
+interface FeatureCheckResult {
+    allowed: boolean;
+    plan: string;
     message?: string;
 }
 
@@ -338,5 +344,22 @@ export async function getBestTeamPlan(userId: string): Promise<string> {
 function getHigherPlan(plan1: string, plan2: string): string {
     const planOrder = ['free', 'pro', 'agency'];
     return planOrder.indexOf(plan1) >= planOrder.indexOf(plan2) ? plan1 : plan2;
+}
+
+/**
+ * Check if public sharing feature is available for a project
+ * This checks the project owner's plan features
+ */
+export async function checkPublicSharingFeature(projectId: string): Promise<FeatureCheckResult> {
+    const plan = await getProjectOwnerPlan(projectId);
+    const allowed = planHasFeature(plan, 'publicSharing');
+
+    return {
+        allowed,
+        plan,
+        message: allowed
+            ? undefined
+            : 'Public article sharing is available on Pro and Agency plans. Upgrade to share articles with clients.',
+    };
 }
 

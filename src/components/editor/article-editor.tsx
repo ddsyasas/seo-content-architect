@@ -61,6 +61,7 @@ export function ArticleEditor({ projectId, nodeId }: ArticleEditorProps) {
     const [isPublic, setIsPublic] = useState(false);
     const [shareId, setShareId] = useState<string | null>(null);
     const [copySuccess, setCopySuccess] = useState(false);
+    const [canPublicShare, setCanPublicShare] = useState<boolean | null>(null); // null = loading
 
     // SEO Score calculation
     const articleContent = useMemo(() => ({
@@ -91,6 +92,19 @@ export function ArticleEditor({ projectId, nodeId }: ArticleEditorProps) {
             .eq('id', projectId)
             .single();
         setProject(projectData);
+
+        // Check if public sharing feature is available for this project
+        try {
+            const sharingCheck = await fetch('/api/limits', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ type: 'publicSharing', projectId })
+            }).then(r => r.json());
+            setCanPublicShare(sharingCheck.allowed);
+        } catch (err) {
+            console.error('Failed to check public sharing feature:', err);
+            setCanPublicShare(false);
+        }
 
         // Load node
         const { data: nodeData } = await supabase
@@ -478,6 +492,27 @@ export function ArticleEditor({ projectId, nodeId }: ArticleEditorProps) {
 
     // Toggle public sharing
     const togglePublicShare = async () => {
+        // Server-side check to prevent API manipulation
+        if (!isPublic) {
+            // Only check when ENABLING sharing (not when disabling)
+            try {
+                const sharingCheck = await fetch('/api/limits', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ type: 'publicSharing', projectId })
+                }).then(r => r.json());
+
+                if (!sharingCheck.allowed) {
+                    // Feature not available - don't enable
+                    setCanPublicShare(false);
+                    return;
+                }
+            } catch (err) {
+                console.error('Failed to verify public sharing feature:', err);
+                return;
+            }
+        }
+
         const newIsPublic = !isPublic;
         setIsPublic(newIsPublic);
 
@@ -612,55 +647,82 @@ export function ArticleEditor({ projectId, nodeId }: ArticleEditorProps) {
                             <h3 className="font-semibold text-gray-900 dark:text-white">Share Article</h3>
                         </div>
 
-                        <div className="flex items-center justify-between mb-3">
-                            <span className="text-sm text-gray-600 dark:text-gray-400">Public sharing</span>
-                            <button
-                                onClick={togglePublicShare}
-                                className={cn(
-                                    'relative w-11 h-6 rounded-full transition-colors',
-                                    isPublic ? 'bg-indigo-600' : 'bg-gray-300 dark:bg-gray-600'
-                                )}
-                            >
-                                <span
-                                    className={cn(
-                                        'absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform',
-                                        isPublic && 'translate-x-5'
-                                    )}
-                                />
-                            </button>
-                        </div>
-
-                        {isPublic && shareId && (
-                            <div className="space-y-2">
-                                <p className="text-xs text-gray-500 dark:text-gray-400">
-                                    Anyone with this link can view the article
+                        {/* Show upgrade prompt if feature not available */}
+                        {canPublicShare === false && (
+                            <div className="p-3 rounded-lg bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600">
+                                <p className="text-sm text-gray-600 dark:text-gray-300 mb-2">
+                                    Share articles with clients via a public link.
                                 </p>
-                                <div className="flex gap-2">
-                                    <input
-                                        type="text"
-                                        readOnly
-                                        value={`${typeof window !== 'undefined' ? window.location.origin : ''}/share/${shareId}`}
-                                        className="flex-1 text-xs px-2 py-1.5 bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded text-gray-600 dark:text-gray-300"
-                                    />
-                                    <button
-                                        onClick={copyShareLink}
-                                        className="px-2 py-1.5 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 border border-gray-200 dark:border-gray-600 rounded transition-colors"
-                                        title="Copy link"
-                                    >
-                                        {copySuccess ? (
-                                            <Check className="w-4 h-4 text-green-600" />
-                                        ) : (
-                                            <Copy className="w-4 h-4 text-gray-500 dark:text-gray-400" />
-                                        )}
-                                    </button>
-                                </div>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => router.push('/pricing')}
+                                    className="w-full text-xs"
+                                >
+                                    Upgrade to Pro to unlock
+                                </Button>
                             </div>
                         )}
 
-                        {!isPublic && (
-                            <p className="text-xs text-gray-500 dark:text-gray-400">
-                                Enable to generate a shareable link
-                            </p>
+                        {/* Show toggle if feature is available */}
+                        {canPublicShare === true && (
+                            <>
+                                <div className="flex items-center justify-between mb-3">
+                                    <span className="text-sm text-gray-600 dark:text-gray-400">Public sharing</span>
+                                    <button
+                                        onClick={togglePublicShare}
+                                        className={cn(
+                                            'relative w-11 h-6 rounded-full transition-colors',
+                                            isPublic ? 'bg-indigo-600' : 'bg-gray-300 dark:bg-gray-600'
+                                        )}
+                                    >
+                                        <span
+                                            className={cn(
+                                                'absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform',
+                                                isPublic && 'translate-x-5'
+                                            )}
+                                        />
+                                    </button>
+                                </div>
+
+                                {isPublic && shareId && (
+                                    <div className="space-y-2">
+                                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                                            Anyone with this link can view the article
+                                        </p>
+                                        <div className="flex gap-2">
+                                            <input
+                                                type="text"
+                                                readOnly
+                                                value={`${typeof window !== 'undefined' ? window.location.origin : ''}/share/${shareId}`}
+                                                className="flex-1 text-xs px-2 py-1.5 bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded text-gray-600 dark:text-gray-300"
+                                            />
+                                            <button
+                                                onClick={copyShareLink}
+                                                className="px-2 py-1.5 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 border border-gray-200 dark:border-gray-600 rounded transition-colors"
+                                                title="Copy link"
+                                            >
+                                                {copySuccess ? (
+                                                    <Check className="w-4 h-4 text-green-600" />
+                                                ) : (
+                                                    <Copy className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+                                                )}
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {!isPublic && (
+                                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                                        Enable to generate a shareable link
+                                    </p>
+                                )}
+                            </>
+                        )}
+
+                        {/* Show loading state */}
+                        {canPublicShare === null && (
+                            <div className="h-6 w-full bg-gray-100 dark:bg-gray-700 rounded animate-pulse" />
                         )}
                     </div>
 

@@ -5,6 +5,7 @@ import {
     checkArticleLimit,
     checkNodeLimit,
     checkTeamLimit,
+    checkPublicSharingFeature,
     getUserLimitsAndUsage,
     canCreateProjects
 } from '@/lib/utils/limit-checker';
@@ -63,6 +64,12 @@ export async function POST(request: NextRequest) {
                 break;
             case 'team':
                 result = await checkTeamLimit(user.id);
+                break;
+            case 'publicSharing':
+                if (!projectId) {
+                    return NextResponse.json({ error: 'projectId required' }, { status: 400 });
+                }
+                result = await checkPublicSharingFeature(projectId);
                 break;
             default:
                 return NextResponse.json({ error: 'Invalid limit type' }, { status: 400 });

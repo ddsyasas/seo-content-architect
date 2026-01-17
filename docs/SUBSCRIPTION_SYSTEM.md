@@ -56,6 +56,7 @@ The subscription system manages user plans, billing, and feature access through 
 | Canvas Nodes per Project | 20 | 200 | Unlimited |
 | Team Members per Project | 1 (solo) | 3 | 10 |
 | SEO Score | Basic | Full | Full + History |
+| **Public Article Sharing** | **No** | **Yes** | **Yes** |
 | Export (PNG, CSV) | No | Yes | Yes |
 | Support | Community | Email | Priority |
 
@@ -79,6 +80,7 @@ const PLANS_BASE = {
             export: false,
             integrations: false,
             support: 'community',
+            publicSharing: false,  // Cannot share articles publicly
         },
     },
     pro: {
@@ -95,6 +97,7 @@ const PLANS_BASE = {
             export: true,
             integrations: false,
             support: 'email',
+            publicSharing: true,   // Can share articles via public links
         },
     },
     agency: {
@@ -111,6 +114,7 @@ const PLANS_BASE = {
             export: true,
             integrations: true,
             support: 'priority',
+            publicSharing: true,   // Can share articles via public links
         },
     },
 };
@@ -128,7 +132,7 @@ getPlanConfig(plan: string): PlanConfig
 // Get plan limits
 getPlanLimits(plan: string): PlanLimits
 
-// Check if plan has a feature
+// Check if plan has a feature (returns true for boolean true or 'full' string)
 planHasFeature(plan: string, feature: string): boolean
 
 // Format price for display
@@ -140,6 +144,35 @@ getUpgradeOptions(currentPlan: string): PlanType[]
 // Get available downgrade options
 getDowngradeOptions(currentPlan: string): PlanType[]
 ```
+
+### Feature Checks
+
+Features are boolean or string values in the plan configuration. Use `planHasFeature()` to check:
+
+```typescript
+import { planHasFeature } from '@/lib/stripe/config';
+
+// Check if user can share articles publicly
+if (planHasFeature(userPlan, 'publicSharing')) {
+    // Show share toggle
+} else {
+    // Show upgrade prompt
+}
+
+// Check if user has full SEO score
+if (planHasFeature(userPlan, 'seoScore')) {
+    // Show full SEO panel
+}
+```
+
+**Available Features:**
+| Feature | Type | Free | Pro | Agency |
+|---------|------|------|-----|--------|
+| `seoScore` | string | 'basic' | 'full' | 'full' |
+| `export` | boolean | false | true | true |
+| `integrations` | boolean | false | false | true |
+| `publicSharing` | boolean | false | true | true |
+| `support` | string | 'community' | 'email' | 'priority' |
 
 ---
 

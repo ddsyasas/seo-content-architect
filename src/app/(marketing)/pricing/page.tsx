@@ -54,6 +54,10 @@ function PricingCard({ plan, currentPlan, isLoggedIn, onUpgrade, onCancel, isLoa
             included: config.features.export
         },
         {
+            name: 'Public article sharing',
+            included: config.features.publicSharing
+        },
+        {
             name: plan === 'agency' ? 'Priority support' : plan === 'pro' ? 'Email support' : 'Community support',
             included: true
         },
