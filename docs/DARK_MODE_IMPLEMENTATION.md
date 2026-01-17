@@ -249,6 +249,39 @@ editorProps: {
 }
 ```
 
+### Public Share Pages (Read-Only Article Views)
+
+For public-facing pages that display article content (like the share page), use expanded prose classes for better dark mode support:
+
+```tsx
+<div
+  className="prose prose-sm sm:prose-lg max-w-none prose-gray dark:prose-invert
+             prose-headings:text-gray-900 dark:prose-headings:text-white
+             prose-p:text-gray-700 dark:prose-p:text-gray-300
+             prose-strong:text-gray-900 dark:prose-strong:text-white
+             prose-a:text-indigo-600 dark:prose-a:text-indigo-400"
+  dangerouslySetInnerHTML={{ __html: article.content }}
+/>
+```
+
+Key classes for public share pages:
+- `prose-gray` - Better default text colors for light mode
+- `dark:prose-invert` - Inverts all prose colors for dark mode
+- `prose-p:text-gray-700 dark:prose-p:text-gray-300` - Explicit paragraph colors
+- `prose-headings:text-gray-900 dark:prose-headings:text-white` - Heading colors
+
+Public pages should also include a `ThemeToggle` component so viewers can switch themes:
+
+```tsx
+import { ThemeToggle } from '@/components/ui/theme-toggle';
+
+// In the header
+<div className="flex items-center justify-between">
+  <span>Shared Article</span>
+  <ThemeToggle />
+</div>
+```
+
 ---
 
 ## Pages with Dark Mode Support
@@ -302,6 +335,12 @@ editorProps: {
 | SEO Score Panel | `src/components/editor/seo-panel/SEOScorePanel.tsx` | ✅ Complete |
 | SEO Category Section | `src/components/editor/seo-panel/SEOCategorySection.tsx` | ✅ Complete |
 | SEO Indicator | `src/components/editor/seo-panel/SEOIndicator.tsx` | ✅ Complete |
+
+### Public Pages
+
+| Page | File Path | Status |
+|------|-----------|--------|
+| Share Page | `src/app/share/[shareId]/page.tsx` | ✅ Complete |
 
 ### Layout Components
 

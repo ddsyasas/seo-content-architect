@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { v4 as uuidv4 } from 'uuid';
-import { ArrowLeft, Save, Clock, FileText, Globe, Settings, LayoutGrid } from 'lucide-react';
+import { ArrowLeft, Save, Clock, FileText, Globe, Settings, LayoutGrid, Share2, Copy, Check } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { RichTextEditor } from '@/components/editor/rich-text-editor';
 import { SEOScorePanel } from '@/components/editor/seo-panel';
@@ -57,6 +57,11 @@ export function ArticleEditor({ projectId, nodeId }: ArticleEditorProps) {
     const [availableNodes, setAvailableNodes] = useState<{ id: string; title: string; slug: string }[]>([]);
     const [nodeLimitWarning, setNodeLimitWarning] = useState<string | null>(null);
 
+    // Share state
+    const [isPublic, setIsPublic] = useState(false);
+    const [shareId, setShareId] = useState<string | null>(null);
+    const [copySuccess, setCopySuccess] = useState(false);
+
     // SEO Score calculation
     const articleContent = useMemo(() => ({
         title,
@@ -101,6 +106,8 @@ export function ArticleEditor({ projectId, nodeId }: ArticleEditorProps) {
             setTargetKeyword(nodeData.target_keyword || '');
             setNodeType(nodeData.node_type);
             setStatus(nodeData.status);
+            setIsPublic(nodeData.is_public || false);
+            setShareId(nodeData.share_id || null);
         }
 
         // Load article if exists
@@ -469,6 +476,27 @@ export function ArticleEditor({ projectId, nodeId }: ArticleEditorProps) {
         setSlug(normalizeSlug(title));
     };
 
+    // Toggle public sharing
+    const togglePublicShare = async () => {
+        const newIsPublic = !isPublic;
+        setIsPublic(newIsPublic);
+
+        const supabase = createClient();
+        await supabase
+            .from('nodes')
+            .update({ is_public: newIsPublic })
+            .eq('id', nodeId);
+    };
+
+    // Copy share link to clipboard
+    const copyShareLink = () => {
+        if (!shareId) return;
+        const shareUrl = `${window.location.origin}/share/${shareId}`;
+        navigator.clipboard.writeText(shareUrl);
+        setCopySuccess(true);
+        setTimeout(() => setCopySuccess(false), 2000);
+    };
+
     if (isLoading) {
         return (
             <div className="flex items-center justify-center h-screen">
@@ -577,7 +605,68 @@ export function ArticleEditor({ projectId, nodeId }: ArticleEditorProps) {
                 isSidebarOpen ? 'translate-x-0' : 'translate-x-full'
             )}>
                 <div className="p-4 space-y-6">
-                    {/* SEO Score Panel - At the top for visibility */}
+                    {/* Share Section - At the very top */}
+                    <div>
+                        <div className="flex items-center gap-2 mb-3">
+                            <Share2 className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+                            <h3 className="font-semibold text-gray-900 dark:text-white">Share Article</h3>
+                        </div>
+
+                        <div className="flex items-center justify-between mb-3">
+                            <span className="text-sm text-gray-600 dark:text-gray-400">Public sharing</span>
+                            <button
+                                onClick={togglePublicShare}
+                                className={cn(
+                                    'relative w-11 h-6 rounded-full transition-colors',
+                                    isPublic ? 'bg-indigo-600' : 'bg-gray-300 dark:bg-gray-600'
+                                )}
+                            >
+                                <span
+                                    className={cn(
+                                        'absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform',
+                                        isPublic && 'translate-x-5'
+                                    )}
+                                />
+                            </button>
+                        </div>
+
+                        {isPublic && shareId && (
+                            <div className="space-y-2">
+                                <p className="text-xs text-gray-500 dark:text-gray-400">
+                                    Anyone with this link can view the article
+                                </p>
+                                <div className="flex gap-2">
+                                    <input
+                                        type="text"
+                                        readOnly
+                                        value={`${typeof window !== 'undefined' ? window.location.origin : ''}/share/${shareId}`}
+                                        className="flex-1 text-xs px-2 py-1.5 bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded text-gray-600 dark:text-gray-300"
+                                    />
+                                    <button
+                                        onClick={copyShareLink}
+                                        className="px-2 py-1.5 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 border border-gray-200 dark:border-gray-600 rounded transition-colors"
+                                        title="Copy link"
+                                    >
+                                        {copySuccess ? (
+                                            <Check className="w-4 h-4 text-green-600" />
+                                        ) : (
+                                            <Copy className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+                                        )}
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+
+                        {!isPublic && (
+                            <p className="text-xs text-gray-500 dark:text-gray-400">
+                                Enable to generate a shareable link
+                            </p>
+                        )}
+                    </div>
+
+                    <hr className="border-gray-200 dark:border-gray-700" />
+
+                    {/* SEO Score Panel */}
                     <SEOScorePanel score={seoScore} />
 
                     <hr className="border-gray-200 dark:border-gray-700" />
@@ -723,6 +812,7 @@ export function ArticleEditor({ projectId, nodeId }: ArticleEditorProps) {
                             ))}
                         </div>
                     </div>
+
                 </div>
             </div>
         </div>

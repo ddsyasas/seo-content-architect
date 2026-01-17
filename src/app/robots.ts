@@ -46,6 +46,7 @@ export default function robots(): MetadataRoute.Robots {
                     '/admin',
                     '/legal/',
                     '/api/',
+                    '/share/',
                 ],
             },
         ],
