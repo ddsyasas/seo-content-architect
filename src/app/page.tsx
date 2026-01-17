@@ -3,15 +3,38 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { ArrowRight, Layers, GitBranch, Target, Menu, X, ChevronDown } from 'lucide-react';
+import { ArrowRight, Layers, GitBranch, Target, Menu, X, ChevronDown, Play, Mail } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
 import { MegaMenu, SolutionsMenu, ResourcesMenu } from '@/components/marketing/mega-menu';
+import { PricingCards } from '@/components/pricing/PricingCard';
 
 export default function HomePage() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [openMenu, setOpenMenu] = useState<'solutions' | 'resources' | null>(null);
   const [mobileSubmenu, setMobileSubmenu] = useState<'solutions' | 'resources' | null>(null);
+  const [email, setEmail] = useState('');
+  const [isSubscribing, setIsSubscribing] = useState(false);
+  const [subscribeMessage, setSubscribeMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  const handleSubscribe = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email) return;
+
+    setIsSubscribing(true);
+    setSubscribeMessage(null);
+
+    // Simulate subscription (replace with actual API call)
+    try {
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      setSubscribeMessage({ type: 'success', text: 'Thanks for subscribing! Check your inbox.' });
+      setEmail('');
+    } catch {
+      setSubscribeMessage({ type: 'error', text: 'Something went wrong. Please try again.' });
+    } finally {
+      setIsSubscribing(false);
+    }
+  };
 
   const handleMenuToggle = (menu: 'solutions' | 'resources') => {
     setOpenMenu(openMenu === menu ? null : menu);
@@ -204,8 +227,60 @@ export default function HomePage() {
           </div>
         </div>
 
+        {/* Demo Video Section */}
+        <div className="max-w-5xl mx-auto mt-24">
+          <div className="text-center mb-10">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-100 text-purple-700 text-sm font-medium mb-4 dark:bg-purple-900/50 dark:text-purple-300">
+              <Play className="w-3 h-3" />
+              Sneak Peek
+            </div>
+            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-white">
+              See It in Action
+            </h2>
+            <p className="mt-3 text-lg text-gray-600 max-w-2xl mx-auto dark:text-gray-400">
+              Watch how easy it is to plan your content architecture, connect topics, and optimize for SEO — all in one visual workspace.
+            </p>
+          </div>
+
+          {/* Video Container with Browser Frame */}
+          <div className="relative">
+            {/* Browser Frame */}
+            <div className="bg-gray-100 dark:bg-gray-800 rounded-t-xl px-4 py-3 border border-b-0 border-gray-200 dark:border-gray-700">
+              <div className="flex items-center gap-2">
+                <div className="flex gap-1.5">
+                  <div className="w-3 h-3 rounded-full bg-red-400"></div>
+                  <div className="w-3 h-3 rounded-full bg-yellow-400"></div>
+                  <div className="w-3 h-3 rounded-full bg-green-400"></div>
+                </div>
+                <div className="flex-1 ml-4">
+                  <div className="bg-white dark:bg-gray-700 rounded-md px-3 py-1 text-sm text-gray-500 dark:text-gray-400 max-w-md mx-auto text-center">
+                    app.syncseo.io
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Video */}
+            <div className="relative bg-gray-900 rounded-b-xl overflow-hidden border border-t-0 border-gray-200 dark:border-gray-700 shadow-2xl">
+              <video
+                autoPlay
+                loop
+                muted
+                playsInline
+                className="w-full h-auto"
+              >
+                <source src="/videos/demo.webm" type="video/webm" />
+                Your browser does not support the video tag.
+              </video>
+            </div>
+
+            {/* Decorative gradient blur */}
+            <div className="absolute -inset-4 -z-10 bg-gradient-to-r from-indigo-500/20 via-purple-500/20 to-pink-500/20 blur-3xl opacity-50 dark:opacity-30"></div>
+          </div>
+        </div>
+
         {/* Features */}
-        <div className="max-w-5xl mx-auto mt-32 grid md:grid-cols-3 gap-8">
+        <div className="max-w-5xl mx-auto mt-24 grid md:grid-cols-3 gap-8">
           <div className="bg-white rounded-2xl p-8 shadow-sm border border-gray-100 dark:bg-gray-800 dark:border-gray-700">
             <div className="w-12 h-12 rounded-xl bg-indigo-100 flex items-center justify-center mb-4 dark:bg-indigo-900/50">
               <Layers className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
@@ -236,10 +311,75 @@ export default function HomePage() {
             </p>
           </div>
         </div>
+
+        {/* Pricing Section */}
+        <div className="max-w-5xl mx-auto mt-32">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-white">
+              Simple, honest pricing
+            </h2>
+            <p className="mt-3 text-lg text-gray-600 dark:text-gray-400">
+              Start free, upgrade when you need more. No hidden fees, no surprises.
+            </p>
+            <p className="mt-2 text-sm font-medium text-indigo-600 dark:text-indigo-400">
+              Trusted by SEO Experts
+            </p>
+          </div>
+
+          {/* Pricing Cards */}
+          <PricingCards href="/pricing" />
+
+          <p className="text-center text-sm text-gray-500 dark:text-gray-400 mt-6">
+            All plans include a 14-day money-back guarantee. No questions asked.
+          </p>
+        </div>
       </main>
 
+      {/* Newsletter Section */}
+      <section className="py-20 px-4 bg-gradient-to-br from-indigo-600 to-purple-700 dark:from-indigo-900 dark:to-purple-900">
+        <div className="max-w-4xl mx-auto text-center">
+          <div className="inline-flex items-center justify-center p-3 bg-white/10 rounded-xl mb-6">
+            <Mail className="w-6 h-6 text-white" />
+          </div>
+          <h2 className="text-3xl sm:text-4xl font-bold text-white">
+            Stay Ahead of the SEO Curve
+          </h2>
+          <p className="mt-4 text-lg text-indigo-100 max-w-2xl mx-auto">
+            Get weekly insights on content architecture, internal linking strategies, and SEO best practices delivered straight to your inbox.
+          </p>
+
+          <form onSubmit={handleSubscribe} className="mt-8 flex flex-col sm:flex-row gap-3 max-w-lg mx-auto">
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="Enter your email address"
+              className="flex-1 px-5 py-4 rounded-xl border-2 border-transparent bg-white/10 backdrop-blur-sm text-white placeholder-indigo-200 focus:outline-none focus:border-white/50 focus:bg-white/20 transition-all"
+              required
+            />
+            <Button
+              type="submit"
+              disabled={isSubscribing}
+              className="px-8 py-4 bg-white text-indigo-600 hover:bg-indigo-50 font-semibold rounded-xl transition-all"
+            >
+              {isSubscribing ? 'Subscribing...' : 'Subscribe'}
+            </Button>
+          </form>
+
+          {subscribeMessage && (
+            <p className={`mt-4 text-sm ${subscribeMessage.type === 'success' ? 'text-green-300' : 'text-red-300'}`}>
+              {subscribeMessage.text}
+            </p>
+          )}
+
+          <p className="mt-4 text-sm text-indigo-200">
+            Join 1,000+ SEO professionals. Unsubscribe anytime.
+          </p>
+        </div>
+      </section>
+
       {/* Footer */}
-      <footer className="py-16 px-4 border-t border-gray-200 mt-20 bg-gray-50 dark:border-gray-800 dark:bg-gray-900">
+      <footer className="py-16 px-4 border-t border-gray-200 bg-gray-50 dark:border-gray-800 dark:bg-gray-900">
         <div className="max-w-6xl mx-auto">
           <div className="grid grid-cols-2 md:grid-cols-5 gap-8">
             {/* Brand */}

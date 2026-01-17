@@ -249,6 +249,126 @@ editorProps: {
 }
 ```
 
+### Video Container with Browser Frame
+
+For demo videos displayed in a browser-style frame:
+
+```tsx
+{/* Browser Frame */}
+<div className="bg-gray-100 dark:bg-gray-800 rounded-t-xl px-4 py-3 border border-b-0 border-gray-200 dark:border-gray-700">
+  <div className="flex items-center gap-2">
+    {/* Traffic lights (consistent colors) */}
+    <div className="flex gap-1.5">
+      <div className="w-3 h-3 rounded-full bg-red-400"></div>
+      <div className="w-3 h-3 rounded-full bg-yellow-400"></div>
+      <div className="w-3 h-3 rounded-full bg-green-400"></div>
+    </div>
+    {/* URL bar */}
+    <div className="flex-1 ml-4">
+      <div className="bg-white dark:bg-gray-700 rounded-md px-3 py-1 text-sm text-gray-500 dark:text-gray-400">
+        app.syncseo.io
+      </div>
+    </div>
+  </div>
+</div>
+
+{/* Video */}
+<div className="bg-gray-900 rounded-b-xl overflow-hidden border border-t-0 border-gray-200 dark:border-gray-700">
+  <video autoPlay loop muted playsInline className="w-full h-auto">
+    <source src="/videos/demo.webm" type="video/webm" />
+  </video>
+</div>
+
+{/* Decorative gradient blur behind */}
+<div className="absolute -inset-4 -z-10 bg-gradient-to-r from-indigo-500/20 via-purple-500/20 to-pink-500/20 blur-3xl opacity-50 dark:opacity-30"></div>
+```
+
+### Newsletter Section (Full-Width Gradient)
+
+For full-width newsletter sections with colored gradient backgrounds:
+
+```tsx
+<section className="py-20 px-4 bg-gradient-to-br from-indigo-600 to-purple-700 dark:from-indigo-900 dark:to-purple-900">
+  <div className="max-w-4xl mx-auto text-center">
+    {/* Icon container */}
+    <div className="p-3 bg-white/10 rounded-xl">
+      <Mail className="w-6 h-6 text-white" />
+    </div>
+
+    {/* Heading - white on colored background */}
+    <h2 className="text-3xl font-bold text-white">
+      Newsletter Title
+    </h2>
+
+    {/* Description - lighter shade */}
+    <p className="text-lg text-indigo-100">
+      Description text here.
+    </p>
+
+    {/* Form with glass-morphism style */}
+    <form className="flex flex-col sm:flex-row gap-3">
+      <input
+        type="email"
+        placeholder="Enter your email"
+        className="flex-1 px-5 py-4 rounded-xl border-2 border-transparent
+                   bg-white/10 backdrop-blur-sm text-white placeholder-indigo-200
+                   focus:outline-none focus:border-white/50 focus:bg-white/20 transition-all"
+      />
+      <Button className="bg-white text-indigo-600 hover:bg-indigo-50 font-semibold rounded-xl">
+        Subscribe
+      </Button>
+    </form>
+
+    {/* Success/Error messages - lighter colors for dark background */}
+    <p className="text-sm text-green-300">Success message</p>
+    <p className="text-sm text-red-300">Error message</p>
+
+    {/* Subtle text */}
+    <p className="text-sm text-indigo-200">Join X professionals. Unsubscribe anytime.</p>
+  </div>
+</section>
+```
+
+Key patterns for colored gradient sections:
+- Use `from-color-600 to-color-700` for light mode
+- Use `dark:from-color-900 dark:to-color-900` for dark mode (darker shades)
+- Text should be white or very light variants (e.g., `text-indigo-100`, `text-indigo-200`)
+- Use `bg-white/10` for semi-transparent backgrounds
+- Success/error messages use lighter shades (`text-green-300`, `text-red-300`)
+
+### Pricing Cards (Condensed)
+
+For inline pricing cards on landing pages:
+
+```tsx
+{/* Standard card */}
+<div className="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-200 dark:border-gray-700 shadow-sm">
+  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Plan Name</h3>
+  <span className="text-4xl font-bold text-gray-900 dark:text-white">$X</span>
+  <span className="text-gray-500 dark:text-gray-400">/month</span>
+  <p className="text-sm text-gray-600 dark:text-gray-400">Description</p>
+
+  {/* Feature list */}
+  <li className="flex items-start gap-2 text-sm text-gray-600 dark:text-gray-400">
+    <Check className="w-4 h-4 text-green-500 shrink-0 mt-0.5" />
+    Feature name
+  </li>
+</div>
+
+{/* Featured card (Pro) */}
+<div className="bg-white dark:bg-gray-800 rounded-2xl p-6 border-2 border-indigo-500 shadow-xl">
+  {/* Badge */}
+  <span className="bg-indigo-600 text-white text-xs font-medium px-3 py-1 rounded-full">
+    Most Popular
+  </span>
+
+  {/* Discount badge */}
+  <span className="bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-400 text-xs font-semibold px-2 py-0.5 rounded-full">
+    63% OFF
+  </span>
+</div>
+```
+
 ### Public Share Pages (Read-Only Article Views)
 
 For public-facing pages that display article content (like the share page), use expanded prose classes for better dark mode support:
@@ -291,6 +411,9 @@ import { ThemeToggle } from '@/components/ui/theme-toggle';
 | Page | File Path | Status |
 |------|-----------|--------|
 | Home | `src/app/page.tsx` | ✅ Complete |
+| Home - Demo Video Section | `src/app/page.tsx` | ✅ Complete |
+| Home - Pricing Section | `src/app/page.tsx` | ✅ Complete |
+| Home - Newsletter Section | `src/app/page.tsx` | ✅ Complete |
 | Pricing | `src/app/(marketing)/pricing/page.tsx` | ✅ Complete |
 | Contact | `src/app/(marketing)/contact/page.tsx` | ✅ Complete |
 | Solutions (all) | `src/app/(marketing)/solutions/*/page.tsx` | ✅ Complete |
@@ -496,4 +619,4 @@ Add `suppressHydrationWarning` to the `<html>` element and ensure theme is appli
 
 ---
 
-*Last updated: January 2026*
+*Last updated: January 17, 2026*
