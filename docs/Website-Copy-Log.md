@@ -433,15 +433,15 @@ A: We offer a full refund within 14 days of your first purchase if you're not sa
 
 **Email:** hi@syncseo.io
 
-**Phone:** +39 388 409 5330
+**Phone:** +1 (646) 238-0875
 
 **Address:**
-Via del Carpentiere, 32 unit 7
-40138 BOLOGNA BO
-Italy
+30 N Gould St Ste R
+Sheridan, WY 82801
+United States
 
 **Business Hours:**
-Monday - Friday: 9:00 AM - 6:00 PM (CET)
+Monday - Friday: 9:00 AM - 5:00 PM (MST)
 Saturday - Sunday: Closed
 
 **Note:** Messages submitted through this form are sent directly to our support team at hi@syncseo.io
@@ -1071,6 +1071,8 @@ SyncSEO offers a generous Free plan that you can use indefinitely. We encourage 
 
 | Date | Page(s) | Changes |
 |------|---------|---------|
+| January 18, 2026 | Contact Page, SEO Config | Updated company address to US location (30 N Gould St Ste R, Sheridan, WY 82801). Updated phone to +1 (646) 238-0875. Updated business hours to MST timezone. |
+| January 18, 2026 | Home Page, SEO Config | SEO improvements: New meta title "SyncSEO - See Your Content Strategy & Write with SEO Feedback". New meta description. Added FAQPage and VideoObject schemas. Expanded keywords with real-time SEO writing terms. |
 | January 18, 2026 | Home Page | Complete redesign of sales funnel. New sections: Pain Points, Solution, How It Works, Who Is This For, Comparison, Use Cases, FAQ, Final CTA. Updated hero headline to "Build Topical Authority You Can Actually See" |
 | January 2025 | All Pages | Initial website launch with all pages |
 
@@ -1086,7 +1088,8 @@ SyncSEO offers a generous Free plan that you can use indefinitely. We encourage 
 - **Resources Pages:** 9
 - **Legal Pages:** 4
 - **Primary Contact Email:** hi@syncseo.io
-- **Company Address:** Via del Carpentiere, 32 unit 7, 40138 BOLOGNA BO, Italy
+- **Primary Phone:** +1 (646) 238-0875
+- **Company Address:** 30 N Gould St Ste R, Sheridan, WY 82801, United States
 
 ---
 

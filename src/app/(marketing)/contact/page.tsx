@@ -175,8 +175,8 @@ export default function ContactPage() {
                                     </div>
                                     <div>
                                         <h3 className="font-semibold text-gray-900 dark:text-white">Phone</h3>
-                                        <a href="tel:+393884095330" className="text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300">
-                                            +39 388 409 5330
+                                        <a href="tel:+16462380875" className="text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300">
+                                            +1 (646) 238-0875
                                         </a>
                                     </div>
                                 </div>
@@ -188,9 +188,9 @@ export default function ContactPage() {
                                     <div>
                                         <h3 className="font-semibold text-gray-900 dark:text-white">Address</h3>
                                         <p className="text-gray-600 dark:text-gray-300">
-                                            Via del Carpentiere, 32 unit 7<br />
-                                            40138 BOLOGNA BO<br />
-                                            Italy
+                                            30 N Gould St Ste R<br />
+                                            Sheridan, WY 82801<br />
+                                            United States
                                         </p>
                                     </div>
                                 </div>
@@ -200,7 +200,7 @@ export default function ContactPage() {
                             <div className="mt-10 p-6 bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
                                 <h3 className="font-semibold text-gray-900 dark:text-white mb-2">Business Hours</h3>
                                 <p className="text-gray-600 dark:text-gray-300 text-sm">
-                                    Monday - Friday: 9:00 AM - 6:00 PM (CET)<br />
+                                    Monday - Friday: 9:00 AM - 5:00 PM (MST)<br />
                                     Saturday - Sunday: Closed
                                 </p>
                             </div>

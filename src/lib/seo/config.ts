@@ -54,6 +54,14 @@ export const siteConfig = {
     type: 'website',
     twitterHandle: '@syncseo',
     email: 'hi@syncseo.io',
+    phone: '+1 (646) 238-0875',
+    address: {
+        street: '30 N Gould St Ste R',
+        city: 'Sheridan',
+        state: 'WY',
+        postalCode: '82801',
+        country: 'United States',
+    },
 };
 
 // Page-specific metadata configurations
@@ -162,8 +170,17 @@ export const structuredData = {
         name: 'SyncSEO',
         url: 'https://syncseo.io',
         logo: 'https://syncseo.io/SyncSEO Header logo 2-min.png',
-        description: 'Visual content architecture planning tool for SEO teams',
+        description: 'Visual SEO content planning and writing tool with real-time feedback',
         email: 'hi@syncseo.io',
+        telephone: '+1-646-238-0875',
+        address: {
+            '@type': 'PostalAddress',
+            streetAddress: '30 N Gould St Ste R',
+            addressLocality: 'Sheridan',
+            addressRegion: 'WY',
+            postalCode: '82801',
+            addressCountry: 'US',
+        },
         sameAs: [
             // Add social media URLs when available
         ],
