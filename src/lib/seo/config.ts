@@ -3,15 +3,30 @@
 
 export const siteConfig = {
     name: 'SyncSEO',
-    title: 'SyncSEO - Visual Content Architecture Planning for SEO',
-    description: 'Plan your content architecture visually with SyncSEO. Design pillar pages, cluster content, and internal linking structures in an intuitive drag-and-drop canvas. Replace scattered spreadsheets with a visual workspace.',
-    shortDescription: 'Visual content architecture planning tool for SEO teams',
+    title: 'SyncSEO - See Your Content Strategy & Write with SEO Feedback',
+    description: 'Build topical authority you can actually see. Visualize content architecture, write with real-time SEO scoring, and track internal links on a visual canvas. Free plan available.',
+    shortDescription: 'Visual SEO content planning and writing tool with real-time feedback',
     url: 'https://syncseo.io',
     ogImage: 'https://syncseo.io/SyncSEO.io Featured Image 01.webp',
     logo: 'https://syncseo.io/SyncSEO Header logo 2-min.png',
     favicon: '/favicon.ico',
     creator: 'SyncSEO',
     keywords: [
+        // Primary keywords
+        'topical authority',
+        'visual SEO tool',
+        'SEO content architecture',
+        'content planning software',
+        'internal link visualization',
+        'real-time SEO feedback',
+        'SEO writing tool',
+        'live SEO scoring',
+        'SEO content editor',
+        'real-time content optimization',
+        'visual content planning',
+        'SEO writing assistant',
+        'content optimization tool',
+        // Secondary keywords
         'content architecture',
         'SEO planning',
         'content strategy',
@@ -21,12 +36,17 @@ export const siteConfig = {
         'content mapping',
         'SEO tool',
         'content planning',
-        'visual content planning',
         'SEO content strategy',
         'content hierarchy',
         'link building strategy',
         'content organization',
         'SEO workflow',
+        // Long-tail keywords
+        'build topical authority',
+        'visualize internal links',
+        'SEO content planning tool',
+        'content architecture software',
+        'write with SEO guidance',
     ],
     authors: [{ name: 'SyncSEO Team' }],
     category: 'Technology',
@@ -39,9 +59,9 @@ export const siteConfig = {
 // Page-specific metadata configurations
 export const pageMetadata = {
     home: {
-        title: 'SyncSEO - Visual Content Architecture Planning for SEO',
-        description: 'Plan your content architecture visually with SyncSEO. Design pillar pages, cluster content, and internal linking structures in an intuitive drag-and-drop canvas.',
-        keywords: ['content architecture tool', 'SEO planning software', 'visual content strategy', 'pillar page planning'],
+        title: 'SyncSEO - See Your Content Strategy & Write with SEO Feedback',
+        description: 'Build topical authority you can actually see. Visualize content architecture, write with real-time SEO scoring, and track internal links on a visual canvas. Free plan available.',
+        keywords: ['topical authority', 'visual SEO tool', 'real-time SEO feedback', 'SEO writing tool', 'content architecture tool', 'SEO planning software', 'visual content strategy', 'internal link visualization', 'live SEO scoring'],
     },
     pricing: {
         title: 'Pricing - SyncSEO | Affordable Content Planning for Teams',

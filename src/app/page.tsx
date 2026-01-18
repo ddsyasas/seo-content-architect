@@ -3,12 +3,124 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { ArrowRight, Layers, GitBranch, Target, Menu, X, ChevronDown, Play, Mail } from 'lucide-react';
+import Script from 'next/script';
+import {
+  ArrowRight,
+  Layers,
+  GitBranch,
+  Target,
+  Menu,
+  X,
+  ChevronDown,
+  Play,
+  Mail,
+  FileSpreadsheet,
+  EyeOff,
+  Link2Off,
+  Shuffle,
+  MessageSquareX,
+  LayoutDashboard,
+  Gauge,
+  Link2,
+  Share2,
+  UserPlus,
+  PenTool,
+  MousePointerClick,
+  Network,
+  Send,
+  Rocket,
+  Users,
+  Briefcase,
+  Building2,
+  UserCheck,
+  CheckCircle2,
+  XCircle,
+  HelpCircle,
+  Zap,
+  Settings,
+  FolderKanban
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
 import { MegaMenu, SolutionsMenu, ResourcesMenu } from '@/components/marketing/mega-menu';
 import { PricingCards } from '@/components/pricing/PricingCard';
 import { NewsletterPopup } from '@/components/marketing/NewsletterPopup';
+
+// Structured Data for Home Page
+const faqPageSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'FAQPage',
+  'mainEntity': [
+    {
+      '@type': 'Question',
+      'name': 'What is SyncSEO?',
+      'acceptedAnswer': {
+        '@type': 'Answer',
+        'text': 'SyncSEO is a visual SEO content architecture platform with an interactive writing dashboard. It helps content teams plan, write, and optimize SEO content while visualizing their entire content structure and internal linking in real-time.'
+      }
+    },
+    {
+      '@type': 'Question',
+      'name': 'How is SyncSEO different from Notion or spreadsheets?',
+      'acceptedAnswer': {
+        '@type': 'Answer',
+        'text': 'Unlike general-purpose tools, SyncSEO is purpose-built for SEO content. You get a visual canvas for content architecture, real-time SEO scoring while writing, and automatic link tracking that syncs to your canvas. Features no spreadsheet or Notion setup can match.'
+      }
+    },
+    {
+      '@type': 'Question',
+      'name': 'Is there a free plan?',
+      'acceptedAnswer': {
+        '@type': 'Answer',
+        'text': 'Yes! The free plan includes 1 project, 10 articles, and 20 canvas nodes. It\'s fully functional for individuals getting started with visual content planning.'
+      }
+    },
+    {
+      '@type': 'Question',
+      'name': 'Can I share articles with clients?',
+      'acceptedAnswer': {
+        '@type': 'Answer',
+        'text': 'Absolutely. On Pro and Agency plans, you can generate public URLs for any article. Clients can view the optimized, formatted content without needing to log in or create an account.'
+      }
+    },
+    {
+      '@type': 'Question',
+      'name': 'Does SyncSEO integrate with my CMS?',
+      'acceptedAnswer': {
+        '@type': 'Answer',
+        'text': 'SyncSEO is a standalone planning and writing tool. You can export content and publish to your CMS. Direct integrations with WordPress and other platforms are on our roadmap.'
+      }
+    },
+    {
+      '@type': 'Question',
+      'name': 'How does the SEO scoring work?',
+      'acceptedAnswer': {
+        '@type': 'Answer',
+        'text': 'SyncSEO analyzes your content across 7 categories: keyword usage, meta elements, structure, readability, internal links, content length, and formatting. You get a score from 0-100 that updates in real-time as you write.'
+      }
+    }
+  ]
+};
+
+const videoObjectSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'VideoObject',
+  'name': 'SyncSEO Demo - Visual Content Architecture & SEO Writing',
+  'description': 'Watch how easy it is to plan your content architecture, connect topics, and optimize for SEO. All in one visual workspace.',
+  'thumbnailUrl': 'https://syncseo.io/SyncSEO.io Featured Image 01.webp',
+  'uploadDate': '2025-01-01',
+  'duration': 'PT2M30S',
+  'contentUrl': 'https://syncseo.io/videos/syncseo-demo.webm',
+  'embedUrl': 'https://syncseo.io/#demo-video',
+  'publisher': {
+    '@type': 'Organization',
+    'name': 'SyncSEO',
+    'logo': {
+      '@type': 'ImageObject',
+      'url': 'https://syncseo.io/SyncSEO Header logo 2-min.png'
+    }
+  }
+};
 
 export default function HomePage() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -61,6 +173,19 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950">
+      {/* Structured Data - FAQ Page */}
+      <Script
+        id="faq-schema"
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqPageSchema) }}
+      />
+      {/* Structured Data - Video Object */}
+      <Script
+        id="video-schema"
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(videoObjectSchema) }}
+      />
+
       {/* Header */}
       <header className="py-6 px-4 border-b border-gray-100 bg-white/80 backdrop-blur-sm sticky top-0 z-50 dark:border-gray-800 dark:bg-gray-900/80">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
@@ -214,36 +339,40 @@ export default function HomePage() {
         <div className="max-w-4xl mx-auto text-center">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-100 text-indigo-700 text-sm font-medium mb-6 dark:bg-indigo-900/50 dark:text-indigo-300">
             <span className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse" />
-            Visual Content Planning
+            For SEO Teams, Agencies & Content Marketers
           </div>
 
           <h1 className="text-5xl sm:text-6xl font-bold text-gray-900 leading-tight dark:text-white">
-            Map Your Content
-            <span className="block text-indigo-600 dark:text-indigo-400">Architecture Visually</span>
+            Build Topical Authority
+            <span className="block text-indigo-600 dark:text-indigo-400">You Can Actually See</span>
           </h1>
 
-          <p className="mt-6 text-xl text-gray-600 max-w-2xl mx-auto dark:text-gray-400">
-            Design pillar pages, cluster content, and internal linking structures in an intuitive
-            drag-and-drop canvas. Replace scattered spreadsheets with a visual workspace.
+          <p className="mt-6 text-xl text-gray-600 max-w-3xl mx-auto dark:text-gray-400">
+            Visualize your content architecture, plan internal links on a canvas, and write with real-time SEO guidance. All in one workspace.
           </p>
 
-          <div className="mt-10 flex items-center justify-center gap-4">
+          <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
             <Link href="/signup">
               <Button size="lg" className="text-base px-8">
-                Start Free
+                Start Free, No Credit Card
                 <ArrowRight className="w-5 h-5 ml-2" />
               </Button>
             </Link>
-            <Link href="/login">
+            <a href="#demo-video">
               <Button size="lg" variant="outline" className="text-base px-8">
-                Sign In
+                <Play className="w-4 h-4 mr-2" />
+                Watch Demo
               </Button>
-            </Link>
+            </a>
           </div>
+
+          <p className="mt-6 text-sm text-gray-500 dark:text-gray-400">
+            Join 1,000+ SEO professionals who&apos;ve escaped spreadsheet chaos
+          </p>
         </div>
 
         {/* Demo Video Section */}
-        <div className="max-w-5xl mx-auto mt-24">
+        <div id="demo-video" className="max-w-5xl mx-auto mt-24 scroll-mt-24">
           <div className="text-center mb-10">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-100 text-purple-700 text-sm font-medium mb-4 dark:bg-purple-900/50 dark:text-purple-300">
               <Play className="w-3 h-3" />
@@ -253,7 +382,7 @@ export default function HomePage() {
               See It in Action
             </h2>
             <p className="mt-3 text-lg text-gray-600 max-w-2xl mx-auto dark:text-gray-400">
-              Watch how easy it is to plan your content architecture, connect topics, and optimize for SEO — all in one visual workspace.
+              Watch how easy it is to plan your content architecture, connect topics, and optimize for SEO. All in one visual workspace.
             </p>
           </div>
 
@@ -294,35 +423,687 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* Features */}
-        <div className="max-w-5xl mx-auto mt-24 grid md:grid-cols-3 gap-8">
-          <div className="bg-white rounded-2xl p-8 shadow-sm border border-gray-100 dark:bg-gray-800 dark:border-gray-700">
-            <div className="w-12 h-12 rounded-xl bg-indigo-100 flex items-center justify-center mb-4 dark:bg-indigo-900/50">
-              <Layers className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
+        {/* Pain Points Section */}
+        <div className="max-w-6xl mx-auto mt-32 px-4">
+          <div className="text-center mb-12">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-red-100 text-red-700 text-sm font-medium mb-4 dark:bg-red-900/50 dark:text-red-300">
+              Sound Familiar?
             </div>
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Content Hierarchy</h3>
-            <p className="mt-2 text-gray-600 dark:text-gray-400">
-              Visualize pillar pages and cluster articles. See your content structure at a glance.
+            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-white">
+              The Content Chaos Problem
+            </h2>
+            <p className="mt-4 text-lg text-gray-600 max-w-2xl mx-auto dark:text-gray-400">
+              Managing SEO content at scale is broken. As your content library grows, so does the chaos.
             </p>
           </div>
 
-          <div className="bg-white rounded-2xl p-8 shadow-sm border border-gray-100 dark:bg-gray-800 dark:border-gray-700">
-            <div className="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center mb-4 dark:bg-blue-900/50">
-              <GitBranch className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {/* Pain 1: Spreadsheet Hell */}
+            <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 dark:bg-gray-800 dark:border-gray-700 hover:shadow-md transition-shadow">
+              <div className="w-12 h-12 rounded-xl bg-red-100 flex items-center justify-center mb-4 dark:bg-red-900/30">
+                <FileSpreadsheet className="w-6 h-6 text-red-600 dark:text-red-400" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Spreadsheet Hell</h3>
+              <p className="mt-2 text-gray-600 dark:text-gray-400">
+                100+ row spreadsheets become unnavigable. Version conflicts. No one can visualize how articles relate to each other.
+              </p>
             </div>
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Link Mapping</h3>
-            <p className="mt-2 text-gray-600 dark:text-gray-400">
-              Plan internal linking strategies. Connect pages and track link relationships.
+
+            {/* Pain 2: Blind Writing */}
+            <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 dark:bg-gray-800 dark:border-gray-700 hover:shadow-md transition-shadow">
+              <div className="w-12 h-12 rounded-xl bg-orange-100 flex items-center justify-center mb-4 dark:bg-orange-900/30">
+                <EyeOff className="w-6 h-6 text-orange-600 dark:text-orange-400" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Blind Writing</h3>
+              <p className="mt-2 text-gray-600 dark:text-gray-400">
+                Writers create content without real-time feedback. Issues discovered post-writing require painful rewrites.
+              </p>
+            </div>
+
+            {/* Pain 3: Invisible Link Structure */}
+            <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 dark:bg-gray-800 dark:border-gray-700 hover:shadow-md transition-shadow">
+              <div className="w-12 h-12 rounded-xl bg-yellow-100 flex items-center justify-center mb-4 dark:bg-yellow-900/30">
+                <Link2Off className="w-6 h-6 text-yellow-600 dark:text-yellow-400" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Invisible Link Structure</h3>
+              <p className="mt-2 text-gray-600 dark:text-gray-400">
+                Links are buried inside content. No way to visualize the link graph. Orphan pages go unnoticed.
+              </p>
+            </div>
+
+            {/* Pain 4: Disconnected Workflows */}
+            <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 dark:bg-gray-800 dark:border-gray-700 hover:shadow-md transition-shadow">
+              <div className="w-12 h-12 rounded-xl bg-purple-100 flex items-center justify-center mb-4 dark:bg-purple-900/30">
+                <Shuffle className="w-6 h-6 text-purple-600 dark:text-purple-400" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Disconnected Workflows</h3>
+              <p className="mt-2 text-gray-600 dark:text-gray-400">
+                Strategy in spreadsheets, content in CMS. No connection between the plan and reality. Strategy becomes outdated.
+              </p>
+            </div>
+
+            {/* Pain 5: Client Communication Gaps */}
+            <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 dark:bg-gray-800 dark:border-gray-700 hover:shadow-md transition-shadow">
+              <div className="w-12 h-12 rounded-xl bg-pink-100 flex items-center justify-center mb-4 dark:bg-pink-900/30">
+                <MessageSquareX className="w-6 h-6 text-pink-600 dark:text-pink-400" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Client Communication Gaps</h3>
+              <p className="mt-2 text-gray-600 dark:text-gray-400">
+                Sending Word docs lacks professionalism. Clients can&apos;t see SEO efforts. Approval workflows involve messy email chains.
+              </p>
+            </div>
+
+            {/* Cost Summary */}
+            <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 dark:bg-gray-800 dark:border-gray-700 hover:shadow-md transition-shadow">
+              <div className="w-12 h-12 rounded-xl bg-amber-100 flex items-center justify-center mb-4 dark:bg-amber-900/30">
+                <Zap className="w-6 h-6 text-amber-600 dark:text-amber-400" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">The Real Cost</h3>
+              <p className="mt-2 text-gray-600 dark:text-gray-400">
+                Hours wasted, costly rewrites, weak topical authority, lost clients, and missed rankings. There&apos;s a better way.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Solution Section */}
+        <div className="max-w-6xl mx-auto mt-32 px-4">
+          <div className="text-center mb-12">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-green-100 text-green-700 text-sm font-medium mb-4 dark:bg-green-900/50 dark:text-green-300">
+              The Solution
+            </div>
+            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-white">
+              Where SEO Strategy Meets Content Creation
+            </h2>
+            <p className="mt-4 text-lg text-gray-600 max-w-2xl mx-auto dark:text-gray-400">
+              SyncSEO unifies content planning and content creation in one visual workspace. Everything syncs in real-time.
             </p>
           </div>
 
-          <div className="bg-white rounded-2xl p-8 shadow-sm border border-gray-100 dark:bg-gray-800 dark:border-gray-700">
-            <div className="w-12 h-12 rounded-xl bg-green-100 flex items-center justify-center mb-4 dark:bg-green-900/50">
-              <Target className="w-6 h-6 text-green-600 dark:text-green-400" />
+          <div className="grid md:grid-cols-2 gap-8">
+            {/* Solution 1: Visual Canvas */}
+            <div className="bg-gradient-to-br from-indigo-50 to-white rounded-2xl p-8 shadow-sm border border-indigo-100 dark:from-indigo-950/50 dark:to-gray-800 dark:border-indigo-900/50">
+              <div className="w-14 h-14 rounded-2xl bg-indigo-100 flex items-center justify-center mb-5 dark:bg-indigo-900/50">
+                <LayoutDashboard className="w-7 h-7 text-indigo-600 dark:text-indigo-400" />
+              </div>
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-white">Visual Content Canvas</h3>
+              <p className="mt-3 text-gray-600 dark:text-gray-400">
+                A drag-and-drop canvas where you map your entire content architecture. Pillar pages at the center, clusters connected, supporting articles linked. See your strategy at a glance.
+              </p>
+              <ul className="mt-4 space-y-2">
+                <li className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                  <CheckCircle2 className="w-4 h-4 text-green-500" />
+                  Drag-and-drop node placement
+                </li>
+                <li className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                  <CheckCircle2 className="w-4 h-4 text-green-500" />
+                  Zoom and pan navigation
+                </li>
+                <li className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                  <CheckCircle2 className="w-4 h-4 text-green-500" />
+                  Visual link connections with anchor text
+                </li>
+              </ul>
             </div>
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">SEO Focused</h3>
-            <p className="mt-2 text-gray-600 dark:text-gray-400">
-              Track target keywords, content status, and publish dates for each piece.
+
+            {/* Solution 2: Real-Time SEO Scoring */}
+            <div className="bg-gradient-to-br from-green-50 to-white rounded-2xl p-8 shadow-sm border border-green-100 dark:from-green-950/50 dark:to-gray-800 dark:border-green-900/50">
+              <div className="w-14 h-14 rounded-2xl bg-green-100 flex items-center justify-center mb-5 dark:bg-green-900/50">
+                <Gauge className="w-7 h-7 text-green-600 dark:text-green-400" />
+              </div>
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-white">Real-Time SEO Scoring</h3>
+              <p className="mt-3 text-gray-600 dark:text-gray-400">
+                Writers get SEO feedback while writing, not after. Watch your score update in real-time as you type. Know exactly what to improve before publishing.
+              </p>
+              <ul className="mt-4 space-y-2">
+                <li className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                  <CheckCircle2 className="w-4 h-4 text-green-500" />
+                  7 scoring categories (0-100)
+                </li>
+                <li className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                  <CheckCircle2 className="w-4 h-4 text-green-500" />
+                  Issue highlighting with fix suggestions
+                </li>
+                <li className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                  <CheckCircle2 className="w-4 h-4 text-green-500" />
+                  Traffic light indicators (red/yellow/green)
+                </li>
+              </ul>
+            </div>
+
+            {/* Solution 3: Automatic Link Tracking */}
+            <div className="bg-gradient-to-br from-blue-50 to-white rounded-2xl p-8 shadow-sm border border-blue-100 dark:from-blue-950/50 dark:to-gray-800 dark:border-blue-900/50">
+              <div className="w-14 h-14 rounded-2xl bg-blue-100 flex items-center justify-center mb-5 dark:bg-blue-900/50">
+                <Link2 className="w-7 h-7 text-blue-600 dark:text-blue-400" />
+              </div>
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-white">Automatic Link Tracking</h3>
+              <p className="mt-3 text-gray-600 dark:text-gray-400">
+                Add a link in the editor, it appears on the canvas. Every internal link syncs automatically with anchor text displayed. Never lose track of your link structure.
+              </p>
+              <ul className="mt-4 space-y-2">
+                <li className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                  <CheckCircle2 className="w-4 h-4 text-green-500" />
+                  Auto-detection of internal links
+                </li>
+                <li className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                  <CheckCircle2 className="w-4 h-4 text-green-500" />
+                  Anchor text strategy visible
+                </li>
+                <li className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                  <CheckCircle2 className="w-4 h-4 text-green-500" />
+                  Identify orphan pages instantly
+                </li>
+              </ul>
+            </div>
+
+            {/* Solution 4: Public Sharing */}
+            <div className="bg-gradient-to-br from-purple-50 to-white rounded-2xl p-8 shadow-sm border border-purple-100 dark:from-purple-950/50 dark:to-gray-800 dark:border-purple-900/50">
+              <div className="w-14 h-14 rounded-2xl bg-purple-100 flex items-center justify-center mb-5 dark:bg-purple-900/50">
+                <Share2 className="w-7 h-7 text-purple-600 dark:text-purple-400" />
+              </div>
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-white">Public Article Sharing</h3>
+              <p className="mt-3 text-gray-600 dark:text-gray-400">
+                Generate shareable public URLs for any article. Clients view optimized content without logging in. Professional presentation, faster approvals.
+              </p>
+              <ul className="mt-4 space-y-2">
+                <li className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                  <CheckCircle2 className="w-4 h-4 text-green-500" />
+                  One-click public link generation
+                </li>
+                <li className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                  <CheckCircle2 className="w-4 h-4 text-green-500" />
+                  No login required for viewers
+                </li>
+                <li className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                  <CheckCircle2 className="w-4 h-4 text-green-500" />
+                  Revoke access anytime
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        {/* How It Works Section */}
+        <div className="max-w-6xl mx-auto mt-32 px-4">
+          <div className="text-center mb-12">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-100 text-blue-700 text-sm font-medium mb-4 dark:bg-blue-900/50 dark:text-blue-300">
+              Simple Process
+            </div>
+            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-white">
+              How It Works
+            </h2>
+            <p className="mt-4 text-lg text-gray-600 max-w-2xl mx-auto dark:text-gray-400">
+              From sign-up to published content in 6 simple steps. No complex setup required.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {/* Step 1 */}
+            <div className="relative bg-white rounded-2xl p-6 shadow-sm border border-gray-100 dark:bg-gray-800 dark:border-gray-700">
+              <div className="absolute -top-3 -left-3 w-8 h-8 rounded-full bg-indigo-600 text-white flex items-center justify-center font-bold text-sm">
+                1
+              </div>
+              <div className="w-12 h-12 rounded-xl bg-indigo-100 flex items-center justify-center mb-4 dark:bg-indigo-900/50">
+                <UserPlus className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Sign Up Free</h3>
+              <p className="mt-2 text-gray-600 dark:text-gray-400">
+                Create your free account in seconds. No credit card required to get started.
+              </p>
+            </div>
+
+            {/* Step 2 */}
+            <div className="relative bg-white rounded-2xl p-6 shadow-sm border border-gray-100 dark:bg-gray-800 dark:border-gray-700">
+              <div className="absolute -top-3 -left-3 w-8 h-8 rounded-full bg-indigo-600 text-white flex items-center justify-center font-bold text-sm">
+                2
+              </div>
+              <div className="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center mb-4 dark:bg-blue-900/50">
+                <FolderKanban className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Create Project</h3>
+              <p className="mt-2 text-gray-600 dark:text-gray-400">
+                Name your project (website or client name) and enter your visual workspace.
+              </p>
+            </div>
+
+            {/* Step 3 */}
+            <div className="relative bg-white rounded-2xl p-6 shadow-sm border border-gray-100 dark:bg-gray-800 dark:border-gray-700">
+              <div className="absolute -top-3 -left-3 w-8 h-8 rounded-full bg-indigo-600 text-white flex items-center justify-center font-bold text-sm">
+                3
+              </div>
+              <div className="w-12 h-12 rounded-xl bg-purple-100 flex items-center justify-center mb-4 dark:bg-purple-900/50">
+                <MousePointerClick className="w-6 h-6 text-purple-600 dark:text-purple-400" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Plan on Canvas</h3>
+              <p className="mt-2 text-gray-600 dark:text-gray-400">
+                Add pillar pages, clusters, and supporting content. Arrange your content structure visually.
+              </p>
+            </div>
+
+            {/* Step 4 */}
+            <div className="relative bg-white rounded-2xl p-6 shadow-sm border border-gray-100 dark:bg-gray-800 dark:border-gray-700">
+              <div className="absolute -top-3 -left-3 w-8 h-8 rounded-full bg-indigo-600 text-white flex items-center justify-center font-bold text-sm">
+                4
+              </div>
+              <div className="w-12 h-12 rounded-xl bg-green-100 flex items-center justify-center mb-4 dark:bg-green-900/50">
+                <PenTool className="w-6 h-6 text-green-600 dark:text-green-400" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Write with SEO Feedback</h3>
+              <p className="mt-2 text-gray-600 dark:text-gray-400">
+                Open any article and write. Watch your SEO score update in real-time as you type.
+              </p>
+            </div>
+
+            {/* Step 5 */}
+            <div className="relative bg-white rounded-2xl p-6 shadow-sm border border-gray-100 dark:bg-gray-800 dark:border-gray-700">
+              <div className="absolute -top-3 -left-3 w-8 h-8 rounded-full bg-indigo-600 text-white flex items-center justify-center font-bold text-sm">
+                5
+              </div>
+              <div className="w-12 h-12 rounded-xl bg-orange-100 flex items-center justify-center mb-4 dark:bg-orange-900/50">
+                <Network className="w-6 h-6 text-orange-600 dark:text-orange-400" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Build Link Network</h3>
+              <p className="mt-2 text-gray-600 dark:text-gray-400">
+                Add internal links and watch them appear on your canvas automatically with anchor text.
+              </p>
+            </div>
+
+            {/* Step 6 */}
+            <div className="relative bg-white rounded-2xl p-6 shadow-sm border border-gray-100 dark:bg-gray-800 dark:border-gray-700">
+              <div className="absolute -top-3 -left-3 w-8 h-8 rounded-full bg-indigo-600 text-white flex items-center justify-center font-bold text-sm">
+                6
+              </div>
+              <div className="w-12 h-12 rounded-xl bg-pink-100 flex items-center justify-center mb-4 dark:bg-pink-900/50">
+                <Send className="w-6 h-6 text-pink-600 dark:text-pink-400" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Share & Publish</h3>
+              <p className="mt-2 text-gray-600 dark:text-gray-400">
+                Share articles with clients for approval, then export or publish to your CMS.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Who Is This For Section */}
+        <div className="max-w-6xl mx-auto mt-32 px-4">
+          <div className="text-center mb-12">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-100 text-purple-700 text-sm font-medium mb-4 dark:bg-purple-900/50 dark:text-purple-300">
+              Built For You
+            </div>
+            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-white">
+              Who Is SyncSEO For?
+            </h2>
+            <p className="mt-4 text-lg text-gray-600 max-w-2xl mx-auto dark:text-gray-400">
+              Whether you&apos;re a solo freelancer or managing an agency, SyncSEO adapts to your workflow.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {/* Persona 1: SEO Specialists */}
+            <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 dark:bg-gray-800 dark:border-gray-700 hover:border-indigo-200 dark:hover:border-indigo-800 transition-colors">
+              <div className="w-12 h-12 rounded-xl bg-indigo-100 flex items-center justify-center mb-4 dark:bg-indigo-900/50">
+                <Target className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">SEO Specialists</h3>
+              <p className="mt-2 text-gray-600 dark:text-gray-400">
+                Stop drowning in spreadsheets. See your content structure and link strategy on a visual canvas.
+              </p>
+              <p className="mt-3 text-sm font-medium text-indigo-600 dark:text-indigo-400">
+                &ldquo;Finally, I can see my entire content strategy at once.&rdquo;
+              </p>
+            </div>
+
+            {/* Persona 2: Content Writers */}
+            <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 dark:bg-gray-800 dark:border-gray-700 hover:border-green-200 dark:hover:border-green-800 transition-colors">
+              <div className="w-12 h-12 rounded-xl bg-green-100 flex items-center justify-center mb-4 dark:bg-green-900/50">
+                <PenTool className="w-6 h-6 text-green-600 dark:text-green-400" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Content Writers</h3>
+              <p className="mt-2 text-gray-600 dark:text-gray-400">
+                Get real-time SEO guidance as you write. No more painful rewrites after SEO audits.
+              </p>
+              <p className="mt-3 text-sm font-medium text-green-600 dark:text-green-400">
+                &ldquo;I optimize while writing, not after.&rdquo;
+              </p>
+            </div>
+
+            {/* Persona 3: Content Managers */}
+            <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 dark:bg-gray-800 dark:border-gray-700 hover:border-blue-200 dark:hover:border-blue-800 transition-colors">
+              <div className="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center mb-4 dark:bg-blue-900/50">
+                <Users className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Content Managers</h3>
+              <p className="mt-2 text-gray-600 dark:text-gray-400">
+                Ensure quality at scale with consistent SEO scoring. Every writer meets the same standard.
+              </p>
+              <p className="mt-3 text-sm font-medium text-blue-600 dark:text-blue-400">
+                &ldquo;Quality is consistent across all my writers.&rdquo;
+              </p>
+            </div>
+
+            {/* Persona 4: Agency Owners */}
+            <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 dark:bg-gray-800 dark:border-gray-700 hover:border-purple-200 dark:hover:border-purple-800 transition-colors">
+              <div className="w-12 h-12 rounded-xl bg-purple-100 flex items-center justify-center mb-4 dark:bg-purple-900/50">
+                <Building2 className="w-6 h-6 text-purple-600 dark:text-purple-400" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Agency Owners</h3>
+              <p className="mt-2 text-gray-600 dark:text-gray-400">
+                Manage multiple clients efficiently. Separate projects, teams, and visual strategies for each.
+              </p>
+              <p className="mt-3 text-sm font-medium text-purple-600 dark:text-purple-400">
+                &ldquo;Client work is finally organized.&rdquo;
+              </p>
+            </div>
+
+            {/* Persona 5: Freelancers */}
+            <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 dark:bg-gray-800 dark:border-gray-700 hover:border-orange-200 dark:hover:border-orange-800 transition-colors">
+              <div className="w-12 h-12 rounded-xl bg-orange-100 flex items-center justify-center mb-4 dark:bg-orange-900/50">
+                <Briefcase className="w-6 h-6 text-orange-600 dark:text-orange-400" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Freelancers</h3>
+              <p className="mt-2 text-gray-600 dark:text-gray-400">
+                Deliver professional, SEO-optimized content. Share polished articles with clients for approval.
+              </p>
+              <p className="mt-3 text-sm font-medium text-orange-600 dark:text-orange-400">
+                &ldquo;My deliverables look professional.&rdquo;
+              </p>
+            </div>
+
+            {/* Persona 6: Marketing Teams */}
+            <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 dark:bg-gray-800 dark:border-gray-700 hover:border-pink-200 dark:hover:border-pink-800 transition-colors">
+              <div className="w-12 h-12 rounded-xl bg-pink-100 flex items-center justify-center mb-4 dark:bg-pink-900/50">
+                <Rocket className="w-6 h-6 text-pink-600 dark:text-pink-400" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Marketing Teams</h3>
+              <p className="mt-2 text-gray-600 dark:text-gray-400">
+                Align content strategy with business goals. Visual planning makes strategy tangible for everyone.
+              </p>
+              <p className="mt-3 text-sm font-medium text-pink-600 dark:text-pink-400">
+                &ldquo;Everyone understands our content strategy.&rdquo;
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Features Grid - Expanded */}
+        <div className="max-w-6xl mx-auto mt-32 px-4">
+          <div className="text-center mb-12">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-100 text-indigo-700 text-sm font-medium mb-4 dark:bg-indigo-900/50 dark:text-indigo-300">
+              Features
+            </div>
+            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-white">
+              Everything You Need to Build Topical Authority
+            </h2>
+            <p className="mt-4 text-lg text-gray-600 max-w-2xl mx-auto dark:text-gray-400">
+              A complete toolkit for planning, writing, and optimizing SEO content.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {/* Feature 1 */}
+            <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 dark:bg-gray-800 dark:border-gray-700">
+              <div className="w-12 h-12 rounded-xl bg-indigo-100 flex items-center justify-center mb-4 dark:bg-indigo-900/50">
+                <LayoutDashboard className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Visual Content Canvas</h3>
+              <p className="mt-2 text-gray-600 dark:text-gray-400">
+                Drag-and-drop canvas with zoom, pan, and auto-layout. See your entire content architecture visually.
+              </p>
+            </div>
+
+            {/* Feature 2 */}
+            <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 dark:bg-gray-800 dark:border-gray-700">
+              <div className="w-12 h-12 rounded-xl bg-green-100 flex items-center justify-center mb-4 dark:bg-green-900/50">
+                <PenTool className="w-6 h-6 text-green-600 dark:text-green-400" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Interactive Writing Dashboard</h3>
+              <p className="mt-2 text-gray-600 dark:text-gray-400">
+                Rich text editor with auto-save. Write in a clean, distraction-free environment built for SEO.
+              </p>
+            </div>
+
+            {/* Feature 3 */}
+            <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 dark:bg-gray-800 dark:border-gray-700">
+              <div className="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center mb-4 dark:bg-blue-900/50">
+                <Gauge className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Real-Time SEO Scoring</h3>
+              <p className="mt-2 text-gray-600 dark:text-gray-400">
+                7 scoring categories with instant feedback. Keyword usage, meta elements, readability, and more.
+              </p>
+            </div>
+
+            {/* Feature 4 */}
+            <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 dark:bg-gray-800 dark:border-gray-700">
+              <div className="w-12 h-12 rounded-xl bg-purple-100 flex items-center justify-center mb-4 dark:bg-purple-900/50">
+                <GitBranch className="w-6 h-6 text-purple-600 dark:text-purple-400" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Automatic Link Tracking</h3>
+              <p className="mt-2 text-gray-600 dark:text-gray-400">
+                Every internal link syncs to canvas with anchor text. Direction indicators show link flow.
+              </p>
+            </div>
+
+            {/* Feature 5 */}
+            <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 dark:bg-gray-800 dark:border-gray-700">
+              <div className="w-12 h-12 rounded-xl bg-orange-100 flex items-center justify-center mb-4 dark:bg-orange-900/50">
+                <Layers className="w-6 h-6 text-orange-600 dark:text-orange-400" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Content Hierarchy System</h3>
+              <p className="mt-2 text-gray-600 dark:text-gray-400">
+                Organize as Pillar, Cluster, or Supporting. Build topic clusters that search engines recognize.
+              </p>
+            </div>
+
+            {/* Feature 6 */}
+            <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 dark:bg-gray-800 dark:border-gray-700">
+              <div className="w-12 h-12 rounded-xl bg-pink-100 flex items-center justify-center mb-4 dark:bg-pink-900/50">
+                <UserCheck className="w-6 h-6 text-pink-600 dark:text-pink-400" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Team Collaboration</h3>
+              <p className="mt-2 text-gray-600 dark:text-gray-400">
+                Role-based permissions (Owner, Admin, Editor, Viewer). Work together in real-time.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Comparison Section */}
+        <div className="max-w-5xl mx-auto mt-32 px-4">
+          <div className="text-center mb-12">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-yellow-100 text-yellow-700 text-sm font-medium mb-4 dark:bg-yellow-900/50 dark:text-yellow-300">
+              Why Switch
+            </div>
+            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-white">
+              Traditional Tools vs SyncSEO
+            </h2>
+            <p className="mt-4 text-lg text-gray-600 max-w-2xl mx-auto dark:text-gray-400">
+              See why teams are switching from spreadsheets and disconnected tools to SyncSEO.
+            </p>
+          </div>
+
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden dark:bg-gray-800 dark:border-gray-700">
+            <div className="grid grid-cols-3 bg-gray-50 dark:bg-gray-900">
+              <div className="p-4 font-semibold text-gray-900 dark:text-white border-b border-gray-100 dark:border-gray-700">Aspect</div>
+              <div className="p-4 font-semibold text-gray-500 dark:text-gray-400 border-b border-gray-100 dark:border-gray-700 text-center">Traditional</div>
+              <div className="p-4 font-semibold text-indigo-600 dark:text-indigo-400 border-b border-gray-100 dark:border-gray-700 text-center">SyncSEO</div>
+            </div>
+
+            {[
+              { aspect: 'Content Strategy', traditional: 'Spreadsheets', syncseo: 'Visual Canvas' },
+              { aspect: 'Writing Environment', traditional: 'Separate tool (Docs, CMS)', syncseo: 'Integrated Dashboard' },
+              { aspect: 'Link Tracking', traditional: 'Manual updates', syncseo: 'Automatic sync' },
+              { aspect: 'SEO Feedback', traditional: 'After writing (audit)', syncseo: 'Real-time scoring' },
+              { aspect: 'Client Sharing', traditional: 'Email attachments', syncseo: 'Public sharing links' },
+              { aspect: 'Content Structure', traditional: 'Hidden in folders', syncseo: 'Visible at a glance' },
+            ].map((row, index) => (
+              <div key={index} className="grid grid-cols-3 border-b border-gray-100 dark:border-gray-700 last:border-b-0">
+                <div className="p-4 text-gray-900 dark:text-white font-medium">{row.aspect}</div>
+                <div className="p-4 text-gray-500 dark:text-gray-400 text-center flex items-center justify-center gap-2">
+                  <XCircle className="w-4 h-4 text-red-400" />
+                  {row.traditional}
+                </div>
+                <div className="p-4 text-gray-900 dark:text-white text-center flex items-center justify-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-green-500" />
+                  {row.syncseo}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Use Cases Section */}
+        <div className="max-w-6xl mx-auto mt-32 px-4">
+          <div className="text-center mb-12">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-100 text-cyan-700 text-sm font-medium mb-4 dark:bg-cyan-900/50 dark:text-cyan-300">
+              Use Cases
+            </div>
+            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-white">
+              How Teams Use SyncSEO
+            </h2>
+            <p className="mt-4 text-lg text-gray-600 max-w-2xl mx-auto dark:text-gray-400">
+              Real scenarios where SyncSEO transforms content workflows.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-8">
+            {/* Use Case 1 */}
+            <div className="bg-gradient-to-br from-indigo-50 to-white rounded-2xl p-8 border border-indigo-100 dark:from-indigo-950/50 dark:to-gray-800 dark:border-indigo-900/50">
+              <div className="text-sm font-semibold text-indigo-600 dark:text-indigo-400 mb-2">SaaS Companies</div>
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-white">Building a Content Hub</h3>
+              <p className="mt-3 text-gray-600 dark:text-gray-400">
+                Map pillar pages and clusters to establish thought leadership. Visualize your complete content hub structure before writing a single word.
+              </p>
+              <ul className="mt-4 space-y-2 text-sm text-gray-600 dark:text-gray-400">
+                <li className="flex items-start gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-green-500 mt-0.5 shrink-0" />
+                  Plan entire hub visually
+                </li>
+                <li className="flex items-start gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-green-500 mt-0.5 shrink-0" />
+                  Track completion on canvas
+                </li>
+                <li className="flex items-start gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-green-500 mt-0.5 shrink-0" />
+                  Build interlinked authority
+                </li>
+              </ul>
+            </div>
+
+            {/* Use Case 2 */}
+            <div className="bg-gradient-to-br from-purple-50 to-white rounded-2xl p-8 border border-purple-100 dark:from-purple-950/50 dark:to-gray-800 dark:border-purple-900/50">
+              <div className="text-sm font-semibold text-purple-600 dark:text-purple-400 mb-2">SEO Agencies</div>
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-white">Multi-Client Management</h3>
+              <p className="mt-3 text-gray-600 dark:text-gray-400">
+                Separate projects for each client with dedicated canvases and team access. Share progress visually with stakeholders.
+              </p>
+              <ul className="mt-4 space-y-2 text-sm text-gray-600 dark:text-gray-400">
+                <li className="flex items-start gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-green-500 mt-0.5 shrink-0" />
+                  Organized client separation
+                </li>
+                <li className="flex items-start gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-green-500 mt-0.5 shrink-0" />
+                  Professional client sharing
+                </li>
+                <li className="flex items-start gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-green-500 mt-0.5 shrink-0" />
+                  Scale content production
+                </li>
+              </ul>
+            </div>
+
+            {/* Use Case 3 */}
+            <div className="bg-gradient-to-br from-green-50 to-white rounded-2xl p-8 border border-green-100 dark:from-green-950/50 dark:to-gray-800 dark:border-green-900/50">
+              <div className="text-sm font-semibold text-green-600 dark:text-green-400 mb-2">Content Teams</div>
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-white">Topic Cluster Strategy</h3>
+              <p className="mt-3 text-gray-600 dark:text-gray-400">
+                Implement pillar-cluster SEO strategy with visual mapping. See every connection, identify gaps, and build topical authority.
+              </p>
+              <ul className="mt-4 space-y-2 text-sm text-gray-600 dark:text-gray-400">
+                <li className="flex items-start gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-green-500 mt-0.5 shrink-0" />
+                  Visual cluster mapping
+                </li>
+                <li className="flex items-start gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-green-500 mt-0.5 shrink-0" />
+                  Identify content gaps
+                </li>
+                <li className="flex items-start gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-green-500 mt-0.5 shrink-0" />
+                  Consistent SEO quality
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        {/* FAQ Section */}
+        <div className="max-w-4xl mx-auto mt-32 px-4">
+          <div className="text-center mb-12">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-gray-100 text-gray-700 text-sm font-medium mb-4 dark:bg-gray-800 dark:text-gray-300">
+              <HelpCircle className="w-4 h-4" />
+              FAQ
+            </div>
+            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-white">
+              Frequently Asked Questions
+            </h2>
+          </div>
+
+          <div className="space-y-4">
+            {[
+              {
+                q: 'What is SyncSEO?',
+                a: 'SyncSEO is a visual SEO content architecture platform with an interactive writing dashboard. It helps content teams plan, write, and optimize SEO content while visualizing their entire content structure and internal linking in real-time.'
+              },
+              {
+                q: 'How is SyncSEO different from Notion or spreadsheets?',
+                a: 'Unlike general-purpose tools, SyncSEO is purpose-built for SEO content. You get a visual canvas for content architecture, real-time SEO scoring while writing, and automatic link tracking that syncs to your canvas. Features no spreadsheet or Notion setup can match.'
+              },
+              {
+                q: 'Is there a free plan?',
+                a: 'Yes! The free plan includes 1 project, 10 articles, and 20 canvas nodes. It\'s fully functional for individuals getting started with visual content planning.'
+              },
+              {
+                q: 'Can I share articles with clients?',
+                a: 'Absolutely. On Pro and Agency plans, you can generate public URLs for any article. Clients can view the optimized, formatted content without needing to log in or create an account.'
+              },
+              {
+                q: 'Does SyncSEO integrate with my CMS?',
+                a: 'SyncSEO is a standalone planning and writing tool. You can export content and publish to your CMS. Direct integrations with WordPress and other platforms are on our roadmap.'
+              },
+              {
+                q: 'How does the SEO scoring work?',
+                a: 'SyncSEO analyzes your content across 7 categories: keyword usage, meta elements, structure, readability, internal links, content length, and formatting. You get a score from 0-100 that updates in real-time as you write.'
+              },
+            ].map((faq, index) => (
+              <div key={index} className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 dark:bg-gray-800 dark:border-gray-700">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{faq.q}</h3>
+                <p className="mt-2 text-gray-600 dark:text-gray-400">{faq.a}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Final CTA Section */}
+        <div className="max-w-4xl mx-auto mt-32 px-4">
+          <div className="bg-gradient-to-br from-indigo-600 to-purple-700 rounded-3xl p-10 md:p-16 text-center dark:from-indigo-800 dark:to-purple-900">
+            <h2 className="text-3xl sm:text-4xl font-bold text-white">
+              Ready to See Your Content Architecture?
+            </h2>
+            <p className="mt-4 text-lg text-indigo-100 max-w-2xl mx-auto">
+              Join thousands of SEO professionals who&apos;ve escaped spreadsheet chaos. Build topical authority you can actually see.
+            </p>
+            <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
+              <Link href="/signup">
+                <Button size="lg" className="bg-white text-indigo-700 hover:bg-indigo-50 text-base px-8 font-semibold dark:bg-white dark:text-indigo-700 dark:hover:bg-gray-100">
+                  Start Free, No Credit Card
+                  <ArrowRight className="w-5 h-5 ml-2" />
+                </Button>
+              </Link>
+            </div>
+            <p className="mt-6 text-sm text-indigo-200">
+              Free forever plan available. Upgrade when you&apos;re ready.
             </p>
           </div>
         </div>
@@ -385,7 +1166,7 @@ export default function HomePage() {
             <Button
               type="submit"
               disabled={isSubscribing}
-              className="w-full sm:w-auto sm:mx-auto px-8 py-4 bg-white text-indigo-600 hover:bg-indigo-50 font-semibold rounded-xl transition-all"
+              className="w-full sm:w-auto sm:mx-auto px-8 py-4 bg-white text-indigo-700 hover:bg-indigo-50 font-semibold rounded-xl transition-all dark:bg-white dark:text-indigo-700 dark:hover:bg-gray-100"
             >
               {isSubscribing ? 'Subscribing...' : 'Subscribe'}
             </Button>
