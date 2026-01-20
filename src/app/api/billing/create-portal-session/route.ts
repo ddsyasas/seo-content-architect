@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getStripe } from '@/lib/stripe/config';
 import { createClient } from '@/lib/supabase/server';
+import { prisma } from '@/lib/prisma';
 
 export async function POST(request: NextRequest) {
     try {
@@ -13,18 +14,17 @@ export async function POST(request: NextRequest) {
         }
 
         // Get user's Stripe customer ID
-        const { data: profile, error: profileError } = await supabase
-            .from('profiles')
-            .select('stripe_customer_id')
-            .eq('id', user.id)
-            .single();
+        const profile = await prisma.profiles.findUnique({
+            where: { id: user.id },
+            select: { stripe_customer_id: true },
+        });
 
-        if (profileError) {
-            console.error('Error fetching profile:', profileError);
+        if (!profile) {
+            console.error('Profile not found for user:', user.id);
             return NextResponse.json({ error: 'Failed to fetch user profile' }, { status: 500 });
         }
 
-        if (!profile?.stripe_customer_id) {
+        if (!profile.stripe_customer_id) {
             return NextResponse.json(
                 { error: 'No billing account found. Please upgrade to a paid plan first.' },
                 { status: 400 }

@@ -1,8 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { FileText, Plus, Clock, Hash } from 'lucide-react';
-import { createClient } from '@/lib/supabase/client';
+import { useState } from 'react';
+import { FileText, Plus, Hash } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils/helpers';
 import { STATUS_LABELS, NODE_TYPE_LABELS } from '@/lib/utils/constants';
@@ -15,34 +14,16 @@ interface ArticlesListProps {
     projectId: string;
     project: Project | null;
     userRole?: UserRole;
+    initialArticles?: ContentNode[];
 }
 
-interface ArticleWithNode extends ContentNode {
-    word_count?: number;
-}
-
-export function ArticlesList({ projectId, project, userRole = 'owner' }: ArticlesListProps) {
-    const [nodes, setNodes] = useState<ArticleWithNode[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
-
+/**
+ * Client Component: Articles list with server-fetched initial data
+ * Receives initial articles from Server Component, can refetch if needed
+ */
+export function ArticlesList({ projectId, project, userRole = 'owner', initialArticles = [] }: ArticlesListProps) {
+    const [nodes, setNodes] = useState<ContentNode[]>(initialArticles);
     const canEdit = canEditContent(userRole);
-
-    useEffect(() => {
-        loadArticles();
-    }, [projectId]);
-
-    const loadArticles = async () => {
-        const supabase = createClient();
-        const { data } = await supabase
-            .from('nodes')
-            .select('*')
-            .eq('project_id', projectId)
-            .neq('node_type', 'external')
-            .order('created_at', { ascending: false });
-
-        setNodes(data || []);
-        setIsLoading(false);
-    };
 
     const getStatusColor = (status: string) => {
         switch (status) {
@@ -61,14 +42,6 @@ export function ArticlesList({ projectId, project, userRole = 'owner' }: Article
             default: return 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300';
         }
     };
-
-    if (isLoading) {
-        return (
-            <div className="flex items-center justify-center h-64">
-                <div className="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin" />
-            </div>
-        );
-    }
 
     return (
         <div className="p-6">

@@ -1,45 +1,32 @@
-'use client';
-
-import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
 import { User, CreditCard, Receipt, Settings2, Users } from 'lucide-react';
-import { createClient } from '@/lib/supabase/client';
+import { createClient } from '@/lib/supabase/server';
+import { prisma } from '@/lib/prisma';
+import { SettingsNav } from './settings-nav';
 
-export default function SettingsLayout({
+/**
+ * Server Component: Settings layout
+ * Fetches subscription data to determine team access
+ */
+export default async function SettingsLayout({
     children,
 }: {
     children: React.ReactNode;
 }) {
-    const pathname = usePathname();
-    const [hasTeamAccess, setHasTeamAccess] = useState(false);
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
 
-    useEffect(() => {
-        const checkSubscription = async () => {
-            const supabase = createClient();
-            const { data: { user } } = await supabase.auth.getUser();
+    let hasTeamAccess = false;
 
-            if (user) {
-                const { data: subscription } = await supabase
-                    .from('subscriptions')
-                    .select('plan')
-                    .eq('user_id', user.id)
-                    .single();
+    if (user) {
+        const subscription = await prisma.subscriptions.findUnique({
+            where: { user_id: user.id },
+            select: { plan: true },
+        });
 
-                const plan = subscription?.plan || 'free';
-                setHasTeamAccess(plan === 'pro' || plan === 'agency');
-            }
-        };
-        checkSubscription();
-    }, []);
-
-    const settingsLinks = [
-        { href: '/settings/profile', label: 'Profile', icon: User },
-        { href: '/settings/subscription', label: 'Subscription', icon: CreditCard },
-        { href: '/settings/billing', label: 'Billing', icon: Receipt },
-        { href: '/settings/preferences', label: 'Preferences', icon: Settings2 },
-        ...(hasTeamAccess ? [{ href: '/settings/team', label: 'Team', icon: Users }] : []),
-    ];
+        const plan = subscription?.plan || 'free';
+        hasTeamAccess = plan === 'pro' || plan === 'agency';
+    }
 
     return (
         <div className="min-h-screen bg-gray-50 dark:bg-transparent">
@@ -48,29 +35,7 @@ export default function SettingsLayout({
 
                 <div className="flex flex-col md:flex-row gap-8">
                     {/* Sidebar */}
-                    <nav className="w-full md:w-64 shrink-0">
-                        <ul className="space-y-1">
-                            {settingsLinks.map((link) => {
-                                const Icon = link.icon;
-                                const isActive = pathname === link.href;
-
-                                return (
-                                    <li key={link.href}>
-                                        <Link
-                                            href={link.href}
-                                            className={`flex items-center gap-3 px-4 py-3 rounded-lg font-medium transition-colors ${isActive
-                                                ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300'
-                                                : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white'
-                                                }`}
-                                        >
-                                            <Icon className="w-5 h-5" />
-                                            {link.label}
-                                        </Link>
-                                    </li>
-                                );
-                            })}
-                        </ul>
-                    </nav>
+                    <SettingsNav hasTeamAccess={hasTeamAccess} />
 
                     {/* Content */}
                     <main className="flex-1 min-w-0">
@@ -83,4 +48,3 @@ export default function SettingsLayout({
         </div>
     );
 }
-

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getStripe, PLANS, PlanType, getStripePriceId } from '@/lib/stripe/config';
 import { createClient } from '@/lib/supabase/server';
+import { prisma } from '@/lib/prisma';
 
 export async function POST(request: NextRequest) {
     try {
@@ -34,28 +35,27 @@ export async function POST(request: NextRequest) {
         // Get or create Stripe customer
         let stripeCustomerId: string;
 
-        const { data: profile, error: profileError } = await supabase
-            .from('profiles')
-            .select('stripe_customer_id, email, full_name')
-            .eq('id', user.id)
-            .single();
+        const profile = await prisma.profiles.findUnique({
+            where: { id: user.id },
+            select: { stripe_customer_id: true, email: true, full_name: true },
+        });
 
-        if (profileError) {
-            console.error('Error fetching profile:', profileError);
+        if (!profile) {
+            console.error('Profile not found for user:', user.id);
             return NextResponse.json({ error: 'Failed to fetch user profile' }, { status: 500 });
         }
 
         // Get the Stripe instance
         const stripe = getStripe();
 
-        if (profile?.stripe_customer_id) {
+        if (profile.stripe_customer_id) {
             stripeCustomerId = profile.stripe_customer_id;
         } else {
             // Create new Stripe customer
             try {
                 const customer = await stripe.customers.create({
-                    email: user.email || profile?.email,
-                    name: profile?.full_name || undefined,
+                    email: user.email || profile.email || undefined,
+                    name: profile.full_name || undefined,
                     metadata: {
                         user_id: user.id,
                     },
@@ -63,15 +63,10 @@ export async function POST(request: NextRequest) {
                 stripeCustomerId = customer.id;
 
                 // Save customer ID to profile
-                const { error: updateError } = await supabase
-                    .from('profiles')
-                    .update({ stripe_customer_id: customer.id })
-                    .eq('id', user.id);
-
-                if (updateError) {
-                    console.error('Error saving customer ID to profile:', updateError);
-                    // Continue anyway - customer was created in Stripe
-                }
+                await prisma.profiles.update({
+                    where: { id: user.id },
+                    data: { stripe_customer_id: customer.id },
+                });
             } catch (stripeErr) {
                 console.error('Stripe customer creation error:', stripeErr);
                 return NextResponse.json({

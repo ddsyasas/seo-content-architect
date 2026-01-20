@@ -39,6 +39,8 @@ export interface ContentNode {
     position_x: number;
     position_y: number;
     color: string | null;
+    is_public: boolean;
+    share_id: string | null;
     created_at: string;
     updated_at: string;
 }

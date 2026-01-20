@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { prisma } from '@/lib/prisma';
 import { getStripe } from '@/lib/stripe/config';
 
 /**
@@ -17,11 +18,10 @@ export async function POST(request: NextRequest) {
         }
 
         // Get subscription details
-        const { data: subscription } = await supabase
-            .from('subscriptions')
-            .select('stripe_subscription_id, plan')
-            .eq('user_id', user.id)
-            .single();
+        const subscription = await prisma.subscriptions.findUnique({
+            where: { user_id: user.id },
+            select: { stripe_subscription_id: true, plan: true },
+        });
 
         if (!subscription || subscription.plan === 'free') {
             return NextResponse.json({ error: 'No active subscription to cancel' }, { status: 400 });
@@ -39,20 +39,15 @@ export async function POST(request: NextRequest) {
         }
 
         // Update database to free plan
-        const { error: updateError } = await supabase
-            .from('subscriptions')
-            .update({
+        await prisma.subscriptions.update({
+            where: { user_id: user.id },
+            data: {
                 plan: 'free',
                 status: 'active',
                 stripe_subscription_id: null,
                 cancel_at_period_end: false,
-            })
-            .eq('user_id', user.id);
-
-        if (updateError) {
-            console.error('Database update error:', updateError);
-            return NextResponse.json({ error: 'Failed to update subscription' }, { status: 500 });
-        }
+            },
+        });
 
         return NextResponse.json({
             success: true,

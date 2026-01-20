@@ -1,4 +1,4 @@
-import { createAdminClient } from '@/lib/supabase/server';
+import { prisma } from '@/lib/prisma';
 import { getPlanLimits, planHasFeature } from '@/lib/stripe/config';
 
 interface LimitCheckResult {
@@ -18,23 +18,19 @@ interface FeatureCheckResult {
  * Get owner's plan for a project (handles both owners and team members)
  */
 export async function getProjectOwnerPlan(projectId: string): Promise<string> {
-    const adminSupabase = createAdminClient();
-
     // Get project owner
-    const { data: project } = await adminSupabase
-        .from('projects')
-        .select('user_id')
-        .eq('id', projectId)
-        .single();
+    const project = await prisma.projects.findUnique({
+        where: { id: projectId },
+        select: { user_id: true },
+    });
 
     if (!project) return 'free';
 
     // Get owner's subscription
-    const { data: subscription } = await adminSupabase
-        .from('subscriptions')
-        .select('plan')
-        .eq('user_id', project.user_id)
-        .single();
+    const subscription = await prisma.subscriptions.findUnique({
+        where: { user_id: project.user_id },
+        select: { plan: true },
+    });
 
     return subscription?.plan || 'free';
 }
@@ -43,13 +39,10 @@ export async function getProjectOwnerPlan(projectId: string): Promise<string> {
  * Get user's plan
  */
 export async function getUserPlan(userId: string): Promise<string> {
-    const adminSupabase = createAdminClient();
-
-    const { data: subscription } = await adminSupabase
-        .from('subscriptions')
-        .select('plan')
-        .eq('user_id', userId)
-        .single();
+    const subscription = await prisma.subscriptions.findUnique({
+        where: { user_id: userId },
+        select: { plan: true },
+    });
 
     return subscription?.plan || 'free';
 }
@@ -58,22 +51,14 @@ export async function getUserPlan(userId: string): Promise<string> {
  * Check if user can create more projects
  */
 export async function checkProjectLimit(userId: string): Promise<LimitCheckResult> {
-    const adminSupabase = createAdminClient();
-
     const plan = await getUserPlan(userId);
     const limits = getPlanLimits(plan);
 
     // Count existing projects
-    const { count, error } = await adminSupabase
-        .from('projects')
-        .select('id', { count: 'exact', head: true })
-        .eq('user_id', userId);
+    const current = await prisma.projects.count({
+        where: { user_id: userId },
+    });
 
-    if (error) {
-        console.error('[checkProjectLimit] Error counting projects:', error);
-    }
-
-    const current = count || 0;
     const allowed = current < limits.projects;
 
     console.log(`[checkProjectLimit] User ${userId}: plan=${plan}, current=${current}, limit=${limits.projects}, allowed=${allowed}`);
@@ -92,18 +77,14 @@ export async function checkProjectLimit(userId: string): Promise<LimitCheckResul
  * Check if more articles can be added to a project
  */
 export async function checkArticleLimit(projectId: string): Promise<LimitCheckResult> {
-    const adminSupabase = createAdminClient();
-
     const plan = await getProjectOwnerPlan(projectId);
     const limits = getPlanLimits(plan);
 
     // Count existing articles
-    const { count } = await adminSupabase
-        .from('articles')
-        .select('id', { count: 'exact', head: true })
-        .eq('project_id', projectId);
+    const current = await prisma.articles.count({
+        where: { project_id: projectId },
+    });
 
-    const current = count || 0;
     const allowed = current < limits.articlesPerProject;
 
     return {
@@ -120,18 +101,14 @@ export async function checkArticleLimit(projectId: string): Promise<LimitCheckRe
  * Check if more nodes can be added to a project
  */
 export async function checkNodeLimit(projectId: string): Promise<LimitCheckResult> {
-    const adminSupabase = createAdminClient();
-
     const plan = await getProjectOwnerPlan(projectId);
     const limits = getPlanLimits(plan);
 
     // Count existing nodes
-    const { count } = await adminSupabase
-        .from('nodes')
-        .select('id', { count: 'exact', head: true })
-        .eq('project_id', projectId);
+    const current = await prisma.nodes.count({
+        where: { project_id: projectId },
+    });
 
-    const current = count || 0;
     const allowed = current < limits.nodesPerProject;
 
     return {
@@ -148,27 +125,29 @@ export async function checkNodeLimit(projectId: string): Promise<LimitCheckResul
  * Check if more team members can be added
  */
 export async function checkTeamLimit(ownerId: string): Promise<LimitCheckResult> {
-    const adminSupabase = createAdminClient();
-
     const plan = await getUserPlan(ownerId);
     const limits = getPlanLimits(plan);
 
     // Get all owner's projects
-    const { data: projects } = await adminSupabase
-        .from('projects')
-        .select('id')
-        .eq('user_id', ownerId);
+    const projects = await prisma.projects.findMany({
+        where: { user_id: ownerId },
+        select: { id: true },
+    });
 
-    const projectIds = projects?.map(p => p.id) || [];
+    const projectIds = projects.map(p => p.id);
 
-    // Count unique accepted team members
-    const { data: acceptedInvites } = await adminSupabase
-        .from('team_invitations')
-        .select('accepted_by')
-        .in('project_id', projectIds)
-        .not('accepted_at', 'is', null);
+    // Count unique team members from team_members table (excluding owner)
+    const teamMembers = projectIds.length > 0
+        ? await prisma.team_members.findMany({
+            where: {
+                project_id: { in: projectIds },
+                user_id: { not: ownerId }, // Exclude owner
+            },
+            select: { user_id: true },
+        })
+        : [];
 
-    const uniqueMembers = new Set(acceptedInvites?.map(i => i.accepted_by).filter(Boolean) || []);
+    const uniqueMembers = new Set(teamMembers.map(m => m.user_id));
     const current = uniqueMembers.size;
     const allowed = current < limits.teamMembersPerProject;
 
@@ -186,14 +165,11 @@ export async function checkTeamLimit(ownerId: string): Promise<LimitCheckResult>
  * Check if user is a team member (not project owner)
  */
 export async function isTeamMember(userId: string, projectId: string): Promise<boolean> {
-    const adminSupabase = createAdminClient();
-
     // Check if user owns this project
-    const { data: project } = await adminSupabase
-        .from('projects')
-        .select('user_id')
-        .eq('id', projectId)
-        .single();
+    const project = await prisma.projects.findUnique({
+        where: { id: projectId },
+        select: { user_id: true },
+    });
 
     if (!project) return false;
 
@@ -205,32 +181,27 @@ export async function isTeamMember(userId: string, projectId: string): Promise<b
  * Check if user can create projects (owners only, unless admin)
  */
 export async function canCreateProjects(userId: string): Promise<boolean> {
-    const adminSupabase = createAdminClient();
-
     // Check if user owns any projects (they're an owner)
-    const { count: ownedProjects } = await adminSupabase
-        .from('projects')
-        .select('id', { count: 'exact', head: true })
-        .eq('user_id', userId);
+    const ownedProjects = await prisma.projects.count({
+        where: { user_id: userId },
+    });
 
-    if (ownedProjects && ownedProjects > 0) return true;
+    if (ownedProjects > 0) return true;
 
     // Check if user is an admin team member
-    const { data: adminMembership } = await adminSupabase
-        .from('team_members')
-        .select('role')
-        .eq('user_id', userId)
-        .eq('role', 'admin')
-        .limit(1);
+    const adminMembership = await prisma.team_members.findFirst({
+        where: {
+            user_id: userId,
+            role: 'admin',
+        },
+    });
 
-    if (adminMembership && adminMembership.length > 0) return true;
+    if (adminMembership) return true;
 
     // Check if they have their own subscription (they're a potential owner)
-    const { data: subscription } = await adminSupabase
-        .from('subscriptions')
-        .select('plan')
-        .eq('user_id', userId)
-        .single();
+    const subscription = await prisma.subscriptions.findUnique({
+        where: { user_id: userId },
+    });
 
     // If they have their own subscription, they can create projects
     return !!subscription;
@@ -240,8 +211,6 @@ export async function canCreateProjects(userId: string): Promise<boolean> {
  * Get all limits and current usage for a user (for display)
  */
 export async function getUserLimitsAndUsage(userId: string) {
-    const adminSupabase = createAdminClient();
-
     // Get user's own plan AND best team plan they belong to
     const ownPlan = await getUserPlan(userId);
     const teamPlan = await getBestTeamPlan(userId);
@@ -251,31 +220,33 @@ export async function getUserLimitsAndUsage(userId: string) {
     const limits = getPlanLimits(effectivePlan);
 
     // Count projects they OWN
-    const { count: projectCount } = await adminSupabase
-        .from('projects')
-        .select('id', { count: 'exact', head: true })
-        .eq('user_id', userId);
+    const projectCount = await prisma.projects.count({
+        where: { user_id: userId },
+    });
 
     // Count team members (across all projects they own)
-    const { data: projects } = await adminSupabase
-        .from('projects')
-        .select('id')
-        .eq('user_id', userId);
+    const projects = await prisma.projects.findMany({
+        where: { user_id: userId },
+        select: { id: true },
+    });
 
-    const projectIds = projects?.map(p => p.id) || [];
+    const projectIds = projects.map(p => p.id);
 
-    const { data: acceptedInvites } = projectIds.length > 0
-        ? await adminSupabase
-            .from('team_invitations')
-            .select('accepted_by')
-            .in('project_id', projectIds)
-            .not('accepted_at', 'is', null)
-        : { data: [] };
+    // Count unique team members from team_members table (excluding owner)
+    const teamMembers = projectIds.length > 0
+        ? await prisma.team_members.findMany({
+            where: {
+                project_id: { in: projectIds },
+                user_id: { not: userId }, // Exclude owner
+            },
+            select: { user_id: true },
+        })
+        : [];
 
-    const uniqueMembers = new Set(acceptedInvites?.map(i => i.accepted_by).filter(Boolean) || []);
+    const uniqueMembers = new Set(teamMembers.map(m => m.user_id));
 
     // Check if user is purely a team member (doesn't own projects)
-    const isTeamMemberOnly = (projectCount || 0) === 0 && teamPlan !== 'free';
+    const isTeamMemberOnly = projectCount === 0 && teamPlan !== 'free';
 
     return {
         plan: effectivePlan,
@@ -284,11 +255,11 @@ export async function getUserLimitsAndUsage(userId: string) {
         teamOwnerPlan: teamPlan !== 'free' ? teamPlan : null,
         limits,
         usage: {
-            projects: projectCount || 0,
+            projects: projectCount,
             teamMembers: uniqueMembers.size,
         },
         // Team members can't add their own team members
-        canManageTeam: (projectCount || 0) > 0,
+        canManageTeam: projectCount > 0,
     };
 }
 
@@ -296,35 +267,33 @@ export async function getUserLimitsAndUsage(userId: string) {
  * Get the best plan from teams the user belongs to
  */
 export async function getBestTeamPlan(userId: string): Promise<string> {
-    const adminSupabase = createAdminClient();
-
     // Get all projects user is a team member of
-    const { data: memberships } = await adminSupabase
-        .from('team_members')
-        .select('project_id')
-        .eq('user_id', userId);
+    const memberships = await prisma.team_members.findMany({
+        where: { user_id: userId },
+        select: { project_id: true },
+    });
 
-    if (!memberships || memberships.length === 0) return 'free';
+    if (memberships.length === 0) return 'free';
 
     const projectIds = memberships.map(m => m.project_id);
 
     // Get project owners
-    const { data: projects } = await adminSupabase
-        .from('projects')
-        .select('user_id')
-        .in('id', projectIds);
+    const projects = await prisma.projects.findMany({
+        where: { id: { in: projectIds } },
+        select: { user_id: true },
+    });
 
-    if (!projects || projects.length === 0) return 'free';
+    if (projects.length === 0) return 'free';
 
     const ownerIds = [...new Set(projects.map(p => p.user_id))];
 
     // Get the best plan among all owners
-    const { data: subscriptions } = await adminSupabase
-        .from('subscriptions')
-        .select('plan')
-        .in('user_id', ownerIds);
+    const subscriptions = await prisma.subscriptions.findMany({
+        where: { user_id: { in: ownerIds } },
+        select: { plan: true },
+    });
 
-    if (!subscriptions || subscriptions.length === 0) return 'free';
+    if (subscriptions.length === 0) return 'free';
 
     // Find the highest plan
     const planOrder = ['free', 'pro', 'agency'];

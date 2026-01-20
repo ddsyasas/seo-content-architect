@@ -42,6 +42,7 @@ interface RichTextEditorProps {
     placeholder?: string;
     availableNodes?: { id: string; title: string; slug: string }[];
     projectDomain?: string;
+    readOnly?: boolean;
 }
 
 // Toolbar button component
@@ -82,6 +83,7 @@ export function RichTextEditor({
     placeholder = 'Start writing your article...',
     availableNodes = [],
     projectDomain,
+    readOnly = false,
 }: RichTextEditorProps) {
     const [showLinkInput, setShowLinkInput] = useState(false);
     const [linkUrl, setLinkUrl] = useState('');
@@ -158,6 +160,7 @@ export function RichTextEditor({
             }),
         ],
         content,
+        editable: !readOnly,
         immediatelyRender: false, // Fix SSR hydration issue
         onUpdate: ({ editor }) => {
             const html = editor.getHTML();
@@ -599,7 +602,8 @@ export function RichTextEditor({
 
     return (
         <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden bg-white dark:bg-gray-900 flex flex-col h-full min-h-[500px]">
-            {/* Toolbar - Fixed at top */}
+            {/* Toolbar - Fixed at top (hidden in readOnly mode) */}
+            {!readOnly && (
             <div className="flex items-center gap-1 p-2 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 flex-wrap shrink-0">
                 {/* Font Family Dropdown */}
                 <select
@@ -806,9 +810,10 @@ export function RichTextEditor({
                     <Redo className="w-4 h-4" />
                 </ToolbarButton>
             </div>
+            )}
 
             {/* Link Input Bar */}
-            {showLinkInput && (
+            {!readOnly && showLinkInput && (
                 <div className="flex items-center gap-2 p-2 border-b border-gray-200 dark:border-gray-700 bg-indigo-50 dark:bg-indigo-950">
                     <LinkIcon className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
                     <div className="flex-1 relative">
@@ -872,7 +877,7 @@ export function RichTextEditor({
             )}
 
             {/* Alt Text Input Bar */}
-            {showAltInput && (
+            {!readOnly && showAltInput && (
                 <div className="flex items-center gap-2 p-2 border-b border-gray-200 dark:border-gray-700 bg-green-50 dark:bg-green-950">
                     <Type className="w-4 h-4 text-green-600 dark:text-green-400" />
                     <input

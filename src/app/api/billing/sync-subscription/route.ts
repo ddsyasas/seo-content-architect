@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getStripe } from '@/lib/stripe/config';
 import { createClient } from '@/lib/supabase/server';
+import { prisma } from '@/lib/prisma';
 
 /**
  * POST /api/billing/sync-subscription
@@ -18,16 +19,10 @@ export async function POST(request: NextRequest) {
         }
 
         // Get current subscription from our database
-        const { data: subscription, error: subError } = await supabase
-            .from('subscriptions')
-            .select('stripe_subscription_id, stripe_customer_id, plan')
-            .eq('user_id', user.id)
-            .single();
-
-        if (subError) {
-            console.error('Error fetching subscription:', subError);
-            return NextResponse.json({ error: 'Failed to fetch subscription' }, { status: 500 });
-        }
+        const subscription = await prisma.subscriptions.findUnique({
+            where: { user_id: user.id },
+            select: { stripe_subscription_id: true, stripe_customer_id: true, plan: true },
+        });
 
         // If no Stripe subscription ID, nothing to sync
         if (!subscription?.stripe_subscription_id) {
@@ -69,24 +64,20 @@ export async function POST(request: NextRequest) {
             // Get period end
             const subData = stripeSubscription as unknown as { current_period_end?: number };
             const currentPeriodEnd = subData.current_period_end
-                ? new Date(subData.current_period_end * 1000).toISOString()
+                ? new Date(subData.current_period_end * 1000)
                 : null;
 
             // Update our database
-            const { error: updateError } = await supabase
-                .from('subscriptions')
-                .update({
+            await prisma.subscriptions.update({
+                where: { user_id: user.id },
+                data: {
                     plan,
                     status,
                     cancel_at_period_end: stripeSubscription.cancel_at_period_end,
                     current_period_end: currentPeriodEnd,
-                    updated_at: new Date().toISOString(),
-                })
-                .eq('user_id', user.id);
-
-            if (updateError) {
-                console.error('Error updating subscription:', updateError);
-            }
+                    updated_at: new Date(),
+                },
+            });
 
             return NextResponse.json({
                 success: true,
@@ -95,7 +86,7 @@ export async function POST(request: NextRequest) {
                     plan,
                     status,
                     cancel_at_period_end: stripeSubscription.cancel_at_period_end,
-                    current_period_end: currentPeriodEnd,
+                    current_period_end: currentPeriodEnd?.toISOString(),
                     stripe_subscription_id: subscription.stripe_subscription_id,
                     stripe_customer_id: subscription.stripe_customer_id,
                 }
@@ -105,18 +96,18 @@ export async function POST(request: NextRequest) {
             const error = stripeErr as { code?: string };
             if (error.code === 'resource_missing') {
                 // Subscription was deleted in Stripe - downgrade to free
-                await supabase
-                    .from('subscriptions')
-                    .update({
+                await prisma.subscriptions.update({
+                    where: { user_id: user.id },
+                    data: {
                         plan: 'free',
                         status: 'active',
                         stripe_subscription_id: null,
                         cancel_at_period_end: false,
                         current_period_start: null,
                         current_period_end: null,
-                        updated_at: new Date().toISOString(),
-                    })
-                    .eq('user_id', user.id);
+                        updated_at: new Date(),
+                    },
+                });
 
                 return NextResponse.json({
                     success: true,

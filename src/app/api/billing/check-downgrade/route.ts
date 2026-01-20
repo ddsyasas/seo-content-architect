@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { prisma } from '@/lib/prisma';
 import { getPlanLimits, PlanType } from '@/lib/stripe/config';
 
 /**
@@ -27,64 +28,60 @@ export async function POST(request: NextRequest) {
         const blockers: string[] = [];
 
         // Check project count
-        const { count: projectCount } = await supabase
-            .from('projects')
-            .select('id', { count: 'exact', head: true })
-            .eq('user_id', user.id);
+        const projectCount = await prisma.projects.count({
+            where: { user_id: user.id },
+        });
 
-        if ((projectCount || 0) > targetLimits.projects) {
+        if (projectCount > targetLimits.projects) {
             blockers.push(
                 `You have ${projectCount} projects, but ${targetPlan} plan allows only ${targetLimits.projects}. ` +
-                `Please delete ${(projectCount || 0) - targetLimits.projects} project(s).`
+                `Please delete ${projectCount - targetLimits.projects} project(s).`
             );
         }
 
         // Check articles per project (find max across all projects)
-        const { data: projects } = await supabase
-            .from('projects')
-            .select('id, title')
-            .eq('user_id', user.id);
+        const projects = await prisma.projects.findMany({
+            where: { user_id: user.id },
+            select: { id: true, name: true },
+        });
 
-        if (projects) {
-            for (const project of projects) {
-                const { count: articleCount } = await supabase
-                    .from('nodes')
-                    .select('id', { count: 'exact', head: true })
-                    .eq('project_id', project.id)
-                    .neq('node_type', 'external');
+        for (const project of projects) {
+            const articleCount = await prisma.nodes.count({
+                where: {
+                    project_id: project.id,
+                    node_type: { not: 'external' },
+                },
+            });
 
-                if ((articleCount || 0) > targetLimits.articlesPerProject) {
-                    blockers.push(
-                        `Project "${project.title}" has ${articleCount} articles, but ${targetPlan} plan allows only ${targetLimits.articlesPerProject}. ` +
-                        `Please delete ${(articleCount || 0) - targetLimits.articlesPerProject} article(s).`
-                    );
-                }
+            if (articleCount > targetLimits.articlesPerProject) {
+                blockers.push(
+                    `Project "${project.name}" has ${articleCount} articles, but ${targetPlan} plan allows only ${targetLimits.articlesPerProject}. ` +
+                    `Please delete ${articleCount - targetLimits.articlesPerProject} article(s).`
+                );
+            }
 
-                // Check nodes per project
-                const { count: nodeCount } = await supabase
-                    .from('nodes')
-                    .select('id', { count: 'exact', head: true })
-                    .eq('project_id', project.id);
+            // Check nodes per project
+            const nodeCount = await prisma.nodes.count({
+                where: { project_id: project.id },
+            });
 
-                if ((nodeCount || 0) > targetLimits.nodesPerProject) {
-                    blockers.push(
-                        `Project "${project.title}" has ${nodeCount} nodes, but ${targetPlan} plan allows only ${targetLimits.nodesPerProject}. ` +
-                        `Please delete ${(nodeCount || 0) - targetLimits.nodesPerProject} node(s).`
-                    );
-                }
+            if (nodeCount > targetLimits.nodesPerProject) {
+                blockers.push(
+                    `Project "${project.name}" has ${nodeCount} nodes, but ${targetPlan} plan allows only ${targetLimits.nodesPerProject}. ` +
+                    `Please delete ${nodeCount - targetLimits.nodesPerProject} node(s).`
+                );
+            }
 
-                // Check team members per project
-                const { count: teamCount } = await supabase
-                    .from('team_members')
-                    .select('id', { count: 'exact', head: true })
-                    .eq('project_id', project.id);
+            // Check team members per project
+            const teamCount = await prisma.team_members.count({
+                where: { project_id: project.id },
+            });
 
-                if ((teamCount || 0) > targetLimits.teamMembersPerProject) {
-                    blockers.push(
-                        `Project "${project.title}" has ${teamCount} team members, but ${targetPlan} plan allows only ${targetLimits.teamMembersPerProject}. ` +
-                        `Please remove ${(teamCount || 0) - targetLimits.teamMembersPerProject} team member(s).`
-                    );
-                }
+            if (teamCount > targetLimits.teamMembersPerProject) {
+                blockers.push(
+                    `Project "${project.name}" has ${teamCount} team members, but ${targetPlan} plan allows only ${targetLimits.teamMembersPerProject}. ` +
+                    `Please remove ${teamCount - targetLimits.teamMembersPerProject} team member(s).`
+                );
             }
         }
 

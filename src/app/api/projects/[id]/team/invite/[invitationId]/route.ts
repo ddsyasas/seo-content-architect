@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { prisma } from '@/lib/prisma';
 
 // DELETE /api/projects/[id]/team/invite/[invitationId] - Cancel an invitation
 export async function DELETE(
@@ -16,28 +17,25 @@ export async function DELETE(
         }
 
         // Check if user is owner/admin of this project
-        const { data: membership } = await supabase
-            .from('team_members')
-            .select('role')
-            .eq('project_id', projectId)
-            .eq('user_id', user.id)
-            .single();
+        const membership = await prisma.team_members.findFirst({
+            where: {
+                project_id: projectId,
+                user_id: user.id,
+            },
+            select: { role: true },
+        });
 
         if (!membership || !['owner', 'admin'].includes(membership.role)) {
             return NextResponse.json({ error: 'Not authorized to manage invitations' }, { status: 403 });
         }
 
         // Delete the invitation
-        const { error: deleteError } = await supabase
-            .from('team_invitations')
-            .delete()
-            .eq('id', invitationId)
-            .eq('project_id', projectId);
-
-        if (deleteError) {
-            console.error('Error deleting invitation:', deleteError);
-            return NextResponse.json({ error: 'Failed to cancel invitation' }, { status: 500 });
-        }
+        await prisma.team_invitations.deleteMany({
+            where: {
+                id: invitationId,
+                project_id: projectId,
+            },
+        });
 
         return NextResponse.json({ message: 'Invitation cancelled successfully' });
     } catch (error) {

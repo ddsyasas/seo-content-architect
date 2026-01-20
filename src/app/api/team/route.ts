@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
+import { prisma } from '@/lib/prisma';
 import { getPlanLimits } from '@/lib/stripe/config';
 import { sendProjectAssignmentEmail } from '@/lib/email/brevo';
 
@@ -7,6 +8,7 @@ import { sendProjectAssignmentEmail } from '@/lib/email/brevo';
 export async function GET(request: NextRequest) {
     try {
         const supabase = await createClient();
+        // Keep admin client for auth admin API only
         const adminSupabase = createAdminClient();
 
         const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -15,11 +17,10 @@ export async function GET(request: NextRequest) {
         }
 
         // Check subscription
-        const { data: subscription } = await adminSupabase
-            .from('subscriptions')
-            .select('plan')
-            .eq('user_id', user.id)
-            .single();
+        const subscription = await prisma.subscriptions.findUnique({
+            where: { user_id: user.id },
+            select: { plan: true },
+        });
 
         const plan = subscription?.plan || 'free';
         const limits = getPlanLimits(plan);
@@ -32,64 +33,56 @@ export async function GET(request: NextRequest) {
         }
 
         // Get all projects owned by user
-        const { data: projects } = await adminSupabase
-            .from('projects')
-            .select('id, name')
-            .eq('user_id', user.id)
-            .order('created_at', { ascending: false });
+        const projects = await prisma.projects.findMany({
+            where: { user_id: user.id },
+            select: { id: true, name: true },
+            orderBy: { created_at: 'desc' },
+        });
 
-        const projectIds = projects?.map(p => p.id) || [];
+        const projectIds = projects.map(p => p.id);
 
         // Get all team members from team_members table
-        const { data: teamData } = projectIds.length > 0
-            ? await adminSupabase
-                .from('team_members')
-                .select('id, role, joined_at, user_id, project_id')
-                .in('project_id', projectIds)
-            : { data: [] };
+        const teamData = projectIds.length > 0
+            ? await prisma.team_members.findMany({
+                where: { project_id: { in: projectIds } },
+                select: { id: true, role: true, joined_at: true, user_id: true, project_id: true },
+            })
+            : [];
 
         // Get ALL accepted invitations (these represent team members regardless of project assignment)
-        const { data: acceptedInvites } = projectIds.length > 0
-            ? await adminSupabase
-                .from('team_invitations')
-                .select('id, email, role, accepted_at, accepted_by, project_id')
-                .in('project_id', projectIds)
-                .not('accepted_at', 'is', null)
-            : { data: [] };
+        const acceptedInvites = projectIds.length > 0
+            ? await prisma.team_invitations.findMany({
+                where: {
+                    project_id: { in: projectIds },
+                    accepted_at: { not: null },
+                },
+                select: { id: true, email: true, role: true, accepted_at: true, project_id: true },
+            })
+            : [];
 
         // Build member list - PRIORITY: accepted invitations define team membership
         // Project assignments are secondary
         const memberMap = new Map();
 
-        // Get user IDs from team_members (those with project assignments)
-        const userIdsFromTeam = teamData?.map(m => m.user_id).filter(Boolean) || [];
-
-        // Get emails from accepted invitations for matching
-        const inviteEmails = acceptedInvites?.map(i => i.email.toLowerCase()) || [];
-
         // First, add all accepted invitations as team members (with or without projects)
-        if (acceptedInvites && acceptedInvites.length > 0) {
-            // Build email to user_id map by looking up auth users
-            for (const inv of acceptedInvites) {
-                let userId = inv.accepted_by;
+        if (acceptedInvites.length > 0) {
+            // Get all users to match by email (since accepted_by field doesn't exist)
+            const { data: authUserData } = await adminSupabase.auth.admin.listUsers();
 
-                // If accepted_by is not set, try to find user by email
-                if (!userId) {
-                    const { data: authUserData } = await adminSupabase.auth.admin.listUsers();
-                    const matchedUser = authUserData?.users?.find(
-                        u => u.email?.toLowerCase() === inv.email.toLowerCase()
-                    );
-                    userId = matchedUser?.id || null;
-                }
+            for (const inv of acceptedInvites) {
+                // Find user by email since accepted_by doesn't exist in schema
+                const matchedUser = authUserData?.users?.find(
+                    u => u.email?.toLowerCase() === inv.email.toLowerCase()
+                );
+                const userId = matchedUser?.id || null;
 
                 if (userId && !memberMap.has(userId)) {
                     // Get profile for this user
                     let profile = null;
-                    const { data: profileData } = await adminSupabase
-                        .from('profiles')
-                        .select('id, full_name, email, avatar_url')
-                        .eq('id', userId)
-                        .single();
+                    const profileData = await prisma.profiles.findUnique({
+                        where: { id: userId },
+                        select: { id: true, full_name: true, email: true, avatar_url: true },
+                    });
 
                     if (profileData) {
                         profile = profileData;
@@ -123,7 +116,7 @@ export async function GET(request: NextRequest) {
         }
 
         // Now add project assignments from team_members table
-        teamData?.forEach(m => {
+        teamData.forEach(m => {
             if (memberMap.has(m.user_id)) {
                 const existing = memberMap.get(m.user_id);
                 if (!existing.assigned_projects.includes(m.project_id)) {
@@ -145,7 +138,7 @@ export async function GET(request: NextRequest) {
             }
         });
 
-        // Fetch proper profiles for any legacy members
+        // Fetch proper profiles for any legacy members (using Supabase Auth Admin)
         for (const [userId, member] of memberMap) {
             if (member.profiles.email === 'Unknown') {
                 try {
@@ -166,7 +159,7 @@ export async function GET(request: NextRequest) {
 
         return NextResponse.json({
             members: Array.from(memberMap.values()),
-            projects: projects || [],
+            projects: projects,
             plan,
             teamLimit: limits.teamMembersPerProject,
             currentUserEmail: user.email,
@@ -181,6 +174,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
     try {
         const supabase = await createClient();
+        // Keep admin client for auth admin API only
         const adminSupabase = createAdminClient();
 
         const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -191,58 +185,58 @@ export async function POST(request: NextRequest) {
         const { userId, projectId, role, action } = await request.json();
 
         // Verify the project belongs to the current user
-        const { data: project } = await adminSupabase
-            .from('projects')
-            .select('id, user_id')
-            .eq('id', projectId)
-            .eq('user_id', user.id)
-            .single();
+        const project = await prisma.projects.findFirst({
+            where: {
+                id: projectId,
+                user_id: user.id,
+            },
+            select: { id: true, user_id: true },
+        });
 
         if (!project) {
             return NextResponse.json({ error: 'Project not found or unauthorized' }, { status: 404 });
         }
 
         if (action === 'assign') {
-            // Add team member to project
-            const { error } = await adminSupabase
-                .from('team_members')
-                .upsert({
+            // Add team member to project (upsert)
+            await prisma.team_members.upsert({
+                where: {
+                    project_id_user_id: {
+                        project_id: projectId,
+                        user_id: userId,
+                    },
+                },
+                update: { role: role || 'editor' },
+                create: {
                     project_id: projectId,
                     user_id: userId,
                     role: role || 'editor',
-                }, { onConflict: 'project_id,user_id' });
-
-            if (error) {
-                console.error('Error assigning member:', error);
-                return NextResponse.json({ error: 'Failed to assign member' }, { status: 500 });
-            }
+                },
+            });
 
             // Send email notification to the assigned user
             try {
                 // Get project name
-                const { data: projectData } = await adminSupabase
-                    .from('projects')
-                    .select('name')
-                    .eq('id', projectId)
-                    .single();
+                const projectData = await prisma.projects.findUnique({
+                    where: { id: projectId },
+                    select: { name: true },
+                });
 
-                // Get assigned user's email
+                // Get assigned user's email (using Supabase Auth Admin)
                 const { data: userData } = await adminSupabase.auth.admin.getUserById(userId);
 
                 // Get owner's info
-                const { data: ownerProfile } = await adminSupabase
-                    .from('profiles')
-                    .select('full_name')
-                    .eq('id', user.id)
-                    .single();
+                const ownerProfile = await prisma.profiles.findUnique({
+                    where: { id: user.id },
+                    select: { full_name: true },
+                });
 
                 if (userData?.user?.email && projectData?.name) {
                     // Get user's profile for their name
-                    const { data: userProfile } = await adminSupabase
-                        .from('profiles')
-                        .select('full_name')
-                        .eq('id', userId)
-                        .single();
+                    const userProfile = await prisma.profiles.findUnique({
+                        where: { id: userId },
+                        select: { full_name: true },
+                    });
 
                     // Build project URL
                     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
@@ -266,16 +260,12 @@ export async function POST(request: NextRequest) {
             }
         } else if (action === 'unassign') {
             // Remove team member from project (but they remain in team via invitation)
-            const { error } = await adminSupabase
-                .from('team_members')
-                .delete()
-                .eq('project_id', projectId)
-                .eq('user_id', userId);
-
-            if (error) {
-                console.error('Error unassigning member:', error);
-                return NextResponse.json({ error: 'Failed to unassign member' }, { status: 500 });
-            }
+            await prisma.team_members.deleteMany({
+                where: {
+                    project_id: projectId,
+                    user_id: userId,
+                },
+            });
         }
 
         return NextResponse.json({ success: true });

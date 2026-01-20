@@ -3,8 +3,9 @@ import { createClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
 import { createServerClient } from '@supabase/ssr';
 import { isSuperAdminServer } from '@/lib/utils/admin';
+import { prisma } from '@/lib/prisma';
 
-// Create a Supabase admin client for privileged operations
+// Create a Supabase admin client for auth operations only
 function getSupabaseAdmin() {
     return createClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -39,38 +40,29 @@ export async function GET(request: NextRequest) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
         }
 
-        // Use admin client to fetch all users
-        const supabaseAdmin = getSupabaseAdmin();
-
         // Get all profiles with their data
-        const { data: profiles, error: profilesError } = await supabaseAdmin
-            .from('profiles')
-            .select('*')
-            .order('created_at', { ascending: false });
-
-        if (profilesError) {
-            console.error('Error fetching profiles:', profilesError);
-            throw profilesError;
-        }
+        const profiles = await prisma.profiles.findMany({
+            orderBy: { created_at: 'desc' },
+        });
 
         // Get project counts per user
-        const { data: projectCounts } = await supabaseAdmin
-            .from('projects')
-            .select('user_id');
+        const projectCounts = await prisma.projects.findMany({
+            select: { user_id: true },
+        });
 
         // Get subscription data
-        const { data: subscriptions } = await supabaseAdmin
-            .from('subscriptions')
-            .select('user_id, plan, status, current_period_end');
+        const subscriptions = await prisma.subscriptions.findMany({
+            select: { user_id: true, plan: true, status: true, current_period_end: true },
+        });
 
         // Aggregate data
         const projectCountMap: Record<string, number> = {};
-        projectCounts?.forEach(p => {
+        projectCounts.forEach(p => {
             projectCountMap[p.user_id] = (projectCountMap[p.user_id] || 0) + 1;
         });
 
         const subscriptionMap: Record<string, any> = {};
-        subscriptions?.forEach(s => {
+        subscriptions.forEach(s => {
             subscriptionMap[s.user_id] = {
                 plan: s.plan,
                 status: s.status,
@@ -79,7 +71,7 @@ export async function GET(request: NextRequest) {
         });
 
         // Combine data
-        const users = profiles?.map(profile => ({
+        const users = profiles.map(profile => ({
             id: profile.id,
             email: profile.email,
             fullName: profile.full_name,
@@ -87,7 +79,7 @@ export async function GET(request: NextRequest) {
             updatedAt: profile.updated_at,
             projectCount: projectCountMap[profile.id] || 0,
             subscription: subscriptionMap[profile.id] || { plan: 'free', status: 'active' },
-        })) || [];
+        }));
 
         // Calculate stats
         const stats = {
@@ -131,33 +123,28 @@ export async function DELETE(request: NextRequest) {
             return NextResponse.json({ error: 'Cannot delete your own account' }, { status: 400 });
         }
 
-        const supabaseAdmin = getSupabaseAdmin();
-
         // Delete user's projects first (cascade will handle nodes, edges, articles)
-        await supabaseAdmin
-            .from('projects')
-            .delete()
-            .eq('user_id', userId);
+        await prisma.projects.deleteMany({
+            where: { user_id: userId },
+        });
 
         // Delete team memberships
-        await supabaseAdmin
-            .from('team_members')
-            .delete()
-            .eq('user_id', userId);
+        await prisma.team_members.deleteMany({
+            where: { user_id: userId },
+        });
 
         // Delete subscription
-        await supabaseAdmin
-            .from('subscriptions')
-            .delete()
-            .eq('user_id', userId);
+        await prisma.subscriptions.deleteMany({
+            where: { user_id: userId },
+        });
 
         // Delete profile
-        await supabaseAdmin
-            .from('profiles')
-            .delete()
-            .eq('id', userId);
+        await prisma.profiles.deleteMany({
+            where: { id: userId },
+        });
 
-        // Delete auth user
+        // Delete auth user (still need Supabase Admin for this)
+        const supabaseAdmin = getSupabaseAdmin();
         const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(userId);
 
         if (deleteError) {

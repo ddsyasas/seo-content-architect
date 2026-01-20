@@ -3,8 +3,6 @@
 import { X, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { createClient } from '@/lib/supabase/client';
-import { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils/helpers';
 import { STATUS_LABELS, NODE_TYPE_LABELS } from '@/lib/utils/constants';
 import type { NodeStatus, NodeType } from '@/lib/types';
@@ -19,7 +17,7 @@ interface NodeDetailPanelProps {
     projectId: string;
 }
 
-export function NodeDetailPanel({ node, onClose, onChange, onDelete, projectDomain: propDomain, projectId }: NodeDetailPanelProps) {
+export function NodeDetailPanel({ node, onClose, onChange, onDelete, projectDomain }: NodeDetailPanelProps) {
     if (!node) return null;
 
     const data = node.data as {
@@ -36,20 +34,8 @@ export function NodeDetailPanel({ node, onClose, onChange, onDelete, projectDoma
         outgoingLinks?: number;
     };
 
-    const [domain, setDomain] = useState(propDomain || '');
-
-    useEffect(() => {
-        if (propDomain) {
-            setDomain(propDomain);
-        } else if (projectId) {
-            const fetchDomain = async () => {
-                const supabase = createClient();
-                const { data } = await supabase.from('projects').select('domain').eq('id', projectId).single();
-                if (data?.domain) setDomain(data.domain);
-            };
-            fetchDomain();
-        }
-    }, [propDomain, projectId]);
+    // Domain is now always passed from parent (Server Component chain)
+    const domain = projectDomain || '';
 
     const statuses: NodeStatus[] = ['planned', 'writing', 'published', 'needs_update'];
 

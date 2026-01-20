@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { prisma } from '@/lib/prisma';
 import { getPlanLimits } from '@/lib/stripe/config';
 import crypto from 'crypto';
 
@@ -10,8 +11,9 @@ export async function POST(
 ) {
     try {
         const { id: projectId } = await params;
-        const supabase = await createClient();
 
+        // Use Supabase for auth check
+        const supabase = await createClient();
         const { data: { user }, error: authError } = await supabase.auth.getUser();
         if (authError || !user) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -26,51 +28,50 @@ export async function POST(
         }
 
         // Check if user is owner/admin of this project
-        const { data: membership } = await supabase
-            .from('team_members')
-            .select('role')
-            .eq('project_id', projectId)
-            .eq('user_id', user.id)
-            .single();
+        const membership = await prisma.team_members.findFirst({
+            where: {
+                project_id: projectId,
+                user_id: user.id,
+            },
+            select: { role: true },
+        });
 
         if (!membership || !['owner', 'admin'].includes(membership.role)) {
             return NextResponse.json({ error: 'Not authorized to invite members' }, { status: 403 });
         }
 
         // Get project owner's subscription plan for limits
-        const { data: project } = await supabase
-            .from('projects')
-            .select('user_id')
-            .eq('id', projectId)
-            .single();
+        const project = await prisma.projects.findUnique({
+            where: { id: projectId },
+            select: { user_id: true },
+        });
 
         if (!project) {
             return NextResponse.json({ error: 'Project not found' }, { status: 404 });
         }
 
-        const { data: subscription } = await supabase
-            .from('subscriptions')
-            .select('plan')
-            .eq('user_id', project.user_id)
-            .single();
+        const subscription = await prisma.subscriptions.findUnique({
+            where: { user_id: project.user_id },
+            select: { plan: true },
+        });
 
         const plan = subscription?.plan || 'free';
         const limits = getPlanLimits(plan);
 
         // Check team member limit
-        const { count: memberCount } = await supabase
-            .from('team_members')
-            .select('id', { count: 'exact' })
-            .eq('project_id', projectId);
+        const memberCount = await prisma.team_members.count({
+            where: { project_id: projectId },
+        });
 
-        const { count: pendingCount } = await supabase
-            .from('team_invitations')
-            .select('id', { count: 'exact' })
-            .eq('project_id', projectId)
-            .is('accepted_at', null)
-            .gt('expires_at', new Date().toISOString());
+        const pendingCount = await prisma.team_invitations.count({
+            where: {
+                project_id: projectId,
+                accepted_at: null,
+                expires_at: { gt: new Date() },
+            },
+        });
 
-        const totalMembers = (memberCount || 0) + (pendingCount || 0);
+        const totalMembers = memberCount + pendingCount;
 
         if (totalMembers >= limits.teamMembersPerProject) {
             return NextResponse.json({
@@ -81,34 +82,33 @@ export async function POST(
         }
 
         // Check if email already invited
-        const { data: existingInvite } = await supabase
-            .from('team_invitations')
-            .select('id')
-            .eq('project_id', projectId)
-            .eq('email', email.toLowerCase())
-            .is('accepted_at', null)
-            .gt('expires_at', new Date().toISOString())
-            .single();
+        const existingInvite = await prisma.team_invitations.findFirst({
+            where: {
+                project_id: projectId,
+                email: email.toLowerCase(),
+                accepted_at: null,
+                expires_at: { gt: new Date() },
+            },
+        });
 
         if (existingInvite) {
             return NextResponse.json({ error: 'This email already has a pending invitation' }, { status: 400 });
         }
 
         // Check if already a member - get member emails
-        const { data: existingMembers } = await supabase
-            .from('team_members')
-            .select('user_id')
-            .eq('project_id', projectId);
+        const existingMembers = await prisma.team_members.findMany({
+            where: { project_id: projectId },
+            select: { user_id: true },
+        });
 
-        if (existingMembers && existingMembers.length > 0) {
-            // Get profiles for these user IDs
+        if (existingMembers.length > 0) {
             const userIds = existingMembers.map(m => m.user_id);
-            const { data: profiles } = await supabase
-                .from('profiles')
-                .select('email')
-                .in('id', userIds);
+            const profiles = await prisma.profiles.findMany({
+                where: { id: { in: userIds } },
+                select: { email: true },
+            });
 
-            const isAlreadyMember = profiles?.some(
+            const isAlreadyMember = profiles.some(
                 p => p.email?.toLowerCase() === email.toLowerCase()
             );
 
@@ -121,39 +121,30 @@ export async function POST(
         const token = crypto.randomBytes(32).toString('hex');
         const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
 
-        const { data: invitation, error: insertError } = await supabase
-            .from('team_invitations')
-            .insert({
+        const invitation = await prisma.team_invitations.create({
+            data: {
                 project_id: projectId,
                 email: email.toLowerCase(),
                 role,
                 invited_by: user.id,
                 token,
-                expires_at: expiresAt.toISOString(),
-            })
-            .select()
-            .single();
-
-        if (insertError) {
-            console.error('Error creating invitation:', insertError);
-            return NextResponse.json({ error: 'Failed to create invitation' }, { status: 500 });
-        }
+                expires_at: expiresAt,
+            },
+        });
 
         const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
         const inviteLink = `${appUrl}/invite/${token}`;
 
         // Get project name and inviter info for email
-        const { data: projectInfo } = await supabase
-            .from('projects')
-            .select('name')
-            .eq('id', projectId)
-            .single();
+        const projectInfo = await prisma.projects.findUnique({
+            where: { id: projectId },
+            select: { name: true },
+        });
 
-        const { data: inviterProfile } = await supabase
-            .from('profiles')
-            .select('full_name, email')
-            .eq('id', user.id)
-            .single();
+        const inviterProfile = await prisma.profiles.findUnique({
+            where: { id: user.id },
+            select: { full_name: true, email: true },
+        });
 
         // Send invitation email via Brevo
         try {
@@ -180,4 +171,3 @@ export async function POST(
         return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
     }
 }
-

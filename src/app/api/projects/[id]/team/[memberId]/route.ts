@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { prisma } from '@/lib/prisma';
 
 // PATCH /api/projects/[id]/team/[memberId] - Update member role
 export async function PATCH(
@@ -24,24 +25,26 @@ export async function PATCH(
         }
 
         // Check if user is owner/admin
-        const { data: currentMembership } = await supabase
-            .from('team_members')
-            .select('role')
-            .eq('project_id', projectId)
-            .eq('user_id', user.id)
-            .single();
+        const currentMembership = await prisma.team_members.findFirst({
+            where: {
+                project_id: projectId,
+                user_id: user.id,
+            },
+            select: { role: true },
+        });
 
         if (!currentMembership || !['owner', 'admin'].includes(currentMembership.role)) {
             return NextResponse.json({ error: 'Not authorized' }, { status: 403 });
         }
 
         // Get target member
-        const { data: targetMember } = await supabase
-            .from('team_members')
-            .select('role, user_id')
-            .eq('id', memberId)
-            .eq('project_id', projectId)
-            .single();
+        const targetMember = await prisma.team_members.findFirst({
+            where: {
+                id: memberId,
+                project_id: projectId,
+            },
+            select: { role: true, user_id: true },
+        });
 
         if (!targetMember) {
             return NextResponse.json({ error: 'Member not found' }, { status: 404 });
@@ -58,15 +61,10 @@ export async function PATCH(
         }
 
         // Update role
-        const { error: updateError } = await supabase
-            .from('team_members')
-            .update({ role })
-            .eq('id', memberId);
-
-        if (updateError) {
-            console.error('Error updating role:', updateError);
-            return NextResponse.json({ error: 'Failed to update role' }, { status: 500 });
-        }
+        await prisma.team_members.update({
+            where: { id: memberId },
+            data: { role },
+        });
 
         return NextResponse.json({ success: true, newRole: role });
     } catch (error) {
@@ -90,24 +88,26 @@ export async function DELETE(
         }
 
         // Check if user is owner/admin
-        const { data: currentMembership } = await supabase
-            .from('team_members')
-            .select('role')
-            .eq('project_id', projectId)
-            .eq('user_id', user.id)
-            .single();
+        const currentMembership = await prisma.team_members.findFirst({
+            where: {
+                project_id: projectId,
+                user_id: user.id,
+            },
+            select: { role: true },
+        });
 
         if (!currentMembership || !['owner', 'admin'].includes(currentMembership.role)) {
             return NextResponse.json({ error: 'Not authorized' }, { status: 403 });
         }
 
         // Get target member
-        const { data: targetMember } = await supabase
-            .from('team_members')
-            .select('role, user_id')
-            .eq('id', memberId)
-            .eq('project_id', projectId)
-            .single();
+        const targetMember = await prisma.team_members.findFirst({
+            where: {
+                id: memberId,
+                project_id: projectId,
+            },
+            select: { role: true, user_id: true },
+        });
 
         if (!targetMember) {
             return NextResponse.json({ error: 'Member not found' }, { status: 404 });
@@ -124,15 +124,9 @@ export async function DELETE(
         }
 
         // Remove member
-        const { error: deleteError } = await supabase
-            .from('team_members')
-            .delete()
-            .eq('id', memberId);
-
-        if (deleteError) {
-            console.error('Error removing member:', deleteError);
-            return NextResponse.json({ error: 'Failed to remove member' }, { status: 500 });
-        }
+        await prisma.team_members.delete({
+            where: { id: memberId },
+        });
 
         return NextResponse.json({ success: true });
     } catch (error) {

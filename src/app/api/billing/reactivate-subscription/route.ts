@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getStripe } from '@/lib/stripe/config';
 import { createClient } from '@/lib/supabase/server';
+import { prisma } from '@/lib/prisma';
 
 /**
  * POST /api/billing/reactivate-subscription
@@ -17,13 +18,12 @@ export async function POST(request: NextRequest) {
         }
 
         // Get current subscription
-        const { data: subscription, error: subError } = await supabase
-            .from('subscriptions')
-            .select('stripe_subscription_id, cancel_at_period_end')
-            .eq('user_id', user.id)
-            .single();
+        const subscription = await prisma.subscriptions.findUnique({
+            where: { user_id: user.id },
+            select: { stripe_subscription_id: true, cancel_at_period_end: true },
+        });
 
-        if (subError || !subscription) {
+        if (!subscription) {
             return NextResponse.json({ error: 'No subscription found' }, { status: 404 });
         }
 
@@ -43,18 +43,13 @@ export async function POST(request: NextRequest) {
         });
 
         // Update our database
-        const { error: updateError } = await supabase
-            .from('subscriptions')
-            .update({
+        await prisma.subscriptions.update({
+            where: { user_id: user.id },
+            data: {
                 cancel_at_period_end: false,
-                updated_at: new Date().toISOString(),
-            })
-            .eq('user_id', user.id);
-
-        if (updateError) {
-            console.error('Error updating subscription in database:', updateError);
-            // Don't fail - Stripe was updated successfully
-        }
+                updated_at: new Date(),
+            },
+        });
 
         return NextResponse.json({
             success: true,

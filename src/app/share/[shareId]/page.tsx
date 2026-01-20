@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { FileText, Target, Globe, Calendar, User, Link2 } from 'lucide-react';
-import { createClient } from '@/lib/supabase/client';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
 import { calculateSEOScore } from '@/lib/seo/seo-calculator';
 import { extractImages, extractInternalLinksForSEO, extractOutboundLinksForSEO } from '@/lib/seo/seo-analyzer';
@@ -45,41 +44,29 @@ export default function SharePage({ params }: SharePageProps) {
     useEffect(() => {
         const loadSharedArticle = async () => {
             const { shareId } = await params;
-            const supabase = createClient();
 
-            // Fetch node by share_id (only if is_public is true - enforced by RLS)
-            const { data: nodeData, error: nodeError } = await supabase
-                .from('nodes')
-                .select('id, title, slug, target_keyword, status, node_type, created_at, assigned_to, project_id')
-                .eq('share_id', shareId)
-                .eq('is_public', true)
-                .single();
+            try {
+                // Fetch shared article data from API (uses Prisma, no RLS issues)
+                const response = await fetch(`/api/share/${shareId}`);
 
-            if (nodeError || !nodeData) {
-                setError('Article not found or is no longer public');
-                setIsLoading(false);
-                return;
+                if (!response.ok) {
+                    setError('Article not found or is no longer public');
+                    setIsLoading(false);
+                    return;
+                }
+
+                const { node, article, project } = await response.json();
+
+                setData({
+                    node,
+                    article,
+                    project,
+                });
+            } catch (err) {
+                console.error('Failed to load shared article:', err);
+                setError('Failed to load article');
             }
 
-            // Fetch article content
-            const { data: articleData } = await supabase
-                .from('articles')
-                .select('content, word_count, seo_title, seo_description')
-                .eq('node_id', nodeData.id)
-                .single();
-
-            // Fetch project info
-            const { data: projectData } = await supabase
-                .from('projects')
-                .select('name, domain')
-                .eq('id', nodeData.project_id)
-                .single();
-
-            setData({
-                node: nodeData,
-                article: articleData,
-                project: projectData,
-            });
             setIsLoading(false);
         };
 

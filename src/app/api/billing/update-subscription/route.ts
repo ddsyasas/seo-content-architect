@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getStripe, PLANS, PlanType, getStripePriceId } from '@/lib/stripe/config';
 import { createClient } from '@/lib/supabase/server';
+import { prisma } from '@/lib/prisma';
 
 /**
  * POST /api/billing/update-subscription
@@ -28,14 +29,13 @@ export async function POST(request: NextRequest) {
         }
 
         // Get current subscription
-        const { data: subscription, error: subError } = await supabase
-            .from('subscriptions')
-            .select('plan, stripe_subscription_id, stripe_customer_id')
-            .eq('user_id', user.id)
-            .single();
+        const subscription = await prisma.subscriptions.findUnique({
+            where: { user_id: user.id },
+            select: { plan: true, stripe_subscription_id: true, stripe_customer_id: true },
+        });
 
-        if (subError || !subscription) {
-            console.error('Error fetching subscription:', subError);
+        if (!subscription) {
+            console.error('No subscription found for user:', user.id);
             return NextResponse.json({ error: 'No subscription found' }, { status: 404 });
         }
 
@@ -73,10 +73,10 @@ export async function POST(request: NextRequest) {
                 });
 
                 // Update our database to reflect pending cancellation
-                await supabase
-                    .from('subscriptions')
-                    .update({ cancel_at_period_end: true })
-                    .eq('user_id', user.id);
+                await prisma.subscriptions.update({
+                    where: { user_id: user.id },
+                    data: { cancel_at_period_end: true },
+                });
 
                 return NextResponse.json({
                     success: true,
@@ -141,14 +141,14 @@ export async function POST(request: NextRequest) {
                 }
 
                 // Update our database immediately
-                await supabase
-                    .from('subscriptions')
-                    .update({
+                await prisma.subscriptions.update({
+                    where: { user_id: user.id },
+                    data: {
                         plan: targetPlan,
                         cancel_at_period_end: false,
-                        updated_at: new Date().toISOString(),
-                    })
-                    .eq('user_id', user.id);
+                        updated_at: new Date(),
+                    },
+                });
 
                 return NextResponse.json({
                     success: true,
@@ -170,14 +170,14 @@ export async function POST(request: NextRequest) {
 
                 // Note: The webhook will update our database when the change takes effect
                 // For now, we can optionally store the pending change
-                await supabase
-                    .from('subscriptions')
-                    .update({
+                await prisma.subscriptions.update({
+                    where: { user_id: user.id },
+                    data: {
                         // Don't change plan yet - it's still active
                         // The webhook will update when Stripe processes the change
-                        updated_at: new Date().toISOString(),
-                    })
-                    .eq('user_id', user.id);
+                        updated_at: new Date(),
+                    },
+                });
 
                 // Get the current period end from the original subscription
                 // Cast to access the property (Stripe types can be restrictive)

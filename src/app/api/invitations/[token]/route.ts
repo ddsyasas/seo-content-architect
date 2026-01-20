@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient, createAdminClient } from '@/lib/supabase/server';
+import { createClient } from '@/lib/supabase/server';
+import { prisma } from '@/lib/prisma';
 
 // GET /api/invitations/[token] - Get invitation details
 export async function GET(
@@ -8,36 +9,38 @@ export async function GET(
 ) {
     try {
         const { token } = await params;
-        const supabase = await createClient();
 
         // Get invitation with project info
-        const { data: invitation, error } = await supabase
-            .from('team_invitations')
-            .select(`
-                id,
-                email,
-                role,
-                expires_at,
-                accepted_at,
-                project_id,
-                projects:project_id (
-                    name,
-                    domain
-                ),
-                inviter:invited_by (
-                    full_name,
-                    email
-                )
-            `)
-            .eq('token', token)
-            .single();
+        const invitation = await prisma.team_invitations.findFirst({
+            where: { token },
+            select: {
+                id: true,
+                email: true,
+                role: true,
+                expires_at: true,
+                accepted_at: true,
+                project_id: true,
+                projects: {
+                    select: {
+                        name: true,
+                        domain: true,
+                    },
+                },
+                profiles: {
+                    select: {
+                        full_name: true,
+                        email: true,
+                    },
+                },
+            },
+        });
 
-        if (error || !invitation) {
+        if (!invitation) {
             return NextResponse.json({ error: 'Invitation not found' }, { status: 404 });
         }
 
         // Check if expired
-        if (new Date(invitation.expires_at) < new Date()) {
+        if (invitation.expires_at && new Date(invitation.expires_at) < new Date()) {
             return NextResponse.json({ error: 'Invitation has expired' }, { status: 410 });
         }
 
@@ -46,7 +49,13 @@ export async function GET(
             return NextResponse.json({ error: 'Invitation has already been accepted' }, { status: 410 });
         }
 
-        return NextResponse.json({ invitation });
+        // Format response to match expected structure
+        const formattedInvitation = {
+            ...invitation,
+            inviter: invitation.profiles,
+        };
+
+        return NextResponse.json({ invitation: formattedInvitation });
     } catch (error) {
         console.error('Get invitation error:', error);
         return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
@@ -68,18 +77,17 @@ export async function POST(
         }
 
         // Get invitation
-        const { data: invitation, error } = await supabase
-            .from('team_invitations')
-            .select('id, email, role, expires_at, accepted_at, project_id')
-            .eq('token', token)
-            .single();
+        const invitation = await prisma.team_invitations.findFirst({
+            where: { token },
+            select: { id: true, email: true, role: true, expires_at: true, accepted_at: true, project_id: true },
+        });
 
-        if (error || !invitation) {
+        if (!invitation) {
             return NextResponse.json({ error: 'Invitation not found' }, { status: 404 });
         }
 
         // Check if expired
-        if (new Date(invitation.expires_at) < new Date()) {
+        if (invitation.expires_at && new Date(invitation.expires_at) < new Date()) {
             return NextResponse.json({ error: 'Invitation has expired' }, { status: 410 });
         }
 
@@ -99,16 +107,11 @@ export async function POST(
             }, { status: 403 });
         }
 
-        // Use admin client to bypass RLS for these operations
-        const adminSupabase = createAdminClient();
-
-        // Check if user already has any team membership for this owner's projects
         // Get project owner ID from the invitation's project
-        const { data: projectData } = await adminSupabase
-            .from('projects')
-            .select('user_id')
-            .eq('id', invitation.project_id)
-            .single();
+        const projectData = await prisma.projects.findUnique({
+            where: { id: invitation.project_id },
+            select: { user_id: true },
+        });
 
         const ownerId = projectData?.user_id;
 
@@ -117,26 +120,26 @@ export async function POST(
         }
 
         // Check if already in team by looking at any project owned by this owner
-        const { data: ownerProjects } = await adminSupabase
-            .from('projects')
-            .select('id')
-            .eq('user_id', ownerId);
+        const ownerProjects = await prisma.projects.findMany({
+            where: { user_id: ownerId },
+            select: { id: true },
+        });
 
-        const projectIds = ownerProjects?.map(p => p.id) || [];
+        const projectIds = ownerProjects.map(p => p.id);
 
-        const { data: existingMember } = await adminSupabase
-            .from('team_members')
-            .select('id')
-            .eq('user_id', user.id)
-            .in('project_id', projectIds)
-            .limit(1);
+        const existingMember = await prisma.team_members.findFirst({
+            where: {
+                user_id: user.id,
+                project_id: { in: projectIds },
+            },
+        });
 
-        if (existingMember && existingMember.length > 0) {
+        if (existingMember) {
             // Already in team - just mark invitation as accepted
-            await adminSupabase
-                .from('team_invitations')
-                .update({ accepted_at: new Date().toISOString() })
-                .eq('id', invitation.id);
+            await prisma.team_invitations.update({
+                where: { id: invitation.id },
+                data: { accepted_at: new Date() },
+            });
 
             return NextResponse.json({
                 success: true,
@@ -144,22 +147,13 @@ export async function POST(
             });
         }
 
-        // Add user to team with NO project assigned yet (use a placeholder record)
-        // We'll use the invitation's project_id but owner will need to explicitly assign projects
-        // For now, just mark them as a team member on the original project
-        // BUT we won't redirect them there - owner must explicitly share
-
-        // Don't create any team_members entry - just mark invitation accepted
-        // Owner will assign projects from Dashboard > Team
-
         // Mark invitation as accepted
-        await adminSupabase
-            .from('team_invitations')
-            .update({
-                accepted_at: new Date().toISOString(),
-                accepted_by: user.id  // Store who accepted for reference
-            })
-            .eq('id', invitation.id);
+        await prisma.team_invitations.update({
+            where: { id: invitation.id },
+            data: {
+                accepted_at: new Date(),
+            },
+        });
 
         return NextResponse.json({
             success: true,

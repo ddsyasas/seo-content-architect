@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { prisma } from '@/lib/prisma';
 
 // GET /api/projects/[id]/team - List team members
 export async function GET(
@@ -16,11 +17,10 @@ export async function GET(
         }
 
         // First, check if user owns the project
-        const { data: project } = await supabase
-            .from('projects')
-            .select('user_id')
-            .eq('id', projectId)
-            .single();
+        const project = await prisma.projects.findUnique({
+            where: { id: projectId },
+            select: { user_id: true },
+        });
 
         if (!project) {
             return NextResponse.json({ error: 'Project not found' }, { status: 404 });
@@ -29,24 +29,25 @@ export async function GET(
         const isOwner = project.user_id === user.id;
 
         // Check if user has access to this project (via team_members)
-        const { data: membership } = await supabase
-            .from('team_members')
-            .select('role')
-            .eq('project_id', projectId)
-            .eq('user_id', user.id)
-            .single();
+        const membership = await prisma.team_members.findFirst({
+            where: {
+                project_id: projectId,
+                user_id: user.id,
+            },
+            select: { role: true },
+        });
 
         // If user is owner but not in team_members, add them (backfill)
         if (isOwner && !membership) {
-            const { error: insertError } = await supabase
-                .from('team_members')
-                .insert({
-                    project_id: projectId,
-                    user_id: user.id,
-                    role: 'owner'
+            try {
+                await prisma.team_members.create({
+                    data: {
+                        project_id: projectId,
+                        user_id: user.id,
+                        role: 'owner',
+                    },
                 });
-
-            if (insertError) {
+            } catch (insertError) {
                 console.error('Error adding owner to team:', insertError);
             }
         }
@@ -59,47 +60,47 @@ export async function GET(
         const currentRole = membership?.role || (isOwner ? 'owner' : 'viewer');
 
         // Get team members with profile info
-        const { data: members, error } = await supabase
-            .from('team_members')
-            .select(`
-                id,
-                role,
-                joined_at,
-                user_id,
-                profiles:user_id (
-                    full_name,
-                    email,
-                    avatar_url
-                )
-            `)
-            .eq('project_id', projectId)
-            .order('joined_at', { ascending: true });
+        const members = await prisma.team_members.findMany({
+            where: { project_id: projectId },
+            orderBy: { joined_at: 'asc' },
+            include: {
+                profiles_team_members_user_idToprofiles: {
+                    select: {
+                        full_name: true,
+                        email: true,
+                        avatar_url: true,
+                    },
+                },
+            },
+        });
 
-        if (error) {
-            console.error('Error fetching team:', error);
-            return NextResponse.json({ error: 'Failed to fetch team' }, { status: 500 });
-        }
-
-        // Map members to handle profiles array/object
-        const mappedMembers = (members || []).map((m: any) => ({
+        // Map members to match expected format
+        const mappedMembers = members.map(m => ({
             id: m.id,
             role: m.role,
             joined_at: m.joined_at,
             user_id: m.user_id,
-            profiles: Array.isArray(m.profiles) ? m.profiles[0] : m.profiles,
+            profiles: m.profiles_team_members_user_idToprofiles,
         }));
 
         // Get pending invitations (only for owners/admins)
         let invitations: unknown[] = [];
         if (currentRole === 'owner' || currentRole === 'admin') {
-            const { data: invites } = await supabase
-                .from('team_invitations')
-                .select('id, email, role, token, expires_at, created_at')
-                .eq('project_id', projectId)
-                .is('accepted_at', null)
-                .gt('expires_at', new Date().toISOString());
-
-            invitations = invites || [];
+            invitations = await prisma.team_invitations.findMany({
+                where: {
+                    project_id: projectId,
+                    accepted_at: null,
+                    expires_at: { gt: new Date() },
+                },
+                select: {
+                    id: true,
+                    email: true,
+                    role: true,
+                    token: true,
+                    expires_at: true,
+                    created_at: true,
+                },
+            });
         }
 
         return NextResponse.json({

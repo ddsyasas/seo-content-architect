@@ -6,7 +6,7 @@ This document describes the public shareable links feature in SyncSEO, including
 
 1. [Overview](#overview)
 2. [Database Schema](#database-schema)
-3. [RLS Policies](#rls-policies)
+3. [API Routes](#api-routes)
 4. [Frontend Implementation](#frontend-implementation)
 5. [SEO & Indexing](#seo--indexing)
 6. [Rollback Scripts](#rollback-scripts)
@@ -34,6 +34,19 @@ The shareable links feature allows writers to generate public URLs for their art
 
 ### Columns Added to `nodes` Table
 
+The columns are managed via Prisma schema (`prisma/schema.prisma`):
+
+```prisma
+model nodes {
+  // ... other fields
+  is_public  Boolean?  @default(false)
+  share_id   String?   @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+
+  @@index([share_id], map: "idx_nodes_share_id")
+}
+```
+
+**Equivalent SQL:**
 ```sql
 -- Add columns to nodes table
 ALTER TABLE nodes ADD COLUMN IF NOT EXISTS is_public BOOLEAN DEFAULT false;
@@ -50,34 +63,70 @@ CREATE INDEX IF NOT EXISTS idx_nodes_share_id ON nodes(share_id);
 
 ---
 
-## RLS Policies
+## API Routes
 
-### Policy for `nodes` Table
+All database operations use **Prisma ORM** to bypass Supabase RLS policies.
 
-Allows public read access to nodes that have `is_public = true`:
+### GET /api/share/[shareId]
 
-```sql
-CREATE POLICY "Allow public read access for shared articles"
-ON nodes
-FOR SELECT
-USING (is_public = true);
+**File:** `src/app/api/share/[shareId]/route.ts`
+
+Fetches shared article data by share ID. Public access (no authentication required).
+
+```typescript
+// Response
+{
+  node: {
+    id: string;
+    title: string;
+    slug: string | null;
+    target_keyword: string | null;
+    status: string;
+    node_type: string;
+    created_at: string;
+    assigned_to: string | null;
+  };
+  article: {
+    content: string;
+    word_count: number;
+    seo_title: string | null;
+    seo_description: string | null;
+  } | null;
+  project: {
+    name: string;
+    domain: string | null;
+  } | null;
+}
 ```
 
-### Policy for `articles` Table
+### PATCH /api/nodes/[nodeId]/share
 
-Allows public read access to article content when the related node is public:
+**File:** `src/app/api/nodes/[nodeId]/share/route.ts`
 
-```sql
-CREATE POLICY "Allow public read access for shared articles content"
-ON articles
-FOR SELECT
-USING (
-    EXISTS (
-        SELECT 1 FROM nodes
-        WHERE nodes.id = articles.node_id
-        AND nodes.is_public = true
-    )
-);
+Toggle public sharing for a node. Requires authentication.
+
+```typescript
+// Request body
+{ isPublic: boolean }
+
+// Response
+{
+  success: true,
+  isPublic: boolean,
+  shareId: string
+}
+```
+
+### GET /api/nodes/[nodeId]/share
+
+Get current share status for a node. Requires authentication.
+
+```typescript
+// Response
+{
+  isPublic: boolean,
+  shareId: string | null
+}
 ```
 
 ---
@@ -89,10 +138,9 @@ USING (
 **File:** `src/app/share/[shareId]/page.tsx`
 
 The share page is a public route that:
-1. Fetches node data by `share_id` (only if `is_public = true`)
-2. Fetches related article content
-3. Calculates SEO score client-side
-4. Displays article with SEO analysis
+1. Fetches node data via API (`/api/share/[shareId]`)
+2. Calculates SEO score client-side
+3. Displays article with SEO analysis
 
 Key features:
 - Mobile-responsive layout (sidebar on top for mobile, right side for desktop)
@@ -124,16 +172,19 @@ The Share Article section in the editor sidebar includes:
 const [isPublic, setIsPublic] = useState(false);
 const [shareId, setShareId] = useState<string | null>(null);
 
-// Toggle function
+// Toggle function - uses API (Prisma)
 const togglePublicShare = async () => {
-  const newIsPublic = !isPublic;
-  setIsPublic(newIsPublic);
+  const response = await fetch(`/api/nodes/${nodeId}/share`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ isPublic: newIsPublic }),
+  });
 
-  const supabase = createClient();
-  await supabase
-    .from('nodes')
-    .update({ is_public: newIsPublic })
-    .eq('id', nodeId);
+  if (response.ok) {
+    const { isPublic, shareId } = await response.json();
+    setIsPublic(isPublic);
+    setShareId(shareId);
+  }
 };
 ```
 
@@ -178,29 +229,25 @@ If you need to completely remove the shareable links feature:
 -- Run this if anything goes wrong
 -- =============================================
 
--- 1. Remove RLS policies
-DROP POLICY IF EXISTS "Allow public read access for shared articles" ON nodes;
-DROP POLICY IF EXISTS "Allow public read access for shared articles content" ON articles;
-
--- 2. Remove the index
+-- 1. Remove the index
 DROP INDEX IF EXISTS idx_nodes_share_id;
 
--- 3. Remove the columns
+-- 2. Remove the columns
 ALTER TABLE nodes DROP COLUMN IF EXISTS is_public;
 ALTER TABLE nodes DROP COLUMN IF EXISTS share_id;
 ```
 
+After running the SQL, update `prisma/schema.prisma` to remove:
+- `is_public` field from nodes model
+- `share_id` field from nodes model
+- `@@index([share_id], map: "idx_nodes_share_id")` line
+
+Then regenerate Prisma client:
+```bash
+npx prisma generate
+```
+
 ### Partial Rollbacks
-
-**Remove only the nodes RLS policy:**
-```sql
-DROP POLICY IF EXISTS "Allow public read access for shared articles" ON nodes;
-```
-
-**Remove only the articles RLS policy:**
-```sql
-DROP POLICY IF EXISTS "Allow public read access for shared articles content" ON articles;
-```
 
 **Disable all public sharing (keep schema):**
 ```sql
@@ -213,11 +260,12 @@ UPDATE nodes SET is_public = false WHERE is_public = true;
 
 | File | Type | Description |
 |------|------|-------------|
-| `src/app/share/[shareId]/page.tsx` | New | Public share page component |
-| `src/components/editor/article-editor.tsx` | Modified | Added share toggle UI |
+| `src/app/share/[shareId]/page.tsx` | Modified | Uses API instead of direct Supabase |
+| `src/app/api/share/[shareId]/route.ts` | New | Public API to fetch shared article (Prisma) |
+| `src/app/api/nodes/[nodeId]/share/route.ts` | New | API to toggle/get share status (Prisma) |
+| `src/components/editor/article-editor.tsx` | Modified | Uses API for share toggle |
 | `src/app/robots.ts` | Modified | Added `/share/` to disallow |
-| Database | Modified | Added `is_public`, `share_id` columns to `nodes` |
-| Database | Modified | Added RLS policies for public access |
+| `prisma/schema.prisma` | Modified | Added `is_public`, `share_id` to nodes |
 
 ---
 
@@ -245,8 +293,48 @@ UPDATE nodes SET is_public = false WHERE is_public = true;
 1. **UUID-based share IDs**: Share links use UUIDs, not predictable node IDs
 2. **No write access**: Public viewers can only read, never modify
 3. **Instant revocation**: Toggling off immediately disables the link
-4. **RLS enforced**: Database policies ensure only public articles are accessible
+4. **Prisma bypasses RLS**: API routes use Prisma to avoid RLS issues while still verifying ownership
 5. **No indexing**: Search engines cannot discover share links
+
+---
+
+## Migration Notes (Prisma)
+
+This feature was migrated from direct Supabase client calls to Prisma ORM as part of the broader Prisma migration. Key changes:
+
+- **Before**: Used `createClient()` from Supabase and direct `.from('nodes')` queries
+- **After**: Uses API routes with Prisma for all database operations
+- **Benefit**: Bypasses Supabase RLS policies, more predictable behavior for authenticated users
+
+---
+
+## Troubleshooting / Bug Fixes
+
+### Bug: "Failed to toggle share status" (Jan 20, 2026)
+
+**Symptom:** Clicking the share toggle in the article editor showed "Failed to toggle share status" in the console.
+
+**Root Causes:**
+1. The `is_public` and `share_id` columns were added to `prisma/schema.prisma` but not pushed to the actual database
+2. Existing nodes had `NULL` for `share_id` because the column was newly added
+
+**Solution:**
+1. Ran `npx prisma db push` to sync schema changes to the database
+2. Updated the API route to generate a new `share_id` when enabling sharing on nodes that don't have one:
+
+```typescript
+// In /api/nodes/[nodeId]/share/route.ts
+const updateData: { is_public: boolean; share_id?: string } = { is_public: isPublic };
+if (!node.share_id && isPublic) {
+    updateData.share_id = crypto.randomUUID();
+}
+```
+
+**Key Learnings:**
+- Prisma schema changes (`schema.prisma`) don't automatically update the database
+- Must run `npx prisma db push` or create migrations to apply schema changes
+- Default values in Prisma schema only apply to new rows, not existing ones
+- Need to handle `NULL` values for columns added to tables with existing data
 
 ---
 

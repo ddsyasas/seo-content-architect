@@ -1,8 +1,7 @@
-'use client';
-
-import { useState, useEffect } from 'react';
+import { redirect } from 'next/navigation';
 import { FileText, Layers, FolderOpen, ArrowUpRight, Clock } from 'lucide-react';
-import { createClient } from '@/lib/supabase/client';
+import { createClient } from '@/lib/supabase/server';
+import { prisma } from '@/lib/prisma';
 import Link from 'next/link';
 import { Card } from '@/components/ui/card';
 import { formatRelativeTime } from '@/lib/utils/helpers';
@@ -14,95 +13,106 @@ interface DashboardStats {
     recentProjects: Array<{
         id: string;
         name: string;
-        color: string;
-        updated_at: string;
+        color: string | null;
+        updated_at: Date | null;
         nodeCount: number;
         articleCount: number;
     }>;
 }
 
-export default function DashboardPage() {
-    const [stats, setStats] = useState<DashboardStats>({
-        totalProjects: 0,
-        totalArticles: 0,
-        totalNodes: 0,
-        recentProjects: [],
+/**
+ * Server Component: Dashboard page with stats
+ * Fetches all data server-side using Prisma
+ */
+export default async function DashboardPage() {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+        redirect('/login');
+    }
+
+    // Fetch user's projects (owned + team member) using Prisma
+    const ownedProjects = await prisma.projects.findMany({
+        where: { user_id: user.id },
+        select: {
+            id: true,
+            name: true,
+            color: true,
+            updated_at: true,
+        },
+        orderBy: { updated_at: 'desc' },
     });
-    const [isLoading, setIsLoading] = useState(true);
 
-    useEffect(() => {
-        fetchStats();
-    }, []);
+    // Get projects user is a team member of
+    const teamMemberships = await prisma.team_members.findMany({
+        where: { user_id: user.id },
+        select: { project_id: true },
+    });
+    const teamProjectIds = teamMemberships.map(m => m.project_id);
 
-    const fetchStats = async () => {
-        try {
-            // Use the same API as projects page for consistent data
-            const response = await fetch('/api/projects');
-            const data = await response.json();
+    const teamProjects = teamProjectIds.length > 0
+        ? await prisma.projects.findMany({
+            where: { id: { in: teamProjectIds } },
+            select: {
+                id: true,
+                name: true,
+                color: true,
+                updated_at: true,
+            },
+            orderBy: { updated_at: 'desc' },
+        })
+        : [];
 
-            if (!response.ok) {
-                throw new Error(data.error);
-            }
+    // Combine and dedupe projects
+    const allProjectsMap = new Map<string, typeof ownedProjects[0]>();
+    [...ownedProjects, ...teamProjects].forEach(p => {
+        if (!allProjectsMap.has(p.id)) {
+            allProjectsMap.set(p.id, p);
+        }
+    });
+    const allProjects = Array.from(allProjectsMap.values());
+    const projectIds = allProjects.map(p => p.id);
 
-            const allProjects = data.projects || [];
-            const projectIds = allProjects.map((p: any) => p.id);
+    // Get total counts using Prisma
+    const totalArticles = projectIds.length > 0
+        ? await prisma.articles.count({
+            where: { project_id: { in: projectIds } },
+        })
+        : 0;
 
-            // Fetch counts using supabase for articles and nodes
-            const supabase = createClient();
-            let totalArticles = 0;
-            let totalNodes = 0;
+    const totalNodes = projectIds.length > 0
+        ? await prisma.nodes.count({
+            where: { project_id: { in: projectIds } },
+        })
+        : 0;
 
-            if (projectIds.length > 0) {
-                const { count: articleCount } = await supabase
-                    .from('articles')
-                    .select('*', { count: 'exact', head: true })
-                    .in('project_id', projectIds);
-                totalArticles = articleCount || 0;
-
-                const { count: nodeCount } = await supabase
-                    .from('nodes')
-                    .select('*', { count: 'exact', head: true })
-                    .in('project_id', projectIds);
-                totalNodes = nodeCount || 0;
-            }
-
-            // Get recent projects with their counts
-            const recentProjects = allProjects.slice(0, 3).map((project: any) => ({
+    // Get recent projects with their counts
+    const recentProjects = await Promise.all(
+        allProjects.slice(0, 3).map(async (project) => {
+            const nodeCount = await prisma.nodes.count({
+                where: { project_id: project.id },
+            });
+            const articleCount = await prisma.articles.count({
+                where: { project_id: project.id },
+            });
+            return {
                 id: project.id,
                 name: project.name,
                 color: project.color,
                 updated_at: project.updated_at,
-                nodeCount: project.nodeCount || 0,
-                articleCount: project.articleCount || 0,
-            }));
+                nodeCount,
+                articleCount,
+            };
+        })
+    );
 
-            setStats({
-                totalProjects: allProjects.length,
-                totalArticles,
-                totalNodes,
-                recentProjects,
-            });
-        } catch (error) {
-            console.error('Failed to fetch stats:', error);
-        } finally {
-            setIsLoading(false);
-        }
+    const stats: DashboardStats = {
+        totalProjects: allProjects.length,
+        totalArticles,
+        totalNodes,
+        recentProjects,
     };
-
-    if (isLoading) {
-        return (
-            <div className="p-6">
-                <div className="animate-pulse space-y-6">
-                    <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-48"></div>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div className="h-32 bg-gray-200 dark:bg-gray-700 rounded-xl"></div>
-                        <div className="h-32 bg-gray-200 dark:bg-gray-700 rounded-xl"></div>
-                        <div className="h-32 bg-gray-200 dark:bg-gray-700 rounded-xl"></div>
-                    </div>
-                </div>
-            </div>
-        );
-    }
 
     return (
         <div className="p-6 max-w-6xl mx-auto">
@@ -192,11 +202,11 @@ export default function DashboardPage() {
                                     <div className="flex items-start gap-3">
                                         <div
                                             className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0"
-                                            style={{ backgroundColor: project.color + '20' }}
+                                            style={{ backgroundColor: (project.color || '#6366f1') + '20' }}
                                         >
                                             <FolderOpen
                                                 className="w-5 h-5"
-                                                style={{ color: project.color }}
+                                                style={{ color: project.color || '#6366f1' }}
                                             />
                                         </div>
                                         <div className="min-w-0 flex-1">
@@ -209,7 +219,7 @@ export default function DashboardPage() {
                                             </div>
                                             <div className="flex items-center gap-1 mt-2 text-xs text-gray-400 dark:text-gray-500">
                                                 <Clock className="w-3 h-3" />
-                                                {formatRelativeTime(project.updated_at)}
+                                                {project.updated_at ? formatRelativeTime(project.updated_at.toISOString()) : 'Unknown'}
                                             </div>
                                         </div>
                                     </div>

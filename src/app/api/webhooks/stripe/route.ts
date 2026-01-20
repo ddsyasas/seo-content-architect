@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getStripe } from '@/lib/stripe/config';
 import { createClient } from '@supabase/supabase-js';
+import { prisma } from '@/lib/prisma';
 import Stripe from 'stripe';
 import {
     sendWelcomeSubscriptionEmail,
@@ -8,7 +9,7 @@ import {
     sendPaymentFailedEmail,
 } from '@/lib/email/brevo';
 
-// Create supabase admin client lazily to avoid build-time env access
+// Create supabase admin client lazily - only for auth.admin API calls
 function getSupabaseAdmin() {
     return createClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -18,26 +19,23 @@ function getSupabaseAdmin() {
 
 // Helper to get user email from customer ID
 async function getUserEmailFromCustomerId(customerId: string): Promise<{ email: string; name?: string } | null> {
-    const supabase = getSupabaseAdmin();
-
     // Get user_id from subscription
-    const { data: subscription } = await supabase
-        .from('subscriptions')
-        .select('user_id')
-        .eq('stripe_customer_id', customerId)
-        .single();
+    const subscription = await prisma.subscriptions.findFirst({
+        where: { stripe_customer_id: customerId },
+        select: { user_id: true },
+    });
 
     if (!subscription?.user_id) return null;
 
     // Get user profile
-    const { data: profile } = await supabase
-        .from('profiles')
-        .select('email, full_name')
-        .eq('id', subscription.user_id)
-        .single();
+    const profile = await prisma.profiles.findUnique({
+        where: { id: subscription.user_id },
+        select: { email: true, full_name: true },
+    });
 
     if (!profile?.email) {
-        // Try auth.users as fallback
+        // Try auth.users as fallback (needs Supabase Admin)
+        const supabase = getSupabaseAdmin();
         const { data: authUser } = await supabase.auth.admin.getUserById(subscription.user_id);
         return authUser?.user?.email ? { email: authUser.user.email } : null;
     }
@@ -128,33 +126,39 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
 
     console.log(`[Webhook] Checkout completed for user ${userId}, plan: ${plan}`);
 
-    const supabase = getSupabaseAdmin();
+    try {
+        // Upsert subscription record
+        await prisma.subscriptions.upsert({
+            where: { user_id: userId },
+            update: {
+                stripe_customer_id: customerId,
+                stripe_subscription_id: subscriptionId,
+                plan: plan,
+                status: 'active',
+                current_period_start: new Date(),
+                current_period_end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // +30 days
+                cancel_at_period_end: false,
+                updated_at: new Date(),
+            },
+            create: {
+                user_id: userId,
+                stripe_customer_id: customerId,
+                stripe_subscription_id: subscriptionId,
+                plan: plan,
+                status: 'active',
+                current_period_start: new Date(),
+                current_period_end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+                cancel_at_period_end: false,
+            },
+        });
 
-    // Update or create subscription record
-    const { error } = await supabase
-        .from('subscriptions')
-        .upsert({
-            user_id: userId,
-            stripe_customer_id: customerId,
-            stripe_subscription_id: subscriptionId,
-            plan: plan,
-            status: 'active',
-            current_period_start: new Date().toISOString(),
-            current_period_end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // +30 days
-            cancel_at_period_end: false,
-        }, { onConflict: 'user_id' });
-
-    if (error) {
-        console.error('[Webhook] Error updating subscription:', error);
-    } else {
         console.log(`[Webhook] Subscription updated for user ${userId}`);
 
         // Send welcome email
-        const { data: profile } = await supabase
-            .from('profiles')
-            .select('email, full_name')
-            .eq('id', userId)
-            .single();
+        const profile = await prisma.profiles.findUnique({
+            where: { id: userId },
+            select: { email: true, full_name: true },
+        });
 
         if (profile?.email && (plan === 'pro' || plan === 'agency')) {
             try {
@@ -168,6 +172,8 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
                 console.error('[Webhook] Failed to send welcome email:', emailErr);
             }
         }
+    } catch (error) {
+        console.error('[Webhook] Error updating subscription:', error);
     }
 }
 
@@ -191,23 +197,25 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
         status = 'cancelled';
     }
 
-    const { error } = await getSupabaseAdmin()
-        .from('subscriptions')
-        .update({
-            plan,
-            status,
-            cancel_at_period_end: subscription.cancel_at_period_end,
-            // Access current_period_end from the subscription object (Stripe uses snake_case in the raw object)
-            current_period_end: (subscription as unknown as { current_period_end?: number }).current_period_end
-                ? new Date((subscription as unknown as { current_period_end: number }).current_period_end * 1000).toISOString()
-                : null,
-        })
-        .eq('stripe_customer_id', customerId);
+    // Access current_period_end from the subscription object
+    const currentPeriodEnd = (subscription as unknown as { current_period_end?: number }).current_period_end
+        ? new Date((subscription as unknown as { current_period_end: number }).current_period_end * 1000)
+        : null;
 
-    if (error) {
-        console.error('[Webhook] Error updating subscription:', error);
-    } else {
+    try {
+        await prisma.subscriptions.updateMany({
+            where: { stripe_customer_id: customerId },
+            data: {
+                plan,
+                status,
+                cancel_at_period_end: subscription.cancel_at_period_end,
+                current_period_end: currentPeriodEnd,
+                updated_at: new Date(),
+            },
+        });
         console.log(`[Webhook] Subscription updated for customer ${customerId}`);
+    } catch (error) {
+        console.error('[Webhook] Error updating subscription:', error);
     }
 }
 
@@ -219,22 +227,21 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
     // Get user info before updating
     const userInfo = await getUserEmailFromCustomerId(customerId);
 
-    // Downgrade to free plan
-    const { error } = await getSupabaseAdmin()
-        .from('subscriptions')
-        .update({
-            plan: 'free',
-            status: 'active',
-            stripe_subscription_id: null,
-            current_period_start: null,
-            current_period_end: null,
-            cancel_at_period_end: false,
-        })
-        .eq('stripe_customer_id', customerId);
+    try {
+        // Downgrade to free plan
+        await prisma.subscriptions.updateMany({
+            where: { stripe_customer_id: customerId },
+            data: {
+                plan: 'free',
+                status: 'active',
+                stripe_subscription_id: null,
+                current_period_start: null,
+                current_period_end: null,
+                cancel_at_period_end: false,
+                updated_at: new Date(),
+            },
+        });
 
-    if (error) {
-        console.error('[Webhook] Error downgrading subscription:', error);
-    } else {
         console.log(`[Webhook] User downgraded to free plan`);
 
         // Send cancellation email
@@ -255,20 +262,23 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
                 console.error('[Webhook] Failed to send cancellation email:', emailErr);
             }
         }
+    } catch (error) {
+        console.error('[Webhook] Error downgrading subscription:', error);
     }
 }
 
 async function handleInvoicePaymentSucceeded(invoice: Stripe.Invoice) {
     const customerId = invoice.customer as string;
 
-    const { error } = await getSupabaseAdmin()
-        .from('subscriptions')
-        .update({
-            status: 'active',
-        })
-        .eq('stripe_customer_id', customerId);
-
-    if (error) {
+    try {
+        await prisma.subscriptions.updateMany({
+            where: { stripe_customer_id: customerId },
+            data: {
+                status: 'active',
+                updated_at: new Date(),
+            },
+        });
+    } catch (error) {
         console.error('[Webhook] Error updating subscription after payment:', error);
     }
 }
@@ -278,16 +288,15 @@ async function handleInvoicePaymentFailed(invoice: Stripe.Invoice) {
 
     console.log(`[Webhook] Payment failed for customer ${customerId}`);
 
-    const { error } = await getSupabaseAdmin()
-        .from('subscriptions')
-        .update({
-            status: 'past_due',
-        })
-        .eq('stripe_customer_id', customerId);
+    try {
+        await prisma.subscriptions.updateMany({
+            where: { stripe_customer_id: customerId },
+            data: {
+                status: 'past_due',
+                updated_at: new Date(),
+            },
+        });
 
-    if (error) {
-        console.error('[Webhook] Error updating subscription status:', error);
-    } else {
         // Send payment failed email
         const userInfo = await getUserEmailFromCustomerId(customerId);
 
@@ -311,5 +320,7 @@ async function handleInvoicePaymentFailed(invoice: Stripe.Invoice) {
                 console.error('[Webhook] Failed to send payment failed email:', emailErr);
             }
         }
+    } catch (error) {
+        console.error('[Webhook] Error updating subscription status:', error);
     }
 }

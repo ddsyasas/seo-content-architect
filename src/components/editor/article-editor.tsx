@@ -15,6 +15,8 @@ import { NODE_TYPE_LABELS, STATUS_LABELS } from '@/lib/utils/constants';
 import { useSEOScore } from '@/hooks/useSEOScore';
 import { extractImages, extractInternalLinksForSEO, extractOutboundLinksForSEO } from '@/lib/seo/seo-analyzer';
 import type { ContentNode, Project, Article, NodeType, NodeStatus } from '@/lib/types';
+import type { UserRole } from '@/lib/utils/roles';
+import { canEditContent } from '@/lib/utils/roles';
 
 // Normalize URL for comparison (remove protocol, www, trailing slash)
 function normalizeUrlForComparison(url: string): string {
@@ -29,39 +31,57 @@ function normalizeUrlForComparison(url: string): string {
 interface ArticleEditorProps {
     projectId: string;
     nodeId: string;
+    initialProject?: Project;
+    initialNode?: ContentNode;
+    initialArticle?: Article | null;
+    initialUserRole?: UserRole;
+    initialAvailableNodes?: { id: string; title: string; slug: string }[];
+    initialCanPublicShare?: boolean;
 }
 
-export function ArticleEditor({ projectId, nodeId }: ArticleEditorProps) {
+export function ArticleEditor({
+    projectId,
+    nodeId,
+    initialProject,
+    initialNode,
+    initialArticle,
+    initialUserRole = 'viewer',
+    initialAvailableNodes = [],
+    initialCanPublicShare,
+}: ArticleEditorProps) {
     const router = useRouter();
-    const [isLoading, setIsLoading] = useState(true);
+    // Loading is false if initial data is provided (Server Component pattern)
+    const [isLoading, setIsLoading] = useState(!initialProject);
     const [isSaving, setIsSaving] = useState(false);
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [lastSaved, setLastSaved] = useState<Date | null>(null);
 
-    // Data
-    const [project, setProject] = useState<Project | null>(null);
-    const [node, setNode] = useState<ContentNode | null>(null);
-    const [article, setArticle] = useState<Article | null>(null);
+    // Data - use initial values if provided
+    const [project, setProject] = useState<Project | null>(initialProject || null);
+    const [node, setNode] = useState<ContentNode | null>(initialNode || null);
+    const [article, setArticle] = useState<Article | null>(initialArticle || null);
+    const [userRole, setUserRole] = useState<UserRole>(initialUserRole);
+    const canEdit = canEditContent(userRole);
 
-    // Form state
-    const [content, setContent] = useState('');
-    const [wordCount, setWordCount] = useState(0);
-    const [title, setTitle] = useState('');
-    const [slug, setSlug] = useState('');
-    const [targetKeyword, setTargetKeyword] = useState('');
-    const [nodeType, setNodeType] = useState<NodeType>('planned');
-    const [status, setStatus] = useState<NodeStatus>('planned');
-    const [seoTitle, setSeoTitle] = useState('');
+    // Form state - initialize from props if available
+    const [content, setContent] = useState(initialArticle?.content || '');
+    const [wordCount, setWordCount] = useState(initialArticle?.word_count || 0);
+    const [title, setTitle] = useState(initialNode?.title || '');
+    const [slug, setSlug] = useState(initialNode?.slug || '');
+    const [targetKeyword, setTargetKeyword] = useState(initialNode?.target_keyword || '');
+    const [nodeType, setNodeType] = useState<NodeType>(initialNode?.node_type || 'planned');
+    const [status, setStatus] = useState<NodeStatus>(initialNode?.status || 'planned');
+    const [seoTitle, setSeoTitle] = useState(initialArticle?.seo_title || '');
 
-    const [seoDescription, setSeoDescription] = useState('');
-    const [availableNodes, setAvailableNodes] = useState<{ id: string; title: string; slug: string }[]>([]);
+    const [seoDescription, setSeoDescription] = useState(initialArticle?.seo_description || '');
+    const [availableNodes, setAvailableNodes] = useState<{ id: string; title: string; slug: string }[]>(initialAvailableNodes);
     const [nodeLimitWarning, setNodeLimitWarning] = useState<string | null>(null);
 
-    // Share state
-    const [isPublic, setIsPublic] = useState(false);
-    const [shareId, setShareId] = useState<string | null>(null);
+    // Share state - initialize from props if available
+    const [isPublic, setIsPublic] = useState(initialNode?.is_public || false);
+    const [shareId, setShareId] = useState<string | null>(initialNode?.share_id || null);
     const [copySuccess, setCopySuccess] = useState(false);
-    const [canPublicShare, setCanPublicShare] = useState<boolean | null>(null); // null = loading
+    const [canPublicShare, setCanPublicShare] = useState<boolean | null>(initialCanPublicShare ?? null);
 
     // SEO Score calculation
     const articleContent = useMemo(() => ({
@@ -78,9 +98,14 @@ export function ArticleEditor({ projectId, nodeId }: ArticleEditorProps) {
 
     const seoScore = useSEOScore(articleContent);
 
+    // Only fetch data client-side if initial data wasn't provided (Server Component pattern)
     useEffect(() => {
+        // Skip loading if initial data was provided from Server Component
+        if (initialProject) {
+            return;
+        }
         loadData();
-    }, [projectId, nodeId]);
+    }, [projectId, nodeId, initialProject]);
 
     const loadData = async () => {
         const supabase = createClient();
@@ -92,6 +117,17 @@ export function ArticleEditor({ projectId, nodeId }: ArticleEditorProps) {
             .eq('id', projectId)
             .single();
         setProject(projectData);
+
+        // Get user role for permission checking
+        try {
+            const roleResponse = await fetch(`/api/projects/${projectId}/role`);
+            if (roleResponse.ok) {
+                const { role } = await roleResponse.json();
+                setUserRole(role as UserRole);
+            }
+        } catch (error) {
+            console.error('Failed to fetch user role:', error);
+        }
 
         // Check if public sharing feature is available for this project
         try {
@@ -137,8 +173,6 @@ export function ArticleEditor({ projectId, nodeId }: ArticleEditorProps) {
             setWordCount(articleData.word_count || 0);
             setSeoTitle(articleData.seo_title || '');
             setSeoDescription(articleData.seo_description || '');
-            setSeoTitle(articleData.seo_title || '');
-            setSeoDescription(articleData.seo_description || '');
         }
 
         // Load all available nodes for interlinking
@@ -146,11 +180,11 @@ export function ArticleEditor({ projectId, nodeId }: ArticleEditorProps) {
             .from('nodes')
             .select('id, title, slug')
             .eq('project_id', projectId)
-            .neq('id', nodeId) // Exclude current node
-            .neq('node_type', 'external'); // Exclude external nodes from autocomplete
+            .neq('id', nodeId)
+            .neq('node_type', 'external');
 
         if (allNodes) {
-            setAvailableNodes(allNodes as any); // Type assertion if needed, or update ContentNode type usage
+            setAvailableNodes(allNodes as any);
         }
 
         setIsLoading(false);
@@ -514,13 +548,25 @@ export function ArticleEditor({ projectId, nodeId }: ArticleEditorProps) {
         }
 
         const newIsPublic = !isPublic;
-        setIsPublic(newIsPublic);
 
-        const supabase = createClient();
-        await supabase
-            .from('nodes')
-            .update({ is_public: newIsPublic })
-            .eq('id', nodeId);
+        try {
+            // Use API to toggle share status (uses Prisma, bypasses RLS)
+            const response = await fetch(`/api/nodes/${nodeId}/share`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ isPublic: newIsPublic }),
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                setIsPublic(data.isPublic);
+                if (data.shareId) setShareId(data.shareId);
+            } else {
+                console.error('Failed to toggle share status');
+            }
+        } catch (err) {
+            console.error('Failed to toggle share status:', err);
+        }
     };
 
     // Copy share link to clipboard
@@ -568,7 +614,8 @@ export function ArticleEditor({ projectId, nodeId }: ArticleEditorProps) {
                         value={title}
                         onChange={(e) => setTitle(e.target.value)}
                         placeholder="Article Title"
-                        className="flex-1 text-lg sm:text-2xl font-bold bg-transparent focus:outline-none text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 min-w-0"
+                        disabled={!canEdit}
+                        className="flex-1 text-lg sm:text-2xl font-bold bg-transparent focus:outline-none text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 min-w-0 disabled:cursor-not-allowed"
                     />
 
                     <div className="hidden sm:flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
@@ -592,10 +639,12 @@ export function ArticleEditor({ projectId, nodeId }: ArticleEditorProps) {
                         <Settings className="w-5 h-5" />
                     </button>
 
-                    <Button onClick={saveData} isLoading={isSaving} className="gap-2 shrink-0">
-                        <Save className="w-4 h-4" />
-                        <span className="hidden sm:inline">Save</span>
-                    </Button>
+                    {canEdit && (
+                        <Button onClick={saveData} isLoading={isSaving} className="gap-2 shrink-0">
+                            <Save className="w-4 h-4" />
+                            <span className="hidden sm:inline">Save</span>
+                        </Button>
+                    )}
                 </div>
 
                 {/* Node limit warning */}
@@ -621,6 +670,7 @@ export function ArticleEditor({ projectId, nodeId }: ArticleEditorProps) {
                             placeholder="Start writing your article..."
                             availableNodes={availableNodes}
                             projectDomain={project?.domain || undefined}
+                            readOnly={!canEdit}
                         />
                     </div>
                 </div>
@@ -744,6 +794,7 @@ export function ArticleEditor({ projectId, nodeId }: ArticleEditorProps) {
                             value={targetKeyword}
                             onChange={(e) => setTargetKeyword(e.target.value)}
                             placeholder="main keyword to target"
+                            disabled={!canEdit}
                         />
                     </div>
 
@@ -755,6 +806,7 @@ export function ArticleEditor({ projectId, nodeId }: ArticleEditorProps) {
                             value={seoTitle}
                             onChange={(e) => setSeoTitle(e.target.value)}
                             placeholder="Page title for search engines"
+                            disabled={!canEdit}
                         />
                         <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                             {seoTitle.length}/60 characters
@@ -770,7 +822,8 @@ export function ArticleEditor({ projectId, nodeId }: ArticleEditorProps) {
                             onChange={(e) => setSeoDescription(e.target.value)}
                             placeholder="Meta description for search engines"
                             rows={3}
-                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white bg-white dark:bg-gray-700 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                            disabled={!canEdit}
+                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white bg-white dark:bg-gray-700 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
                         />
                         <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                             {seoDescription.length}/160 characters
@@ -815,15 +868,18 @@ export function ArticleEditor({ projectId, nodeId }: ArticleEditorProps) {
                                 value={slug}
                                 onChange={(e) => setSlug(e.target.value)}
                                 placeholder="article-slug"
+                                disabled={!canEdit}
                             />
-                            <Button
-                                type="button"
-                                variant="outline"
-                                onClick={generateSlug}
-                                className="text-xs px-2"
-                            >
-                                Auto
-                            </Button>
+                            {canEdit && (
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={generateSlug}
+                                    className="text-xs px-2"
+                                >
+                                    Auto
+                                </Button>
+                            )}
                         </div>
                     </div>
 

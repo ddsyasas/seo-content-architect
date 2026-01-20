@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { prisma } from '@/lib/prisma';
 import { sendWelcomeSubscriptionEmail } from '@/lib/email/brevo';
 
 /**
@@ -24,11 +25,10 @@ export async function POST(request: NextRequest) {
         }
 
         // Get user profile for email
-        const { data: profile } = await supabase
-            .from('profiles')
-            .select('email, full_name')
-            .eq('id', user.id)
-            .single();
+        const profile = await prisma.profiles.findUnique({
+            where: { id: user.id },
+            select: { email: true, full_name: true },
+        });
 
         if (!profile?.email) {
             // Fallback to user email from auth

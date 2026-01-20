@@ -37,6 +37,7 @@ import { canEditContent } from '@/lib/utils/roles';
 interface CanvasEditorProps {
     projectId: string;
     userRole?: UserRole;
+    projectDomain?: string;
 }
 
 const nodeTypes = {
@@ -51,7 +52,7 @@ const edgeTypes = {
     custom: CustomLabelEdge,
 };
 
-function CanvasEditorInner({ projectId, userRole = 'owner' }: CanvasEditorProps) {
+function CanvasEditorInner({ projectId, userRole = 'owner', projectDomain: propDomain }: CanvasEditorProps) {
     const canEdit = canEditContent(userRole);
     const { fitView, zoomIn, zoomOut, getViewport } = useReactFlow();
     const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -67,7 +68,7 @@ function CanvasEditorInner({ projectId, userRole = 'owner' }: CanvasEditorProps)
     const [isEdgeModalOpen, setIsEdgeModalOpen] = useState(false);
     const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null);
     const [editingEdge, setEditingEdge] = useState<{ id: string; edgeType: string; keyword: string; styleOptions: any } | null>(null);
-    const [projectDomain, setProjectDomain] = useState<string>('');
+    const [projectDomain, setProjectDomain] = useState<string>(propDomain || '');
     const [limitError, setLimitError] = useState<string | null>(null);
 
     const {
@@ -124,13 +125,15 @@ function CanvasEditorInner({ projectId, userRole = 'owner' }: CanvasEditorProps)
         try {
             const supabase = createClient();
 
-            // Fetch project domain
-            const { data: project } = await supabase
-                .from('projects')
-                .select('domain')
-                .eq('id', projectId)
-                .single();
-            if (project?.domain) setProjectDomain(project.domain);
+            // Use prop domain if provided, otherwise fetch
+            if (!propDomain) {
+                const { data: project } = await supabase
+                    .from('projects')
+                    .select('domain')
+                    .eq('id', projectId)
+                    .single();
+                if (project?.domain) setProjectDomain(project.domain);
+            }
 
             // Fetch nodes
             const { data: nodesData, error: nodesError } = await supabase
