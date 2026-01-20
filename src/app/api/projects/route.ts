@@ -36,7 +36,10 @@ export async function GET(request: NextRequest) {
         });
 
         // Get team projects (where user is member but not owner)
-        const teamProjectIds = teamMemberships.map(m => m.project_id);
+        const teamProjectIds: string[] = [];
+        for (const m of teamMemberships) {
+            teamProjectIds.push(m.project_id);
+        }
         const teamProjects = teamProjectIds.length > 0
             ? await prisma.projects.findMany({
                 where: {
@@ -55,8 +58,25 @@ export async function GET(request: NextRequest) {
             : [];
 
         // Combine and mark projects with their access type and counts
-        const allProjects = [
-            ...ownedProjects.map(p => ({
+        type ProjectWithAccess = {
+            id: string;
+            user_id: string;
+            name: string;
+            description: string | null;
+            website_url: string | null;
+            domain: string | null;
+            color: string | null;
+            created_at: Date | null;
+            updated_at: Date | null;
+            accessType: 'owner' | 'team_member';
+            role: string;
+            nodeCount: number;
+            articleCount: number;
+        };
+        const allProjects: ProjectWithAccess[] = [];
+
+        for (const p of ownedProjects) {
+            allProjects.push({
                 id: p.id,
                 user_id: p.user_id,
                 name: p.name,
@@ -66,30 +86,37 @@ export async function GET(request: NextRequest) {
                 color: p.color,
                 created_at: p.created_at,
                 updated_at: p.updated_at,
-                accessType: 'owner' as const,
+                accessType: 'owner',
                 role: 'owner',
                 nodeCount: p._count.nodes,
                 articleCount: p._count.articles,
-            })),
-            ...teamProjects.map(p => {
-                const membership = teamMemberships.find(m => m.project_id === p.id);
-                return {
-                    id: p.id,
-                    user_id: p.user_id,
-                    name: p.name,
-                    description: p.description,
-                    website_url: p.website_url,
-                    domain: p.domain,
-                    color: p.color,
-                    created_at: p.created_at,
-                    updated_at: p.updated_at,
-                    accessType: 'team_member' as const,
-                    role: membership?.role || 'viewer',
-                    nodeCount: p._count.nodes,
-                    articleCount: p._count.articles,
-                };
-            }),
-        ];
+            });
+        }
+
+        for (const p of teamProjects) {
+            let memberRole = 'viewer';
+            for (const m of teamMemberships) {
+                if (m.project_id === p.id) {
+                    memberRole = m.role;
+                    break;
+                }
+            }
+            allProjects.push({
+                id: p.id,
+                user_id: p.user_id,
+                name: p.name,
+                description: p.description,
+                website_url: p.website_url,
+                domain: p.domain,
+                color: p.color,
+                created_at: p.created_at,
+                updated_at: p.updated_at,
+                accessType: 'team_member',
+                role: memberRole,
+                nodeCount: p._count.nodes,
+                articleCount: p._count.articles,
+            });
+        }
 
         // Sort by updated_at
         allProjects.sort((a, b) =>

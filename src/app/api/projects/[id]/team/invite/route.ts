@@ -102,15 +102,22 @@ export async function POST(
         });
 
         if (existingMembers.length > 0) {
-            const userIds = existingMembers.map(m => m.user_id);
+            const userIds: string[] = [];
+            for (const m of existingMembers) {
+                userIds.push(m.user_id);
+            }
             const profiles = await prisma.profiles.findMany({
                 where: { id: { in: userIds } },
                 select: { email: true },
             });
 
-            const isAlreadyMember = profiles.some(
-                p => p.email?.toLowerCase() === email.toLowerCase()
-            );
+            let isAlreadyMember = false;
+            for (const p of profiles) {
+                if (p.email?.toLowerCase() === email.toLowerCase()) {
+                    isAlreadyMember = true;
+                    break;
+                }
+            }
 
             if (isAlreadyMember) {
                 return NextResponse.json({ error: 'This person is already a team member' }, { status: 400 });
