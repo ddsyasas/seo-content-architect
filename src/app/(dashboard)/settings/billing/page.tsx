@@ -28,16 +28,21 @@ export default async function BillingSettingsPage() {
         where: { user_id: user.id },
         select: {
             plan: true,
-            stripe_customer_id: true,
             cancel_at_period_end: true,
             current_period_end: true,
         },
     });
 
+    // Fetch stripe_customer_id from profiles table (that's where checkout stores it)
+    const profile = await prisma.profiles.findUnique({
+        where: { id: user.id },
+        select: { stripe_customer_id: true },
+    });
+
     // Transform to expected format
     const subscriptionData: SubscriptionData | null = subscription ? {
         plan: subscription.plan as PlanType,
-        stripe_customer_id: subscription.stripe_customer_id || null,
+        stripe_customer_id: profile?.stripe_customer_id || null,
         cancel_at_period_end: subscription.cancel_at_period_end || false,
         current_period_end: subscription.current_period_end?.toISOString() || null,
     } : null;
