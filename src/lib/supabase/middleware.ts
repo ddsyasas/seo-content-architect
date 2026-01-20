@@ -29,6 +29,11 @@ export async function updateSession(request: NextRequest) {
         }
     );
 
+    // Skip auth checks for auth callback route (OAuth flow)
+    if (request.nextUrl.pathname.startsWith('/auth/callback')) {
+        return supabaseResponse;
+    }
+
     // Refresh session if expired
     const {
         data: { user },
