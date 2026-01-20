@@ -60,6 +60,50 @@ export async function POST(request: NextRequest) {
 
         const stripe = getStripe();
 
+        // IMPORTANT: Check for and cancel any duplicate subscriptions
+        // This handles cases where multiple subscriptions were created by mistake
+        if (subscription.stripe_customer_id) {
+            try {
+                const allSubscriptions = await stripe.subscriptions.list({
+                    customer: subscription.stripe_customer_id,
+                    status: 'active',
+                });
+
+                console.log(`[Update Subscription] Found ${allSubscriptions.data.length} active subscriptions for customer`);
+
+                if (allSubscriptions.data.length > 1) {
+                    // Keep only the subscription we have in our database, cancel the rest
+                    for (const sub of allSubscriptions.data) {
+                        if (sub.id !== subscription.stripe_subscription_id) {
+                            console.log(`[Update Subscription] Cancelling duplicate subscription: ${sub.id}`);
+                            await stripe.subscriptions.cancel(sub.id);
+                        }
+                    }
+                }
+
+                // If we don't have a subscription ID but customer has one, use it
+                if (!subscription.stripe_subscription_id && allSubscriptions.data.length > 0) {
+                    // Use the most recent subscription
+                    const mostRecent = allSubscriptions.data.sort((a, b) =>
+                        (b.created || 0) - (a.created || 0)
+                    )[0];
+
+                    // Update our database with this subscription ID
+                    await prisma.subscriptions.update({
+                        where: { user_id: user.id },
+                        data: { stripe_subscription_id: mostRecent.id },
+                    });
+
+                    // Update local variable for use below
+                    subscription.stripe_subscription_id = mostRecent.id;
+                    console.log(`[Update Subscription] Using existing subscription: ${mostRecent.id}`);
+                }
+            } catch (cleanupErr) {
+                console.error('[Update Subscription] Error cleaning up subscriptions:', cleanupErr);
+                // Continue anyway - we'll try to update what we have
+            }
+        }
+
         // Determine if this is an upgrade or downgrade
         const planOrder = { free: 0, pro: 1, agency: 2 };
         const isUpgrade = planOrder[targetPlan] > planOrder[currentPlan];
