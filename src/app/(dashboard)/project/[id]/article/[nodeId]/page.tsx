@@ -141,11 +141,14 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
         },
     });
 
-    const availableNodes = availableNodesData.map(n => ({
-        id: n.id,
-        title: n.title,
-        slug: n.slug || '',
-    }));
+    const availableNodes: { id: string; title: string; slug: string }[] = [];
+    for (const n of availableNodesData) {
+        availableNodes.push({
+            id: n.id,
+            title: n.title,
+            slug: n.slug || '',
+        });
+    }
 
     // Check public sharing capability based on subscription
     const subscription = await prisma.subscriptions.findUnique({

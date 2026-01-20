@@ -44,7 +44,10 @@ export default async function SettingsTeamPage() {
         select: { id: true },
     });
 
-    const projectIds = userProjects.map(p => p.id);
+    const projectIds: string[] = [];
+    for (const p of userProjects) {
+        projectIds.push(p.id);
+    }
     const firstProjectId = projectIds[0] || null;
 
     // Fetch team members across all projects owned by the user
@@ -71,17 +74,20 @@ export default async function SettingsTeamPage() {
         : [];
 
     // Format team members
-    const members: TeamMember[] = teamMembersData.map(m => ({
-        id: m.id,
-        role: m.role,
-        joined_at: m.joined_at?.toISOString() || null,
-        user_id: m.user_id,
-        profiles: m.profiles_team_members_user_idToprofiles ? {
-            full_name: m.profiles_team_members_user_idToprofiles.full_name,
-            email: m.profiles_team_members_user_idToprofiles.email || '',
-            avatar_url: m.profiles_team_members_user_idToprofiles.avatar_url,
-        } : null,
-    }));
+    const members: TeamMember[] = [];
+    for (const m of teamMembersData) {
+        members.push({
+            id: m.id,
+            role: m.role,
+            joined_at: m.joined_at?.toISOString() || null,
+            user_id: m.user_id,
+            profiles: m.profiles_team_members_user_idToprofiles ? {
+                full_name: m.profiles_team_members_user_idToprofiles.full_name,
+                email: m.profiles_team_members_user_idToprofiles.email || '',
+                avatar_url: m.profiles_team_members_user_idToprofiles.avatar_url,
+            } : null,
+        });
+    }
 
     // Fetch pending invitations
     const invitationsData = projectIds.length > 0
@@ -104,15 +110,18 @@ export default async function SettingsTeamPage() {
         : [];
 
     // Format invitations
-    const invitations: Invitation[] = invitationsData.map(inv => ({
-        id: inv.id,
-        email: inv.email,
-        role: inv.role,
-        token: inv.token,
-        expires_at: inv.expires_at.toISOString(),
-        created_at: inv.created_at?.toISOString() || null,
-        project_id: inv.project_id,
-    }));
+    const invitations: Invitation[] = [];
+    for (const inv of invitationsData) {
+        invitations.push({
+            id: inv.id,
+            email: inv.email,
+            role: inv.role,
+            token: inv.token,
+            expires_at: inv.expires_at.toISOString(),
+            created_at: inv.created_at?.toISOString() || null,
+            project_id: inv.project_id,
+        });
+    }
 
     const pageData: TeamPageData = {
         members,

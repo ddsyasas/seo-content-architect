@@ -90,27 +90,30 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
     });
 
     // Convert to ContentNode type with serialized dates
-    const articles: ContentNode[] = nodesData.map(node => ({
-        id: node.id,
-        project_id: node.project_id,
-        node_type: node.node_type as ContentNode['node_type'],
-        title: node.title,
-        slug: node.slug,
-        url: node.url,
-        target_keyword: node.target_keyword,
-        status: (node.status || 'planned') as ContentNode['status'],
-        notes: node.notes,
-        word_count_target: node.word_count_target,
-        assigned_to: node.assigned_to,
-        publish_date: node.publish_date?.toISOString() || null,
-        position_x: node.position_x,
-        position_y: node.position_y,
-        color: node.color,
-        is_public: node.is_public || false,
-        share_id: node.share_id,
-        created_at: node.created_at?.toISOString() || new Date().toISOString(),
-        updated_at: node.updated_at?.toISOString() || new Date().toISOString(),
-    }));
+    const articles: ContentNode[] = [];
+    for (const node of nodesData) {
+        articles.push({
+            id: node.id,
+            project_id: node.project_id,
+            node_type: node.node_type as ContentNode['node_type'],
+            title: node.title,
+            slug: node.slug,
+            url: node.url,
+            target_keyword: node.target_keyword,
+            status: (node.status || 'planned') as ContentNode['status'],
+            notes: node.notes,
+            word_count_target: node.word_count_target,
+            assigned_to: node.assigned_to,
+            publish_date: node.publish_date?.toISOString() || null,
+            position_x: node.position_x,
+            position_y: node.position_y,
+            color: node.color,
+            is_public: node.is_public || false,
+            share_id: node.share_id,
+            created_at: node.created_at?.toISOString() || new Date().toISOString(),
+            updated_at: node.updated_at?.toISOString() || new Date().toISOString(),
+        });
+    }
 
     return (
         <ProjectPageClient

@@ -49,7 +49,10 @@ export default async function DashboardPage() {
         where: { user_id: user.id },
         select: { project_id: true },
     });
-    const teamProjectIds = teamMemberships.map(m => m.project_id);
+    const teamProjectIds: string[] = [];
+    for (const m of teamMemberships) {
+        teamProjectIds.push(m.project_id);
+    }
 
     const teamProjects = teamProjectIds.length > 0
         ? await prisma.projects.findMany({
@@ -66,13 +69,16 @@ export default async function DashboardPage() {
 
     // Combine and dedupe projects
     const allProjectsMap = new Map<string, typeof ownedProjects[0]>();
-    [...ownedProjects, ...teamProjects].forEach(p => {
+    for (const p of [...ownedProjects, ...teamProjects]) {
         if (!allProjectsMap.has(p.id)) {
             allProjectsMap.set(p.id, p);
         }
-    });
+    }
     const allProjects = Array.from(allProjectsMap.values());
-    const projectIds = allProjects.map(p => p.id);
+    const projectIds: string[] = [];
+    for (const p of allProjects) {
+        projectIds.push(p.id);
+    }
 
     // Get total counts using Prisma
     const totalArticles = projectIds.length > 0

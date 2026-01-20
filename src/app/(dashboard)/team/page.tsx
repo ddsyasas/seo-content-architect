@@ -44,7 +44,10 @@ export default async function TeamPage() {
         select: { id: true, name: true },
     });
 
-    const projectIds = userProjects.map(p => p.id);
+    const projectIds: string[] = [];
+    for (const p of userProjects) {
+        projectIds.push(p.id);
+    }
 
     // Fetch the owner as a "member" (the current user)
     const ownerProfile = await prisma.profiles.findUnique({
@@ -125,10 +128,10 @@ export default async function TeamPage() {
     const allMembers: TeamMember[] = [ownerMember, ...teamMembers];
 
     // Format projects
-    const projects: Project[] = userProjects.map(p => ({
-        id: p.id,
-        name: p.name,
-    }));
+    const projects: Project[] = [];
+    for (const p of userProjects) {
+        projects.push({ id: p.id, name: p.name });
+    }
 
     const pageData: TeamPageData = {
         members: allMembers,
