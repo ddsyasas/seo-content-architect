@@ -35,18 +35,18 @@ export default async function AdminPage() {
 
     // Aggregate data
     const projectCountMap: Record<string, number> = {};
-    projectCounts.forEach(p => {
+    for (const p of projectCounts) {
         projectCountMap[p.user_id] = (projectCountMap[p.user_id] || 0) + 1;
-    });
+    }
 
     const subscriptionMap: Record<string, { plan: string; status: string; currentPeriodEnd?: string }> = {};
-    subscriptions.forEach(s => {
+    for (const s of subscriptions) {
         subscriptionMap[s.user_id] = {
             plan: s.plan || 'free',
             status: s.status || 'active',
             currentPeriodEnd: s.current_period_end?.toISOString(),
         };
-    });
+    }
 
     // Combine data into users list
     const users: UserData[] = profiles.map(profile => ({
