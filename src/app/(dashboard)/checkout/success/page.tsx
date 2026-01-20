@@ -19,18 +19,33 @@ function CheckoutSuccessContent() {
             const supabase = createClient();
             const { data: { user } } = await supabase.auth.getUser();
 
-            // If plan is in URL, use it immediately and update databas as backup
+            // If we have a session ID, complete the checkout properly
+            // This saves the stripe_subscription_id which is critical for upgrades
+            if (sessionId && user) {
+                try {
+                    console.log('[Checkout Success] Completing checkout with session:', sessionId);
+                    const completeRes = await fetch('/api/billing/complete-checkout', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ sessionId }),
+                    });
+                    const completeData = await completeRes.json();
+                    console.log('[Checkout Success] Complete checkout response:', completeData);
+
+                    if (completeData.success && completeData.subscription?.plan) {
+                        setPlan(completeData.subscription.plan as PlanType);
+                    }
+                } catch (completeErr) {
+                    console.error('[Checkout Success] Failed to complete checkout:', completeErr);
+                }
+            }
+
+            // If plan is in URL, use it for display
             if (urlPlan && (urlPlan === 'pro' || urlPlan === 'agency')) {
                 setPlan(urlPlan);
 
-                // Update database as backup (in case webhook is delayed/not configured)
+                // Send welcome email
                 if (user) {
-                    await supabase
-                        .from('subscriptions')
-                        .update({ plan: urlPlan, status: 'active' })
-                        .eq('user_id', user.id);
-
-                    // Send welcome email
                     try {
                         console.log('[Checkout Success] Sending welcome email for plan:', urlPlan);
                         const emailRes = await fetch('/api/billing/send-welcome-email', {
