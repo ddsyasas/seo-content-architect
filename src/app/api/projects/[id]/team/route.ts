@@ -75,13 +75,22 @@ export async function GET(
         });
 
         // Map members to match expected format
-        const mappedMembers = members.map(m => ({
-            id: m.id,
-            role: m.role,
-            joined_at: m.joined_at,
-            user_id: m.user_id,
-            profiles: m.profiles_team_members_user_idToprofiles,
-        }));
+        const mappedMembers: Array<{
+            id: string;
+            role: string;
+            joined_at: Date | null;
+            user_id: string;
+            profiles: { full_name: string | null; email: string | null; avatar_url: string | null } | null;
+        }> = [];
+        for (const m of members) {
+            mappedMembers.push({
+                id: m.id,
+                role: m.role,
+                joined_at: m.joined_at,
+                user_id: m.user_id,
+                profiles: m.profiles_team_members_user_idToprofiles,
+            });
+        }
 
         // Get pending invitations (only for owners/admins)
         let invitations: unknown[] = [];

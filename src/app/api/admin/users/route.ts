@@ -57,38 +57,56 @@ export async function GET(request: NextRequest) {
 
         // Aggregate data
         const projectCountMap: Record<string, number> = {};
-        projectCounts.forEach(p => {
+        for (const p of projectCounts) {
             projectCountMap[p.user_id] = (projectCountMap[p.user_id] || 0) + 1;
-        });
+        }
 
-        const subscriptionMap: Record<string, any> = {};
-        subscriptions.forEach(s => {
+        const subscriptionMap: Record<string, { plan: string | null; status: string | null; currentPeriodEnd: Date | null }> = {};
+        for (const s of subscriptions) {
             subscriptionMap[s.user_id] = {
                 plan: s.plan,
                 status: s.status,
                 currentPeriodEnd: s.current_period_end,
             };
-        });
+        }
 
         // Combine data
-        const users = profiles.map(profile => ({
-            id: profile.id,
-            email: profile.email,
-            fullName: profile.full_name,
-            createdAt: profile.created_at,
-            updatedAt: profile.updated_at,
-            projectCount: projectCountMap[profile.id] || 0,
-            subscription: subscriptionMap[profile.id] || { plan: 'free', status: 'active' },
-        }));
+        type UserType = {
+            id: string;
+            email: string | null;
+            fullName: string | null;
+            createdAt: Date | null;
+            updatedAt: Date | null;
+            projectCount: number;
+            subscription: { plan: string | null; status: string | null; currentPeriodEnd?: Date | null };
+        };
+        const users: UserType[] = [];
+        for (const profile of profiles) {
+            users.push({
+                id: profile.id,
+                email: profile.email,
+                fullName: profile.full_name,
+                createdAt: profile.created_at,
+                updatedAt: profile.updated_at,
+                projectCount: projectCountMap[profile.id] || 0,
+                subscription: subscriptionMap[profile.id] || { plan: 'free', status: 'active' },
+            });
+        }
 
         // Calculate stats
+        let freeCount = 0, proCount = 0, agencyCount = 0;
+        for (const u of users) {
+            if (!u.subscription.plan || u.subscription.plan === 'free') freeCount++;
+            else if (u.subscription.plan === 'pro') proCount++;
+            else if (u.subscription.plan === 'agency') agencyCount++;
+        }
         const stats = {
             totalUsers: users.length,
             totalProjects: Object.values(projectCountMap).reduce((a, b) => a + b, 0),
             subscriptionBreakdown: {
-                free: users.filter(u => !u.subscription.plan || u.subscription.plan === 'free').length,
-                pro: users.filter(u => u.subscription.plan === 'pro').length,
-                agency: users.filter(u => u.subscription.plan === 'agency').length,
+                free: freeCount,
+                pro: proCount,
+                agency: agencyCount,
             },
         };
 

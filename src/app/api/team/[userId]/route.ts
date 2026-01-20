@@ -32,7 +32,10 @@ export async function PATCH(
             return NextResponse.json({ error: 'No projects found' }, { status: 404 });
         }
 
-        const projectIds = projects.map(p => p.id);
+        const projectIds: string[] = [];
+        for (const p of projects) {
+            projectIds.push(p.id);
+        }
 
         // Update role for this member across all owner's projects
         await prisma.team_members.updateMany({
@@ -77,7 +80,10 @@ export async function DELETE(
             return NextResponse.json({ error: 'No projects found' }, { status: 404 });
         }
 
-        const projectIds = projects.map(p => p.id);
+        const projectIds: string[] = [];
+        for (const p of projects) {
+            projectIds.push(p.id);
+        }
 
         // Remove member from all owner's projects
         await prisma.team_members.deleteMany({

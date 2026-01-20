@@ -39,7 +39,10 @@ export async function GET(request: NextRequest) {
             orderBy: { created_at: 'desc' },
         });
 
-        const projectIds = projects.map(p => p.id);
+        const projectIds: string[] = [];
+        for (const p of projects) {
+            projectIds.push(p.id);
+        }
 
         // Get all team members from team_members table
         const teamData = projectIds.length > 0
@@ -116,7 +119,7 @@ export async function GET(request: NextRequest) {
         }
 
         // Now add project assignments from team_members table
-        teamData.forEach(m => {
+        for (const m of teamData) {
             if (memberMap.has(m.user_id)) {
                 const existing = memberMap.get(m.user_id);
                 if (!existing.assigned_projects.includes(m.project_id)) {
@@ -136,7 +139,7 @@ export async function GET(request: NextRequest) {
                     assigned_projects: [m.project_id],
                 });
             }
-        });
+        }
 
         // Fetch proper profiles for any legacy members (using Supabase Auth Admin)
         for (const [userId, member] of memberMap) {

@@ -125,7 +125,10 @@ export async function POST(
             select: { id: true },
         });
 
-        const projectIds = ownerProjects.map(p => p.id);
+        const projectIds: string[] = [];
+        for (const p of ownerProjects) {
+            projectIds.push(p.id);
+        }
 
         const existingMember = await prisma.team_members.findFirst({
             where: {
