@@ -49,15 +49,18 @@ export default async function AdminPage() {
     }
 
     // Combine data into users list
-    const users: UserData[] = profiles.map(profile => ({
-        id: profile.id,
-        email: profile.email || '',
-        fullName: profile.full_name,
-        createdAt: profile.created_at?.toISOString() || '',
-        updatedAt: profile.updated_at?.toISOString() || '',
-        projectCount: projectCountMap[profile.id] || 0,
-        subscription: subscriptionMap[profile.id] || { plan: 'free', status: 'active' },
-    }));
+    const users: UserData[] = [];
+    for (const profile of profiles) {
+        users.push({
+            id: profile.id,
+            email: profile.email || '',
+            fullName: profile.full_name,
+            createdAt: profile.created_at?.toISOString() || '',
+            updatedAt: profile.updated_at?.toISOString() || '',
+            projectCount: projectCountMap[profile.id] || 0,
+            subscription: subscriptionMap[profile.id] || { plan: 'free', status: 'active' },
+        });
+    }
 
     // Calculate stats
     const stats: Stats = {
