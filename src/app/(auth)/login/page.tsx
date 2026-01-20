@@ -48,11 +48,17 @@ function LoginForm() {
         setIsGoogleLoading(true);
 
         try {
+            // Store the redirect destination for after OAuth completes
+            sessionStorage.setItem('oauth_redirect', redirectTo);
+
             const supabase = createClient();
+            const callbackUrl = `${window.location.origin}/auth/callback`;
+            console.log('[Google Login] Redirect URL:', callbackUrl);
+
             const { error } = await supabase.auth.signInWithOAuth({
                 provider: 'google',
                 options: {
-                    redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(redirectTo)}`,
+                    redirectTo: callbackUrl,
                 },
             });
 

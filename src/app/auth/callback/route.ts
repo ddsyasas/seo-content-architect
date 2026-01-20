@@ -56,7 +56,13 @@ export async function GET(request: Request) {
         // For OAuth users, add them to Brevo (non-blocking)
         // This handles users who sign up via Google
         const user = data.user;
-        const isNewUser = user.created_at === user.last_sign_in_at;
+
+        // Check if this is a new user by comparing timestamps (within 60 seconds tolerance)
+        const createdAt = new Date(user.created_at).getTime();
+        const lastSignIn = new Date(user.last_sign_in_at || user.created_at).getTime();
+        const isNewUser = Math.abs(createdAt - lastSignIn) < 60000; // Within 60 seconds
+
+        console.log(`[Auth Callback] User ${user.email}, created: ${user.created_at}, last_sign_in: ${user.last_sign_in_at}, isNewUser: ${isNewUser}`);
 
         if (isNewUser) {
             // Extract name from user metadata
@@ -64,6 +70,8 @@ export async function GET(request: Request) {
                 user.user_metadata?.name ||
                 user.email?.split('@')[0] ||
                 'User';
+
+            console.log(`[Auth Callback] Adding new OAuth user to Brevo: ${user.email}, name: ${fullName}`);
 
             // Add to Brevo user list (fire and forget)
             fetch(`${origin}/api/newsletter/subscribe-user`, {
@@ -73,8 +81,10 @@ export async function GET(request: Request) {
                     email: user.email,
                     name: fullName,
                 }),
-            }).catch(() => {
-                // Silently fail - don't block auth
+            }).then(res => {
+                console.log(`[Auth Callback] Brevo subscribe-user response: ${res.status}`);
+            }).catch((err) => {
+                console.error('[Auth Callback] Brevo subscribe-user error:', err);
             });
         }
 

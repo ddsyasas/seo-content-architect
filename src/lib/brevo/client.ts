@@ -59,6 +59,9 @@ export async function addContactToBrevo(
   };
 
   try {
+    console.log(`[Brevo] Starting request for ${email} to lists ${listIds.join(', ')}`);
+    const startTime = Date.now();
+
     const response = await fetch(`${BREVO_API_URL}/contacts`, {
       method: 'POST',
       headers: {
@@ -68,6 +71,8 @@ export async function addContactToBrevo(
       },
       body: JSON.stringify(contact),
     });
+
+    console.log(`[Brevo] Response received in ${Date.now() - startTime}ms, status: ${response.status}`);
 
     if (response.status === 201) {
       // Contact created successfully
@@ -89,7 +94,7 @@ export async function addContactToBrevo(
     return { success: false, error: errorMessage };
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    console.error(`[Brevo] Network error: ${errorMessage}`);
+    console.error(`[Brevo] Network error: ${errorMessage}`, error);
     return { success: false, error: errorMessage };
   }
 }

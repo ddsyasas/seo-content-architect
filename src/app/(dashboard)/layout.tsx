@@ -22,6 +22,7 @@ import { createClient } from '@/lib/supabase/client';
 import { cn } from '@/lib/utils/helpers';
 import { isSuperAdmin } from '@/lib/utils/admin';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
+import { useBrevoSync } from '@/lib/hooks/useBrevoSync';
 
 // NoIndex component for dashboard pages
 function NoIndexMeta() {
@@ -49,6 +50,9 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     const [user, setUser] = useState<{ email: string; full_name?: string } | null>(null);
     const [hasTeamAccess, setHasTeamAccess] = useState(false);
     const [hasSuperAdminAccess, setHasSuperAdminAccess] = useState(false);
+
+    // Sync OAuth users to Brevo (fallback for when callback doesn't run)
+    useBrevoSync();
 
     useEffect(() => {
         const supabase = createClient();
