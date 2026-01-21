@@ -91,10 +91,12 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: [
-      { url: '/favicon.ico', sizes: 'any' },
+      { url: '/favicon.ico', sizes: '144x144', type: 'image/x-icon' },
+      { url: '/icon-192x192.ico', sizes: '192x192', type: 'image/x-icon' },
+      { url: '/icon-512x512.ico', sizes: '512x512', type: 'image/x-icon' },
     ],
     apple: [
-      { url: '/apple-touch-icon.png', sizes: '180x180', type: 'image/png' },
+      { url: '/icon-192x192.ico', sizes: '192x192', type: 'image/x-icon' },
     ],
   },
   manifest: '/manifest.json',
