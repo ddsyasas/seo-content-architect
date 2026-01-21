@@ -6,6 +6,7 @@ import { siteConfig, structuredData } from "@/lib/seo/config";
 import { Providers } from "@/components/providers";
 
 const GA_MEASUREMENT_ID = 'G-Q2S5G7MXB1';
+const CLARITY_PROJECT_ID = 'v4r7im7heu';
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -157,6 +158,7 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         {/* DNS prefetch for analytics */}
         <link rel="dns-prefetch" href="https://www.googletagmanager.com" />
+        <link rel="dns-prefetch" href="https://www.clarity.ms" />
       </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
@@ -172,6 +174,16 @@ export default function RootLayout({
             function gtag(){dataLayer.push(arguments);}
             gtag('js', new Date());
             gtag('config', '${GA_MEASUREMENT_ID}');
+          `}
+        </Script>
+        {/* Microsoft Clarity - Session Recording & Heatmaps */}
+        <Script id="microsoft-clarity" strategy="afterInteractive">
+          {`
+            (function(c,l,a,r,i,t,y){
+              c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+              t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+              y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+            })(window, document, "clarity", "script", "${CLARITY_PROJECT_ID}");
           `}
         </Script>
         <Providers>

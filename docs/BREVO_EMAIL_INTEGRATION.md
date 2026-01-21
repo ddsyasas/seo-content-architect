@@ -11,13 +11,15 @@ This document explains how SyncSEO integrates with Brevo (formerly Sendinblue) f
 3. [Environment Variables](#environment-variables)
 4. [Email Lists](#email-lists)
 5. [Integration Points](#integration-points)
-6. [API Endpoints](#api-endpoints)
-7. [Components](#components)
-8. [How It Works](#how-it-works)
-9. [Syncing Existing Users](#syncing-existing-users)
-10. [Testing](#testing)
-11. [Troubleshooting](#troubleshooting)
-12. [File Reference](#file-reference)
+6. [Google OAuth Integration](#google-oauth-integration)
+7. [API Endpoints](#api-endpoints)
+8. [Components](#components)
+9. [How It Works](#how-it-works)
+10. [Syncing Existing Users](#syncing-existing-users)
+11. [Testing](#testing)
+12. [Troubleshooting](#troubleshooting)
+13. [Known Issues & Solutions](#known-issues--solutions)
+14. [File Reference](#file-reference)
 
 ---
 
@@ -143,7 +145,7 @@ EMAIL_FROM_ADDRESS=syncseo.io@gmail.com
 
 ## Integration Points
 
-### 1. User Signup
+### 1. Email/Password Signup
 
 **Location:** `/src/app/(auth)/signup/page.tsx`
 
@@ -221,6 +223,122 @@ On subscribe: Add to Brevo list #5, set localStorage
     ↓
 On close: Set 24-hour cooldown in localStorage
 ```
+
+### 4. Google OAuth Signup
+
+**Locations:**
+- `/src/app/(auth)/signup/page.tsx`
+- `/src/app/(auth)/login/page.tsx`
+- `/src/app/auth/callback/route.ts`
+- `/src/lib/hooks/useBrevoSync.ts`
+
+**Flow:**
+```
+User clicks "Continue with Google"
+    ↓
+Supabase initiates OAuth flow → Google
+    ↓
+User authenticates with Google
+    ↓
+Supabase redirects to /auth/callback (or Site URL)
+    ↓
+Callback route: Check if new user → Add to Brevo list #4
+    ↓
+OR: Dashboard fallback hook detects new OAuth user → Sync to Brevo
+    ↓
+User lands on dashboard
+```
+
+**Important:** Google OAuth users are synced via two mechanisms to ensure reliability:
+1. **Primary:** `/auth/callback` route (server-side)
+2. **Fallback:** `useBrevoSync` hook on dashboard (client-side)
+
+---
+
+## Google OAuth Integration
+
+Users who sign up via Google OAuth are also synced to Brevo. This is handled through two mechanisms:
+
+### 1. Auth Callback Route (Primary)
+
+**Location:** `/src/app/auth/callback/route.ts`
+
+**Flow:**
+```
+User clicks "Continue with Google"
+    ↓
+Redirected to Google OAuth
+    ↓
+Google redirects to Supabase
+    ↓
+Supabase redirects to /auth/callback
+    ↓
+Callback checks if new user (created_at ≈ last_sign_in_at)
+    ↓
+If new, calls /api/newsletter/subscribe-user
+    ↓
+User added to Brevo list #4
+```
+
+**Code:**
+```typescript
+if (isNewUser) {
+    const fullName = user.user_metadata?.full_name ||
+        user.user_metadata?.name ||
+        user.email?.split('@')[0] || 'User';
+
+    fetch(`${origin}/api/newsletter/subscribe-user`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: user.email, name: fullName }),
+    });
+}
+```
+
+### 2. Dashboard Fallback Hook (Backup)
+
+**Location:** `/src/lib/hooks/useBrevoSync.ts`
+
+Because Supabase may redirect OAuth users to the production Site URL instead of localhost during development, a fallback hook ensures new OAuth users are synced when they land on the dashboard.
+
+**Flow:**
+```
+User lands on dashboard
+    ↓
+Hook checks: Is OAuth user? (app_metadata.provider !== 'email')
+    ↓
+Hook checks: Created within last 5 minutes?
+    ↓
+If both true, sync to Brevo
+    ↓
+Set sessionStorage flag to prevent duplicate syncs
+```
+
+**Usage:**
+```typescript
+// In dashboard layout
+import { useBrevoSync } from '@/lib/hooks/useBrevoSync';
+
+export default function DashboardLayout({ children }) {
+    useBrevoSync(); // Called once when user lands on dashboard
+    // ...
+}
+```
+
+### Supabase OAuth Configuration
+
+For Google OAuth to work correctly, configure these URLs in Supabase Dashboard:
+
+**Authentication → URL Configuration:**
+
+| Setting | Value |
+|---------|-------|
+| Site URL | `https://syncseo.io` |
+| Redirect URLs | `http://localhost:3000/auth/callback` |
+| | `https://syncseo.io/auth/callback` |
+| | `https://dev-preview.syncseo.io/auth/callback` |
+
+**Note:** Supabase uses the Site URL as the default redirect when the specified `redirectTo` doesn't match exactly. For local development, OAuth may redirect to production. The fallback hook handles this case.
 
 ---
 
@@ -489,16 +607,125 @@ The API key should **never** be in client-side code. All Brevo calls go through 
 
 ---
 
+## Known Issues & Solutions
+
+### Issue 1: Newsletter Form Stuck on "Subscribing..."
+
+**Symptom:** Newsletter form shows "Subscribing..." indefinitely or times out.
+
+**Diagnosis:**
+1. Check browser Network tab for `/api/newsletter/subscribe` response
+2. Check terminal for `[Brevo]` logs
+3. Verify `BREVO_API_KEY` is set correctly
+
+**Root Cause:** Brevo API can be slow to respond (10-30 seconds sometimes).
+
+**Solution:** The Brevo client includes logging to track request timing:
+```
+[Brevo] Starting request for email@test.com to lists 5
+[Brevo] Response received in 15234ms, status: 201
+```
+
+If requests consistently timeout:
+- Verify API key is valid in Brevo dashboard
+- Check if Brevo service is operational
+- The contact may still be added despite timeout (check Brevo dashboard)
+
+### Issue 2: Google OAuth Redirects to Production Instead of Localhost
+
+**Symptom:** When testing Google OAuth locally, user is redirected to `syncseo.io` instead of `localhost:3000`.
+
+**Root Cause:** Supabase's OAuth flow uses the Site URL as the default redirect when:
+- The `redirectTo` parameter doesn't exactly match an allowed Redirect URL
+- Supabase can't determine the correct redirect
+
+**Diagnosis:**
+1. Check browser console for `[Google Signup] Redirect URL: http://localhost:3000/auth/callback`
+2. Verify Supabase Redirect URLs include `http://localhost:3000/auth/callback`
+3. Check if Site URL is set to production domain
+
+**Solution:**
+1. The `useBrevoSync` hook handles this by syncing OAuth users when they land on the dashboard
+2. For production testing, OAuth works correctly
+3. Accept that local OAuth testing may redirect to production
+
+**Configuration in Supabase:**
+```
+Site URL: https://syncseo.io
+Redirect URLs:
+  - http://localhost:3000/auth/callback
+  - https://syncseo.io/auth/callback
+  - https://*.vercel.app/auth/callback
+```
+
+### Issue 3: Google OAuth Users Not Added to Brevo
+
+**Symptom:** Users who sign up via Google don't appear in the Brevo user list.
+
+**Diagnosis:**
+1. Check terminal for `[Auth Callback]` logs when user signs in
+2. Look for: `[Auth Callback] Adding new OAuth user to Brevo: email@gmail.com`
+3. Check if `isNewUser` is `true` or `false`
+
+**Root Cause Options:**
+- User is not new (has signed in before) - `isNewUser: false`
+- OAuth callback route not being hit (see Issue 2)
+- Brevo API call failing silently
+
+**Solution:**
+1. The fallback `useBrevoSync` hook syncs new OAuth users on dashboard load
+2. Check terminal for `[Brevo Sync] Syncing new OAuth user: email@gmail.com`
+3. User must be created within last 5 minutes to be considered "new"
+
+### Issue 4: Browser Cache Causing OAuth Redirect Issues
+
+**Symptom:** OAuth redirects to unexpected URLs (like `/mover` or old paths).
+
+**Diagnosis:** Try the same flow in incognito/private browsing mode.
+
+**Root Cause:** Browser has cached old OAuth redirect configurations.
+
+**Solution:**
+1. Clear browser cookies/cache for `localhost` domain
+2. In Chrome: `chrome://settings/cookies/detail?site=localhost` → Remove all
+3. Or use incognito mode for testing
+
+### Issue 5: Newsletter Popup Not Showing
+
+**Symptom:** Newsletter popup never appears for visitors.
+
+**Diagnosis checklist:**
+| Check | How to verify |
+|-------|---------------|
+| Not logged in | Check Supabase auth state |
+| Not already subscribed | `localStorage.getItem('newsletter_subscribed')` |
+| Not closed recently | `localStorage.getItem('newsletter_popup_closed_at')` |
+| Has scrolled | Scroll the page |
+| Waited 8 seconds | Wait after scrolling |
+
+**Solution:**
+```javascript
+// Clear localStorage to reset popup state
+localStorage.removeItem('newsletter_subscribed');
+localStorage.removeItem('newsletter_popup_closed_at');
+```
+
+---
+
 ## File Reference
 
 | File | Purpose |
 |------|---------|
 | `/src/lib/brevo/client.ts` | Brevo API utility functions |
+| `/src/lib/hooks/useBrevoSync.ts` | Fallback hook for OAuth user sync |
 | `/src/app/api/newsletter/subscribe/route.ts` | Newsletter subscription endpoint |
 | `/src/app/api/newsletter/subscribe-user/route.ts` | User registration endpoint |
+| `/src/app/auth/callback/route.ts` | OAuth callback with Brevo integration |
 | `/src/components/marketing/NewsletterPopup.tsx` | Newsletter popup component |
 | `/src/app/page.tsx` | Homepage with newsletter form |
-| `/src/app/(auth)/signup/page.tsx` | Signup with Brevo integration |
+| `/src/app/(auth)/signup/page.tsx` | Signup with Brevo & Google OAuth |
+| `/src/app/(auth)/login/page.tsx` | Login with Google OAuth |
+| `/src/app/(dashboard)/layout.tsx` | Dashboard layout with useBrevoSync hook |
 
 ---
 
@@ -519,7 +746,12 @@ The API key should **never** be in client-side code. All Brevo calls go through 
 | 2026-01-17 | Initial Brevo integration |
 | 2026-01-17 | Added newsletter popup |
 | 2026-01-17 | Added user signup integration |
+| 2026-01-20 | Added Google OAuth integration |
+| 2026-01-20 | Added OAuth callback route for Brevo sync |
+| 2026-01-20 | Added useBrevoSync fallback hook for dashboard |
+| 2026-01-20 | Documented Supabase OAuth redirect behavior |
+| 2026-01-20 | Added Known Issues & Solutions section |
 
 ---
 
-*Last updated: January 17, 2026*
+*Last updated: January 20, 2026*

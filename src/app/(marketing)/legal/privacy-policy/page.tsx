@@ -7,7 +7,7 @@ export default function PrivacyPolicyPage() {
                 <div className="mb-8">
                     <p className="text-sm font-medium text-indigo-600 dark:text-indigo-400 mb-2">Legal</p>
                     <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">Privacy Policy</h1>
-                    <p className="text-gray-500 dark:text-gray-400">Last updated: January 2025</p>
+                    <p className="text-gray-500 dark:text-gray-400">Last updated: January 21, 2025</p>
                 </div>
 
                 <div className="prose prose-lg max-w-none">
@@ -53,7 +53,9 @@ export default function PrivacyPolicyPage() {
                         <li>Detect, investigate, and prevent fraudulent transactions and abuse</li>
                     </ul>
 
-                    <h2 className="text-2xl font-bold text-gray-900 dark:text-white mt-10 mb-4">Analytics</h2>
+                    <h2 className="text-2xl font-bold text-gray-900 dark:text-white mt-10 mb-4">Analytics and Session Recording</h2>
+
+                    <h3 className="text-xl font-semibold text-gray-900 dark:text-white mt-6 mb-3">Google Analytics</h3>
                     <p className="text-gray-600 dark:text-gray-300">
                         We use Google Analytics to help us understand how visitors interact with our website.
                         Google Analytics collects information such as how often users visit the site, what pages
@@ -61,6 +63,23 @@ export default function PrivacyPolicyPage() {
                         information to improve our service. Google Analytics collects the IP address assigned
                         to you on the date you visit the site, but not your name or other identifying information.
                         You can opt out of Google Analytics by installing the Google Analytics opt-out browser add-on.
+                    </p>
+
+                    <h3 className="text-xl font-semibold text-gray-900 dark:text-white mt-6 mb-3">Microsoft Clarity</h3>
+                    <p className="text-gray-600 dark:text-gray-300">
+                        We use Microsoft Clarity, a user behavior analytics tool, to help us understand how users
+                        interact with our website. Clarity captures:
+                    </p>
+                    <ul className="list-disc pl-6 text-gray-600 dark:text-gray-300 space-y-2 mt-2">
+                        <li><strong>Session recordings:</strong> Anonymous recordings of user sessions showing mouse movements, clicks, and scrolling behavior</li>
+                        <li><strong>Heatmaps:</strong> Visual representations of where users click and scroll on pages</li>
+                        <li><strong>User insights:</strong> Aggregated data about user behavior patterns</li>
+                    </ul>
+                    <p className="text-gray-600 dark:text-gray-300 mt-4">
+                        Microsoft Clarity automatically masks sensitive information such as passwords, credit card numbers,
+                        and other form inputs to protect your privacy. The data collected is used solely to improve
+                        user experience and identify usability issues on our platform. For more information about how
+                        Microsoft processes this data, please visit Microsoft&apos;s privacy statement.
                     </p>
 
                     <h2 className="text-2xl font-bold text-gray-900 dark:text-white mt-10 mb-4">Data Storage and Security</h2>
@@ -73,7 +92,7 @@ export default function PrivacyPolicyPage() {
                     <h2 className="text-2xl font-bold text-gray-900 dark:text-white mt-10 mb-4">Data Sharing</h2>
                     <p className="text-gray-600 dark:text-gray-300">We do not sell your personal information. We may share your information with:</p>
                     <ul className="list-disc pl-6 text-gray-600 dark:text-gray-300 space-y-2">
-                        <li><strong>Service Providers:</strong> Third-party companies that help us operate our service (e.g., Stripe for payments, Supabase for data storage)</li>
+                        <li><strong>Service Providers:</strong> Third-party companies that help us operate our service (e.g., Stripe for payments, Supabase for data storage, Google Analytics and Microsoft Clarity for analytics)</li>
                         <li><strong>Legal Requirements:</strong> When required by law or to protect our rights</li>
                         <li><strong>Business Transfers:</strong> In connection with a merger, acquisition, or sale of assets</li>
                     </ul>
